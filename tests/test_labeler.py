@@ -122,20 +122,20 @@ def test_label_smc_setups_fvg_bullish():
     fvg_trades = labeled_df[labeled_df['setup_type'] == 0]
     assert len(fvg_trades) == 2
     
-    # Option A (Midpoint): Entry = 12.25, SL = 8.0, TP = 20.75
+    # Option A (Midpoint): Entry = 12.25, SL = 8.0, TP = 14.5
     trade = fvg_trades.iloc[0]
     assert trade['direction'] == 1
     assert np.isclose(trade['entry_price'], 12.25)
     assert np.isclose(trade['sl_price'], 8.0)
-    assert np.isclose(trade['tp_price'], 20.75)
+    assert np.isclose(trade['tp_price'], 14.5)
     assert trade['label'] == 1
     
-    # Option B (Golden Pocket): Entry = 11.719, SL = 8.0, TP = 19.157
+    # Option B (Golden Pocket): Entry = 11.719, SL = 8.0, TP = 14.5
     trade2 = fvg_trades.iloc[1]
     assert trade2['direction'] == 1
     assert np.isclose(trade2['entry_price'], 11.719)
     assert np.isclose(trade2['sl_price'], 8.0)
-    assert np.isclose(trade2['tp_price'], 19.157, atol=1e-3)
+    assert np.isclose(trade2['tp_price'], 14.5, atol=1e-3)
     assert trade2['label'] == 1
 
 def test_label_smc_setups_fvg_bearish():
@@ -183,18 +183,18 @@ def test_label_smc_setups_fvg_bearish():
     fvg_trades = labeled_df[labeled_df['setup_type'] == 0]
     assert len(fvg_trades) == 2
     
-    # Option A (Midpoint): Entry = 17.75, SL = 22.0, TP = 9.25
+    # Option A (Midpoint): Entry = 17.75, SL = 22.0, TP = 15.5
     trade = fvg_trades.iloc[0]
     assert trade['direction'] == -1
     assert np.isclose(trade['entry_price'], 17.75)
     assert np.isclose(trade['sl_price'], 22.0)
-    assert np.isclose(trade['tp_price'], 9.25)
+    assert np.isclose(trade['tp_price'], 15.5)
     assert trade['label'] == 1
     
-    # Option B (Golden Pocket): Entry = 18.281, SL = 22.0, TP = 10.843
+    # Option B (Golden Pocket): Entry = 18.281, SL = 22.0, TP = 15.5
     trade2 = fvg_trades.iloc[1]
     assert trade2['direction'] == -1
     assert np.isclose(trade2['entry_price'], 18.281)
     assert np.isclose(trade2['sl_price'], 22.0)
-    assert np.isclose(trade2['tp_price'], 10.843, atol=1e-3)
+    assert np.isclose(trade2['tp_price'], 15.5, atol=1e-3)
     assert trade2['label'] == 1

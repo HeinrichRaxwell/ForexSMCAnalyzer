@@ -9,7 +9,7 @@ import matplotlib.patches as patches
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.data_loader import connect_mt5, fetch_historical_data
-from src.smc_detector import detect_swing_points, detect_structures, detect_fvg_and_ob, detect_snr_and_swapzones
+from src.smc_detector import detect_swing_points, detect_structures, detect_fvg_and_ob, detect_snr_and_swapzones, detect_bpr
 from src.labeler import get_killzone
 from src.inference import predict_setup_probability
 from src.rejection_detector import detect_rejection_at_level
@@ -83,7 +83,7 @@ def generate_synthetic_data(num_candles=100, seed=42) -> pd.DataFrame:
     return df
 
 
-def plot_smc_chart(df: pd.DataFrame, title: str = "XAUUSD M15 - SMC/ICT Analysis", active_setups=None):
+def plot_smc_chart(df: pd.DataFrame, title: str = "XAUUSD - SMC/ICT Analysis", active_setups=None, output_filename="xauusd_smc_analysis.png"):
     """
     Plot a premium, dark-themed TradingView style chart displaying candlesticks
     along with detected Swing Points, BOS, CHoCH, FVGs, and Order Blocks.
@@ -144,43 +144,85 @@ def plot_smc_chart(df: pd.DataFrame, title: str = "XAUUSD M15 - SMC/ICT Analysis
         if 'FVG_Type' in df.columns and row['FVG_Type'] is not None:
             is_bull_fvg = row['FVG_Type'] == 'BULLISH'
             fvg_color = '#10b981' if is_bull_fvg else '#ef4444'
-            # Render a shaded rectangle spanning from candle i-2 to i
-            rect_fvg = patches.Rectangle((idx - 2, row['FVG_Bottom']), 2, row['FVG_Top'] - row['FVG_Bottom'],
-                                         facecolor=fvg_color, alpha=0.15, edgecolor='none', zorder=1)
-            ax.add_patch(rect_fvg)
             
-            # Show Fibo levels (0.5 and 0.618 zones) on the chart
-            fibo_0_5_val = row.get('FVG_Fibo_0.5', np.nan)
-            fibo_0_618_val = row.get('FVG_Fibo_0.618', np.nan)
-            if pd.notna(fibo_0_5_val) and pd.notna(fibo_0_618_val):
-                rect_fib = patches.Rectangle((idx - 2, min(fibo_0_5_val, fibo_0_618_val)), 2, abs(fibo_0_5_val - fibo_0_618_val),
-                                             facecolor='#eab308', alpha=0.3, edgecolor='none', zorder=1)
-                ax.add_patch(rect_fib)
+            # Check mitigation from idx+1 to end of df
+            mitigated = False
+            for j in range(idx + 1, len(df)):
+                if is_bull_fvg:
+                    if df['Low'].iloc[j] <= row['FVG_Top']:
+                        mitigated = True
+                        break
+                else:
+                    if df['High'].iloc[j] >= row['FVG_Bottom']:
+                        mitigated = True
+                        break
+            
+            if mitigated:
+                # Mitigated: draw only small block at creation, low opacity, no label
+                rect_fvg = patches.Rectangle((idx - 2, row['FVG_Bottom']), 2, row['FVG_Top'] - row['FVG_Bottom'],
+                                             facecolor=fvg_color, alpha=0.04, edgecolor='none', zorder=1)
+                ax.add_patch(rect_fvg)
+            else:
+                # Active (Unmitigated): extend all the way to the right edge
+                width = len(df) - (idx - 2)
+                rect_fvg = patches.Rectangle((idx - 2, row['FVG_Bottom']), width, row['FVG_Top'] - row['FVG_Bottom'],
+                                             facecolor=fvg_color, alpha=0.10, edgecolor=fvg_color, linestyle=':', linewidth=0.5, zorder=1)
+                ax.add_patch(rect_fvg)
                 
-            # Add small text label inside FVG
-            label_y = (row['FVG_Top'] + row['FVG_Bottom']) / 2
-            ax.text(idx - 1, label_y, "FVG", color=fvg_color, fontsize=7, alpha=0.7, ha='center', va='center')
+                # Show Fibo levels (0.5 and 0.618 zones) on the chart for active FVG
+                fibo_0_5_val = row.get('FVG_Fibo_0.5', np.nan)
+                fibo_0_618_val = row.get('FVG_Fibo_0.618', np.nan)
+                if pd.notna(fibo_0_5_val) and pd.notna(fibo_0_618_val):
+                    rect_fib = patches.Rectangle((idx - 2, min(fibo_0_5_val, fibo_0_618_val)), width, abs(fibo_0_5_val - fibo_0_618_val),
+                                                 facecolor='#eab308', alpha=0.08, edgecolor='none', zorder=1)
+                    ax.add_patch(rect_fib)
+                    
+                # Add text label ONLY for active FVG
+                label_y = (row['FVG_Top'] + row['FVG_Bottom']) / 2
+                ax.text(idx + 1, label_y, "Active FVG", color=fvg_color, fontsize=6.5, alpha=0.7, ha='left', va='center', fontweight='bold')
             
         # 5. Order Blocks (OB) Shading
         if 'OB_Type' in df.columns and row['OB_Type'] is not None:
             is_bull_ob = row['OB_Type'] == 'BULLISH'
             ob_color = '#3b82f6' if is_bull_ob else '#d97706'
-            label = "Bull OB" if is_bull_ob else "Bear OB"
-            # Draw OB band extending forward
-            width = min(15, len(df) - idx)
-            rect_ob = patches.Rectangle((idx, row['OB_Bottom']), width, row['OB_Top'] - row['OB_Bottom'],
-                                        facecolor=ob_color, alpha=0.1, edgecolor=ob_color, 
-                                        linestyle='--', linewidth=0.8, zorder=1)
-            ax.add_patch(rect_ob)
             
-            # Show if OB is mitigated
             if row['OB_Mitigated']:
-                label += " (Mitigated)"
-                text_color = '#9ca3af'
+                # Mitigated: draw only small block at creation, low opacity, no label
+                rect_ob = patches.Rectangle((idx, row['OB_Bottom']), 2, row['OB_Top'] - row['OB_Bottom'],
+                                            facecolor=ob_color, alpha=0.03, edgecolor='none', zorder=1)
+                ax.add_patch(rect_ob)
             else:
-                text_color = ob_color
+                # Active (Unmitigated): extend all the way to the right
+                width = len(df) - idx
+                rect_ob = patches.Rectangle((idx, row['OB_Bottom']), width, row['OB_Top'] - row['OB_Bottom'],
+                                            facecolor=ob_color, alpha=0.08, edgecolor=ob_color, 
+                                            linestyle='--', linewidth=0.6, zorder=1)
+                ax.add_patch(rect_ob)
                 
-            ax.text(idx + 0.2, row['OB_Top'] + 0.2, label, color=text_color, fontsize=7, fontweight='bold')
+                # Print label only for active OB
+                label = "Bull OB" if is_bull_ob else "Bear OB"
+                ax.text(idx + 0.5, row['OB_Top'] + 0.1, label, color=ob_color, fontsize=6.5, fontweight='bold', alpha=0.8)
+            
+        # 5.5. Balanced Price Ranges (BPR) Shading
+        if 'BPR_Type' in df.columns and pd.notna(row.get('BPR_Type')) and row['BPR_Type'] is not None:
+            bpr_color = '#d946ef'  # Magenta for BPR
+            
+            if row['BPR_Mitigated']:
+                # Mitigated: draw small block, low opacity, no label
+                rect_bpr = patches.Rectangle((idx - 2, row['BPR_Bottom']), 2, row['BPR_Top'] - row['BPR_Bottom'],
+                                             facecolor=bpr_color, alpha=0.03, edgecolor='none', zorder=1)
+                ax.add_patch(rect_bpr)
+            else:
+                # Active (Unmitigated): extend to the right
+                width = len(df) - (idx - 2)
+                rect_bpr = patches.Rectangle((idx - 2, row['BPR_Bottom']), width, row['BPR_Top'] - row['BPR_Bottom'],
+                                             facecolor=bpr_color, alpha=0.08, edgecolor=bpr_color, 
+                                             linestyle='-.', linewidth=0.6, zorder=1)
+                ax.add_patch(rect_bpr)
+                
+                # Print label only for active BPR
+                bpr_lbl = f"{'Bull' if row['BPR_Type'] == 'BULLISH' else 'Bear'} BPR"
+                ax.text(idx + 0.5, row['BPR_Top'] + 0.1, bpr_lbl, color=bpr_color, fontsize=6.5, fontweight='bold', alpha=0.8)
             
     # Chart titles and styling
     ax.set_title(title, color='#e5e7eb', fontsize=14, fontweight='bold', pad=20)
@@ -225,6 +267,19 @@ def plot_smc_chart(df: pd.DataFrame, title: str = "XAUUSD M15 - SMC/ICT Analysis
                 # TP 2 (Cyan/Teal)
                 ax.plot(x_range, [setup['tp2_price'], setup['tp2_price']], color='#0ea5e9', linestyle='-.', linewidth=1.2, zorder=4)
                 ax.text(end_x + 0.2, setup['tp2_price'], 'TP 2 (Dyn)', color='#0ea5e9', fontsize=7, fontweight='bold', va='center')
+
+                # TradingView-style shaded position zones (Green for Profit, Red for Loss)
+                rect_tp = patches.Rectangle((idx, min(setup['entry_price'], setup['tp_price'])), 
+                                            end_x - idx, 
+                                            abs(setup['tp_price'] - setup['entry_price']),
+                                            facecolor='#089981', alpha=0.15, edgecolor='none', zorder=1)
+                ax.add_patch(rect_tp)
+                
+                rect_sl = patches.Rectangle((idx, min(setup['entry_price'], setup['sl_price'])), 
+                                            end_x - idx, 
+                                            abs(setup['sl_price'] - setup['entry_price']),
+                                            facecolor='#f23645', alpha=0.15, edgecolor='none', zorder=1)
+                ax.add_patch(rect_sl)
                 
                 # If FVG setup, show the Fibo levels 0.5 and 0.618 and the zone
                 if setup['setup_type'] == 0:
@@ -271,7 +326,6 @@ def plot_smc_chart(df: pd.DataFrame, title: str = "XAUUSD M15 - SMC/ICT Analysis
                 bbox=dict(facecolor='#1e222d', alpha=0.85, edgecolor='#2a2e39', boxstyle='round,pad=0.5'), zorder=5)
                 
     plt.tight_layout()
-    output_filename = "xauusd_smc_analysis.png"
     plt.savefig(output_filename, dpi=180, facecolor='#131722')
     plt.close()
     print(f"SMC analysis visualization successfully saved as '{output_filename}'")
@@ -343,8 +397,6 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
         if pd.notna(ob_type) and ob_type is not None:
             # Check if it remains unmitigated (OB_Mitigated is False)
             if not df['OB_Mitigated'].iloc[i]:
-                ob_top = df['OB_Top'].iloc[i]
-                ob_bottom = df['OB_Bottom'].iloc[i]
                 t_val = pd.to_datetime(df['time'].iloc[i])
                 hour_val = int(t_val.hour)
                 day_of_week_val = int(t_val.dayofweek)
@@ -354,32 +406,24 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
                 if pd.isna(atr_val):
                     atr_val = 1.0
                 
-                if ob_type == 'BULLISH':
-                    direction = 1
-                    entry = ob_top
-                    sl = ob_bottom - buffer
-                    tp = entry + (entry - sl) * 2
-                else:
-                    direction = -1
-                    entry = ob_bottom
-                    sl = ob_top + buffer
-                    tp = entry - (sl - entry) * 2
+                direction = 1 if ob_type == 'BULLISH' else -1
                 
-                risk_pips = (entry - sl) if direction == 1 else (sl - entry)
+                # Fibo levels for OB
+                fibo_0_5 = float(df['OB_Fibo_0.5'].iloc[i])
+                fibo_0_618 = float(df['OB_Fibo_0.618'].iloc[i])
+                fibo_0_0 = float(df['OB_Fibo_0.0'].iloc[i])
+                ob_sl = float(df['OB_SL'].iloc[i])
                 
-                # Check rejection confirmation at the entry level
-                rejection_confirmed = detect_rejection_at_level(df, entry, direction)
+                # --- Option A: Midpoint (Fibo 0.5) ---
+                entry_a = fibo_0_5
+                sl_a = ob_sl
+                tp_a = fibo_0_0
+                risk_pips_a = abs(entry_a - sl_a)
+                rejection_confirmed_a = detect_rejection_at_level(df, entry_a, direction)
                 
-                # Find Dynamic TP 2 using opposite target search
-                tp_dynamic = find_dynamic_tp(df, entry, direction)
-                if tp_dynamic is not None:
-                    tp2 = tp_dynamic
-                else:
-                    # Fallback to standard 1:3 RR
-                    tp2 = entry + (entry - sl) * 3 if direction == 1 else entry - (sl - entry) * 3
-                
-                # Extended Target (TP 3) at 1:4 RR
-                tp3 = entry + (entry - sl) * 4 if direction == 1 else entry - (sl - entry) * 4
+                tp_dynamic_a = find_dynamic_tp(df, entry_a, direction)
+                tp2_a = tp_dynamic_a if tp_dynamic_a is not None else (entry_a + risk_pips_a * 3 if direction == 1 else entry_a - risk_pips_a * 3)
+                tp3_a = entry_a + risk_pips_a * 4 if direction == 1 else entry_a - risk_pips_a * 4
                 
                 active_setups.append({
                     'index': i,
@@ -388,20 +432,54 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
                     'day_of_week': day_of_week_val,
                     'setup_type': 1,  # OB
                     'direction': direction,
-                    'entry_price': entry,
-                    'sl_price': sl,
-                    'tp_price': tp,
-                    'tp2_price': tp2,
-                    'tp3_price': tp3,
-                    'risk_pips': risk_pips,
+                    'entry_price': entry_a,
+                    'sl_price': sl_a,
+                    'tp_price': tp_a,
+                    'tp2_price': tp2_a,
+                    'tp3_price': tp3_a,
+                    'risk_pips': risk_pips_a,
                     'atr_14': atr_val,
                     'trend': trend_val,
-                    'relative_risk': risk_pips / atr_val,
+                    'relative_risk': risk_pips_a / atr_val,
                     'killzone': killzone_val,
                     'fvg_width': 0.0,
                     'relative_fvg_width': 0.0,
-                    'option_name': 'Standard',
-                    'rejection_confirmed': rejection_confirmed
+                    'option_name': 'OB Midpoint 0.5',
+                    'rejection_confirmed': rejection_confirmed_a
+                })
+                
+                # --- Option B: Golden Pocket (Fibo 0.618) ---
+                entry_b = fibo_0_618
+                sl_b = ob_sl
+                tp_b = fibo_0_0
+                risk_pips_b = abs(entry_b - sl_b)
+                rejection_confirmed_b = detect_rejection_at_level(df, entry_b, direction)
+                
+                tp_dynamic_b = find_dynamic_tp(df, entry_b, direction)
+                tp2_b = tp_dynamic_b if tp_dynamic_b is not None else (entry_b + risk_pips_b * 3 if direction == 1 else entry_b - risk_pips_b * 3)
+                tp3_b = entry_b + risk_pips_b * 4 if direction == 1 else entry_b - risk_pips_b * 4
+                
+                active_setups.append({
+                    'index': i,
+                    'time': df['time'].iloc[i],
+                    'hour': hour_val,
+                    'day_of_week': day_of_week_val,
+                    'setup_type': 1,  # OB
+                    'direction': direction,
+                    'entry_price': entry_b,
+                    'sl_price': sl_b,
+                    'tp_price': tp_b,
+                    'tp2_price': tp2_b,
+                    'tp3_price': tp3_b,
+                    'risk_pips': risk_pips_b,
+                    'atr_14': atr_val,
+                    'trend': trend_val,
+                    'relative_risk': risk_pips_b / atr_val,
+                    'killzone': killzone_val,
+                    'fvg_width': 0.0,
+                    'relative_fvg_width': 0.0,
+                    'option_name': 'OB GoldenPocket 0.618',
+                    'rejection_confirmed': rejection_confirmed_b
                 })
                 
     # 2. FVG Setups
@@ -631,6 +709,99 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
                         'rejection_confirmed': rejection_confirmed
                     })
                     
+    # 5. BPR Setups
+    if 'BPR_Type' in df.columns:
+        for i in range(len(df)):
+            bpr_type = df['BPR_Type'].iloc[i]
+            if pd.notna(bpr_type) and bpr_type is not None:
+                if not df['BPR_Mitigated'].iloc[i]:
+                    bpr_top = df['BPR_Top'].iloc[i]
+                    bpr_bottom = df['BPR_Bottom'].iloc[i]
+                    t_val = pd.to_datetime(df['time'].iloc[i])
+                    hour_val = int(t_val.hour)
+                    day_of_week_val = int(t_val.dayofweek)
+                    trend_val = int(df['Trend'].iloc[i])
+                    killzone_val = get_killzone(hour_val)
+                    atr_val = df['ATR_14'].iloc[i] if 'ATR_14' in df.columns else 1.0
+                    if pd.isna(atr_val):
+                        atr_val = 1.0
+                        
+                    direction = 1 if bpr_type == 'BULLISH' else -1
+                    
+                    # Fibo levels for BPR
+                    fibo_0_5 = float(df['BPR_Fibo_0.5'].iloc[i])
+                    fibo_0_618 = float(df['BPR_Fibo_0.618'].iloc[i])
+                    fibo_0_0 = float(df['BPR_Fibo_0.0'].iloc[i])
+                    bpr_sl = float(df['BPR_SL'].iloc[i])
+                    
+                    # --- Option A: Midpoint (Fibo 0.5) ---
+                    entry_a = fibo_0_5
+                    sl_a = bpr_sl
+                    tp_a = fibo_0_0
+                    risk_pips_a = abs(entry_a - sl_a)
+                    rejection_confirmed_a = detect_rejection_at_level(df, entry_a, direction)
+                    
+                    tp_dynamic_a = find_dynamic_tp(df, entry_a, direction)
+                    tp2_a = tp_dynamic_a if tp_dynamic_a is not None else (entry_a + risk_pips_a * 3 if direction == 1 else entry_a - risk_pips_a * 3)
+                    tp3_a = entry_a + risk_pips_a * 4 if direction == 1 else entry_a - risk_pips_a * 4
+                    
+                    active_setups.append({
+                        'index': i,
+                        'time': df['time'].iloc[i],
+                        'hour': hour_val,
+                        'day_of_week': day_of_week_val,
+                        'setup_type': 0,  # Treat as FVG for ML to leverage FVG features
+                        'direction': direction,
+                        'entry_price': entry_a,
+                        'sl_price': sl_a,
+                        'tp_price': tp_a,
+                        'tp2_price': tp2_a,
+                        'tp3_price': tp3_a,
+                        'risk_pips': risk_pips_a,
+                        'atr_14': atr_val,
+                        'trend': trend_val,
+                        'relative_risk': risk_pips_a / atr_val,
+                        'killzone': killzone_val,
+                        'fvg_width': abs(bpr_top - bpr_bottom),
+                        'relative_fvg_width': abs(bpr_top - bpr_bottom) / atr_val,
+                        'option_name': 'BPR Midpoint 0.5',
+                        'rejection_confirmed': rejection_confirmed_a
+                    })
+                    
+                    # --- Option B: Golden Pocket (Fibo 0.618) ---
+                    entry_b = fibo_0_618
+                    sl_b = bpr_sl
+                    tp_b = fibo_0_0
+                    risk_pips_b = abs(entry_b - sl_b)
+                    rejection_confirmed_b = detect_rejection_at_level(df, entry_b, direction)
+                    
+                    tp_dynamic_b = find_dynamic_tp(df, entry_b, direction)
+                    tp2_b = tp_dynamic_b if tp_dynamic_b is not None else (entry_b + risk_pips_b * 3 if direction == 1 else entry_b - risk_pips_b * 3)
+                    tp3_b = entry_b + risk_pips_b * 4 if direction == 1 else entry_b - risk_pips_b * 4
+                    
+                    active_setups.append({
+                        'index': i,
+                        'time': df['time'].iloc[i],
+                        'hour': hour_val,
+                        'day_of_week': day_of_week_val,
+                        'setup_type': 0,  # Treat as FVG for ML to leverage FVG features
+                        'direction': direction,
+                        'entry_price': entry_b,
+                        'sl_price': sl_b,
+                        'tp_price': tp_b,
+                        'tp2_price': tp2_b,
+                        'tp3_price': tp3_b,
+                        'risk_pips': risk_pips_b,
+                        'atr_14': atr_val,
+                        'trend': trend_val,
+                        'relative_risk': risk_pips_b / atr_val,
+                        'killzone': killzone_val,
+                        'fvg_width': abs(bpr_top - bpr_bottom),
+                        'relative_fvg_width': abs(bpr_top - bpr_bottom) / atr_val,
+                        'option_name': 'BPR GoldenPocket 0.618',
+                        'rejection_confirmed': rejection_confirmed_b
+                    })
+                    
     return active_setups
 
 def extract_active_htf_fvgs(df: pd.DataFrame) -> list:
@@ -714,6 +885,7 @@ def main():
         df_tf = detect_structures(df_tf)
         df_tf = detect_fvg_and_ob(df_tf, symbol=symbol)
         df_tf = detect_snr_and_swapzones(df_tf)
+        df_tf = detect_bpr(df_tf, symbol=symbol)
         
         # Calculate ATR_14
         close_prev = df_tf['Close'].shift(1).fillna(df_tf['Open'])
@@ -752,19 +924,24 @@ def main():
         
     # Timeframe weights to check hierarchy
     tf_weights = {'M15': 1, 'M30': 2, 'H1': 3, 'H4': 4, 'D1': 5}
+       # Check if the setup entry price falls inside any active HTF FVG of the same direction,
+    # check for HTF trend conflicts, and re-check rejection on LTF (M15) for HTF setups.
+    tf_minutes_map = {'M15': 15, 'M30': 30, 'H1': 60, 'H4': 240, 'D1': 1440}
     
-    # Check if the setup entry price falls inside any active HTF FVG of the same direction
     for setup in all_setups:
         setup['htf_prioritized'] = False
         setup['matching_htf_fvgs'] = []
+        setup['suppressed'] = False
+        setup['htf_conflict_reason'] = ""
         setup_tf = setup['timeframe']
         
+        # Look for same-direction HTF FVGs for prioritization, and opposite-direction for suppression
         for htf_name in ['M30', 'H1', 'H4', 'D1']:
             if tf_weights[htf_name] > tf_weights[setup_tf]:
+                # 1. Prioritization
                 for htf_fvg in active_fvgs_by_tf[htf_name]:
-                    # Check same direction
                     is_same_direction = (setup['direction'] == 1 and htf_fvg['type'] == 'BULLISH') or \
-                                        (setup['direction'] == -1 and htf_fvg['type'] == 'BEARISH')
+                                         (setup['direction'] == -1 and htf_fvg['type'] == 'BEARISH')
                     if is_same_direction:
                         entry = setup['entry_price']
                         if entry >= htf_fvg['bottom'] and entry <= htf_fvg['top']:
@@ -773,10 +950,27 @@ def main():
                             fvg_info['timeframe'] = htf_name
                             setup['matching_htf_fvgs'].append(fvg_info)
                             
+                # 2. Conflict Suppression
+                for htf_fvg in active_fvgs_by_tf[htf_name]:
+                    is_opposite_direction = (setup['direction'] == 1 and htf_fvg['type'] == 'BEARISH') or \
+                                             (setup['direction'] == -1 and htf_fvg['type'] == 'BULLISH')
+                    if is_opposite_direction:
+                        setup['suppressed'] = True
+                        setup['htf_conflict_reason'] = f"Opposite active {htf_name} FVG"
+                        break
+                        
+        # 3. Check Rejection on LTF (M15) for setups on higher timeframes
+        if setup_tf != 'M15':
+            m15_df = timeframes_data.get('M15')
+            if m15_df is not None and not m15_df.empty:
+                rej_confirmed = detect_rejection_at_level(m15_df, setup['entry_price'], setup['direction'], lookback=15)
+                setup['rejection_confirmed'] = rej_confirmed
+                            
     # Query model predictions for each setup
     filtered_setups_with_prob = []
     for setup in all_setups:
         features = {
+            'timeframe': tf_minutes_map[setup['timeframe']],
             'hour': setup['hour'],
             'day_of_week': setup['day_of_week'],
             'setup_type': setup['setup_type'],
@@ -795,7 +989,11 @@ def main():
         try:
             prob = predict_setup_probability(features)
             setup['probability'] = prob
-            setup['status'] = "HIGH CONFIDENCE SIGNAL" if prob >= 0.70 else "FILTERED (Low Confidence)"
+            
+            if setup['suppressed']:
+                setup['status'] = "FILTERED (HTF Conflict)"
+            else:
+                setup['status'] = "HIGH CONFIDENCE SIGNAL" if prob >= 0.70 else "FILTERED (Low Confidence)"
         except Exception as e:
             print(f"Error predicting setup probability: {e}")
             setup['probability'] = 0.0
@@ -854,11 +1052,41 @@ def main():
     print(f"High Confidence Signals: {sum(1 for s in filtered_setups_with_prob if s['status'] == 'HIGH CONFIDENCE SIGNAL')}")
     print("-------------------------\n")
     
-    # Generate visualization (only for M15 setups to avoid index mismatch on M15 chart)
-    chart_title = "XAUUSD M15 - Exness Live Data" if mt5_active else "XAUUSD M15 - Simulated Market Structure"
-    m15_filtered_setups = [s for s in filtered_setups_with_prob if s.get('timeframe') == 'M15']
-    plot_smc_chart(df_m15, title=chart_title, active_setups=m15_filtered_setups)
-    print("Phase 2 complete! Signal Filtering Engine & Self-Learning Loop successfully integrated with MTF.")
+    # Generate visualizations for all timeframes
+    print("Generating visualizations for all timeframes...")
+    artifact_dir = os.path.join(os.environ.get('APPDATA', ''), 'gemini', 'antigravity-cli', 'brain', 'aade0c14-67d6-4b69-a8a6-5834a430a34c')
+    if not os.path.exists(artifact_dir):
+        artifact_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'brain', 'aade0c14-67d6-4b69-a8a6-5834a430a34c')
+    
+    import shutil
+    
+    # Save standard xauusd_smc_analysis.png as M15 for compatibility
+    chart_title_m15 = f"XAUUSD M15 - {'Exness Live' if mt5_active else 'Simulated'} Market Structure"
+    m15_setups = [s for s in filtered_setups_with_prob if s.get('timeframe') == 'M15']
+    plot_smc_chart(timeframes_data['M15'], title=chart_title_m15, active_setups=m15_setups, output_filename="xauusd_smc_analysis.png")
+    if os.path.exists(artifact_dir):
+        try:
+            shutil.copy("xauusd_smc_analysis.png", os.path.join(artifact_dir, "xauusd_smc_analysis.png"))
+        except Exception as e:
+            print(f"Error copying general chart: {e}")
+
+    for tf_name in ['D1', 'H4', 'H1', 'M30', 'M15']:
+        tf_df = timeframes_data[tf_name]
+        tf_setups = [s for s in filtered_setups_with_prob if s.get('timeframe') == tf_name]
+        tf_title = f"XAUUSD {tf_name} - {'Exness Live' if mt5_active else 'Simulated'} Market Structure"
+        tf_filename = f"xauusd_smc_analysis_{tf_name}.png"
+        
+        plot_smc_chart(tf_df, title=tf_title, active_setups=tf_setups, output_filename=tf_filename)
+        
+        # Copy to artifact folder
+        if os.path.exists(artifact_dir):
+            try:
+                shutil.copy(tf_filename, os.path.join(artifact_dir, tf_filename))
+                print(f"Saved and copied {tf_filename} to artifacts.")
+            except Exception as e:
+                print(f"Error copying {tf_filename}: {e}")
+                
+    print("Phase 2 complete! Signal Filtering Engine & Self-Learning Loop successfully integrated with MTF and BPR.")
 
 if __name__ == "__main__":
     main()

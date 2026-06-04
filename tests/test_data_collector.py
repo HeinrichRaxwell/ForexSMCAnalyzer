@@ -49,13 +49,14 @@ def test_download_bulk_data_success(mock_shutdown, mock_copy_rates, mock_symbol_
     )
     
     # Verify outputs
-    expected_file = os.path.join(str(output_dir), "historical_xauusd.csv")
+    expected_file = os.path.join(str(output_dir), "historical_xauusd_15.csv")
     assert saved_file == expected_file
     assert os.path.exists(expected_file)
     
     # Verify data in CSV matches
     saved_df = pd.read_csv(expected_file)
     assert len(saved_df) == 2
+
     assert list(saved_df.columns) == ['time', 'Open', 'High', 'Low', 'Close', 'Volume']
     assert saved_df['Close'].iloc[0] == 1962.0
     

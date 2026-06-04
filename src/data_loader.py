@@ -66,3 +66,51 @@ def fetch_historical_data(symbol: str, timeframe: int, num_candles: int) -> pd.D
     
     # Return formatted columns
     return df[['time', 'Open', 'High', 'Low', 'Close', 'Volume']]
+
+def fetch_historical_data_range(symbol: str, timeframe: int, date_from: datetime, date_to: datetime) -> pd.DataFrame:
+    """
+    Fetch historical candlestick (OHLCV) data from MT5 within a specific date range.
+    Tries common broker variations (e.g., symbol suffix 'm' for Exness).
+    
+    Args:
+        symbol (str): The trading symbol (e.g., 'XAUUSD').
+        timeframe (int): MT5 timeframe constant (e.g., mt5.TIMEFRAME_M15).
+        date_from (datetime): Start date.
+        date_to (datetime): End date.
+        
+    Returns:
+        pd.DataFrame: Formatted DataFrame with columns ['time', 'Open', 'High', 'Low', 'Close', 'Volume'].
+        
+    Raises:
+        ValueError: If data fetching fails or returned data is empty.
+    """
+    symbols_to_try = [symbol, symbol + "m", symbol + ".", "GOLD"]
+    rates = None
+    active_symbol = None
+    
+    for sym in symbols_to_try:
+        mt5.symbol_select(sym, True)
+        rates = mt5.copy_rates_range(sym, timeframe, date_from, date_to)
+        if rates is not None and len(rates) > 0:
+            active_symbol = sym
+            print(f"Successfully fetched range data for symbol: {sym}")
+            break
+            
+    if rates is None or len(rates) == 0:
+        raise ValueError(f"Failed to fetch historical data for symbol: {symbol} in range {date_from} to {date_to}")
+    
+    df = pd.DataFrame(rates)
+    df['time'] = pd.to_datetime(df['time'], unit='s')
+    df.rename(
+        columns={
+            'open': 'Open',
+            'high': 'High',
+            'low': 'Low',
+            'close': 'Close',
+            'tick_volume': 'Volume'
+        },
+        inplace=True
+    )
+    
+    return df[['time', 'Open', 'High', 'Low', 'Close', 'Volume']]
+

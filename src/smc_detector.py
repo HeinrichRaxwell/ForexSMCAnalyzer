@@ -124,6 +124,11 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
     df['OB_Type'] = None
     df['OB_Top'] = np.nan
     df['OB_Bottom'] = np.nan
+    df['OB_Fibo_0.0'] = np.nan
+    df['OB_Fibo_0.5'] = np.nan
+    df['OB_Fibo_0.618'] = np.nan
+    df['OB_Fibo_1.0'] = np.nan
+    df['OB_SL'] = np.nan
     df['OB_Mitigated'] = False
     
     # 3. Initialize Breaker Block (BB) columns
@@ -218,9 +223,23 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
                         ob_idx = j
                         break
                 if ob_idx is not None:
+                    fibo_1_0 = float(df['Low'].iloc[ob_idx])
+                    fibo_0_0 = float(df['High'].iloc[i])
+                    buffer = 20 * get_pip_multiplier(symbol)
+                    
+                    fibo_0_5 = fibo_0_0 - 0.5 * (fibo_0_0 - fibo_1_0)
+                    fibo_0_618 = fibo_0_0 - 0.618 * (fibo_0_0 - fibo_1_0)
+                    ob_sl = fibo_1_0 - buffer
+                    
                     df.at[df.index[i], 'OB_Type'] = 'BULLISH'
                     df.at[df.index[i], 'OB_Top'] = df['High'].iloc[ob_idx]
                     df.at[df.index[i], 'OB_Bottom'] = df['Low'].iloc[ob_idx]
+                    df.at[df.index[i], 'OB_Fibo_0.0'] = fibo_0_0
+                    df.at[df.index[i], 'OB_Fibo_0.5'] = fibo_0_5
+                    df.at[df.index[i], 'OB_Fibo_0.618'] = fibo_0_618
+                    df.at[df.index[i], 'OB_Fibo_1.0'] = fibo_1_0
+                    df.at[df.index[i], 'OB_SL'] = ob_sl
+                    
                     active_obs.append({
                         'index': i,
                         'ob_index': ob_idx,
@@ -236,9 +255,23 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
                         ob_idx = j
                         break
                 if ob_idx is not None:
+                    fibo_1_0 = float(df['High'].iloc[ob_idx])
+                    fibo_0_0 = float(df['Low'].iloc[i])
+                    buffer = 20 * get_pip_multiplier(symbol)
+                    
+                    fibo_0_5 = fibo_0_0 + 0.5 * (fibo_1_0 - fibo_0_0)
+                    fibo_0_618 = fibo_0_0 + 0.618 * (fibo_1_0 - fibo_0_0)
+                    ob_sl = fibo_1_0 + buffer
+                    
                     df.at[df.index[i], 'OB_Type'] = 'BEARISH'
                     df.at[df.index[i], 'OB_Top'] = df['High'].iloc[ob_idx]
                     df.at[df.index[i], 'OB_Bottom'] = df['Low'].iloc[ob_idx]
+                    df.at[df.index[i], 'OB_Fibo_0.0'] = fibo_0_0
+                    df.at[df.index[i], 'OB_Fibo_0.5'] = fibo_0_5
+                    df.at[df.index[i], 'OB_Fibo_0.618'] = fibo_0_618
+                    df.at[df.index[i], 'OB_Fibo_1.0'] = fibo_1_0
+                    df.at[df.index[i], 'OB_SL'] = ob_sl
+                    
                     active_obs.append({
                         'index': i,
                         'ob_index': ob_idx,
@@ -399,5 +432,123 @@ def detect_snr_and_swapzones(df: pd.DataFrame) -> pd.DataFrame:
         active_swapzones = still_active_swaps
         
     return df
+
+def detect_bpr(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
+    """
+    Detect Balanced Price Ranges (BPR) which are formed when a bullish FVG and a bearish FVG
+    overlap in the same price range within a short lookback window (e.g. 15 candles).
+    """
+    df = df.copy()
+    
+    # Initialize columns
+    df['BPR_Type'] = None
+    df['BPR_Top'] = np.nan
+    df['BPR_Bottom'] = np.nan
+    df['BPR_Fibo_0.0'] = np.nan
+    df['BPR_Fibo_0.5'] = np.nan
+    df['BPR_Fibo_0.618'] = np.nan
+    df['BPR_Fibo_1.0'] = np.nan
+    df['BPR_SL'] = np.nan
+    df['BPR_Mitigated'] = False
+    
+    active_bprs = [] # list of dicts with 'index', 'type', 'top', 'bottom'
+    
+    # Find all FVGs first for lookback check
+    # Note: df already has FVG columns populated from detect_fvg_and_ob
+    fvg_types = df['FVG_Type'].values if 'FVG_Type' in df.columns else [None] * len(df)
+    fvg_tops = df['FVG_Top'].values if 'FVG_Top' in df.columns else [np.nan] * len(df)
+    fvg_bottoms = df['FVG_Bottom'].values if 'FVG_Bottom' in df.columns else [np.nan] * len(df)
+    
+    for i in range(2, len(df)):
+        current_type = fvg_types[i]
+        if current_type is not None and pd.notna(current_type):
+            curr_top = fvg_tops[i]
+            curr_bottom = fvg_bottoms[i]
+            
+            # Look back up to 15 candles for opposite FVG
+            lookback = 15
+            start_k = max(2, i - lookback)
+            for k in range(start_k, i):
+                prev_type = fvg_types[k]
+                if prev_type is not None and pd.notna(prev_type) and prev_type != current_type:
+                    prev_top = fvg_tops[k]
+                    prev_bottom = fvg_bottoms[k]
+                    
+                    # Calculate overlap range
+                    overlap_bottom = max(curr_bottom, prev_bottom)
+                    overlap_top = min(curr_top, prev_top)
+                    
+                    if overlap_bottom < overlap_top:
+                        # Overlap exists! Create a BPR at index i
+                        bpr_type = 'BULLISH' if current_type == 'BULLISH' else 'BEARISH'
+                        df.at[df.index[i], 'BPR_Type'] = bpr_type
+                        df.at[df.index[i], 'BPR_Top'] = overlap_top
+                        df.at[df.index[i], 'BPR_Bottom'] = overlap_bottom
+                        
+                        pip_multiplier = get_pip_multiplier(symbol)
+                        buffer = 20 * pip_multiplier
+                        
+                        if bpr_type == 'BULLISH':
+                            fibo_1_0 = overlap_bottom
+                            fibo_0_0 = float(df['High'].iloc[i])
+                            fibo_0_5 = fibo_0_0 - 0.5 * (fibo_0_0 - fibo_1_0)
+                            fibo_0_618 = fibo_0_0 - 0.618 * (fibo_0_0 - fibo_1_0)
+                            bpr_sl = fibo_1_0 - buffer
+                        else:
+                            fibo_1_0 = overlap_top
+                            fibo_0_0 = float(df['Low'].iloc[i])
+                            fibo_0_5 = fibo_0_0 + 0.5 * (fibo_1_0 - fibo_0_0)
+                            fibo_0_618 = fibo_0_0 + 0.618 * (fibo_1_0 - fibo_0_0)
+                            bpr_sl = fibo_1_0 + buffer
+                            
+                        df.at[df.index[i], 'BPR_Fibo_0.0'] = fibo_0_0
+                        df.at[df.index[i], 'BPR_Fibo_0.5'] = fibo_0_5
+                        df.at[df.index[i], 'BPR_Fibo_0.618'] = fibo_0_618
+                        df.at[df.index[i], 'BPR_Fibo_1.0'] = fibo_1_0
+                        df.at[df.index[i], 'BPR_SL'] = bpr_sl
+                        
+                        active_bprs.append({
+                            'index': i,
+                            'type': bpr_type,
+                            'top': overlap_top,
+                            'bottom': overlap_bottom
+                        })
+                        break # Only pair with the most recent opposite FVG in range
+                        
+        # 3. Check mitigation of active BPRs
+        still_active_bprs = []
+        for bpr in active_bprs:
+            if i <= bpr['index']:
+                still_active_bprs.append(bpr)
+                continue
+                
+            close_val = df['Close'].iloc[i]
+            low_val = df['Low'].iloc[i]
+            high_val = df['High'].iloc[i]
+            
+            mitigated = False
+            if bpr['type'] == 'BULLISH':
+                # Mitigated if price touches support
+                if low_val <= bpr['top']:
+                    mitigated = True
+                # Invalidated if price closes below
+                if close_val < bpr['bottom']:
+                    mitigated = True
+            else: # BEARISH
+                # Mitigated if price touches resistance
+                if high_val >= bpr['bottom']:
+                    mitigated = True
+                # Invalidated if price closes above
+                if close_val > bpr['top']:
+                    mitigated = True
+                    
+            if mitigated:
+                df.at[df.index[bpr['index']], 'BPR_Mitigated'] = True
+            else:
+                still_active_bprs.append(bpr)
+        active_bprs = still_active_bprs
+        
+    return df
+
 
 

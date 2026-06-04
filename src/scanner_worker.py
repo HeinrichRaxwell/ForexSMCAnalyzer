@@ -243,10 +243,26 @@ def run_scan(symbol: str, confidence_threshold: float):
             'relative_fvg_width': setup['relative_fvg_width']
         }
         
-        # Check setup age in bars to avoid executing/alerting stale historical setups
+        # Check setup age in bars to avoid executing/alerting stale historical setups (SMC logic)
         tf_df = timeframes_data[setup['timeframe']]
         setup_age_bars = len(tf_df) - 1 - setup['index']
-        max_age_bars = int(os.getenv("MT5_MAX_SETUP_AGE_BARS", "5"))
+        tf_name = setup['timeframe']
+        
+        if tf_name == 'M5':
+            max_age_bars = 12   # 1 hour lookback
+        elif tf_name == 'M15':
+            max_age_bars = 16   # 4 hours lookback
+        elif tf_name == 'M30':
+            max_age_bars = 24   # 12 hours lookback
+        elif tf_name == 'H1':
+            max_age_bars = 120  # 5 days lookback
+        elif tf_name == 'H4':
+            max_age_bars = 200  # ~1 month lookback
+        elif tf_name == 'D1':
+            max_age_bars = 100  # ~3 months lookback
+        else:
+            max_age_bars = 20
+            
         if setup_age_bars > max_age_bars:
             continue
             
