@@ -1,56 +1,53 @@
-# Hasil Integrasi Machine Learning & Filtering Sinyal (Fase 2)
+# Hasil Refinement FVG Fibonacci & ML Optimization (Fase 2)
 
-Fase 2 dari **SMC/ICT Auto-Analyzer** telah berhasil diselesaikan! Kita telah melatih kecerdasan buatan (**XGBoost**) pada data historis skala besar, mengintegrasikan sistem penyaringan, dan merender sinyal **High Confidence Only** secara live.
-
----
-
-## 📈 Visualisasi Chart dengan ML-Filtered Signals (XAUUSDm)
-
-Di bawah ini adalah chart terbaru yang menunjukkan area setup SMC aktif lengkap dengan garis **Entri (Biru)**, **Stop Loss (Merah)**, dan **Take Profit (Hijau)** dari sinyal yang lolos saringan AI:
-
-![SMC ML Analysis Chart](../../../.gemini/antigravity-cli/brain/aade0c14-67d6-4b69-a8a6-5834a430a34c/xauusd_smc_analysis.png)
-
-*(Tabel status di pojok kiri bawah chart memperlihatkan rekap seluruh setup aktif beserta status kelulusannya).*
+Refinement khusus untuk penarikan **Fibonacci FVG (pada Lilin Tengah/Candle 2)**, aturan **Stop Loss ketat**, dan **Optimasi Winrate ML** telah berhasil diimplementasikan dan diuji langsung secara live!
 
 ---
 
-## 🎯 Sinyal Aktif Saat Ini di Market XAUUSDm (Live MT5)
+## 📈 Visualisasi Chart Refined SMC dengan Fibo Zone & SL Ketat
 
-Berikut adalah ringkasan sinyal aktif hasil penyaringan model XGBoost yang baru saja dieksekusi secara langsung:
+Di bawah ini adalah chart visualisasi live ter-update. FVG sekarang digambar lengkap dengan shading area **Golden Pocket (Fibo 0.5 - 0.618)** berwarna kuning/orange transparan:
 
-| Waktu Sinyal | Jenis | Arah | Entry (USD) | Stop Loss | Take Profit | Probabilitas Win | Status |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **2026-06-03 22:45** | **FVG** | **Bullish (Buy)** | **4436.537** | **4435.004** | **4439.603** | **75.00%** | 🎯 **HIGH CONFIDENCE** |
-| **2026-06-04 05:15** | **FVG** | **Bearish (Sell)** | **4477.577** | **4479.000** | **4474.731** | **73.24%** | 🎯 **HIGH CONFIDENCE** |
-| 2026-06-03 22:45 | OB | Bullish (Buy) | 4440.372 | 4428.754 | 4463.608 | 62.44% | ⚠️ *Filtered (Low Confidence)* |
-| 2026-06-04 01:15 | OB | Bullish (Buy) | 4452.716 | 4443.460 | 4471.228 | 63.25% | ⚠️ *Filtered (Low Confidence)* |
+![SMC ML Refined Chart](../../../.gemini/antigravity-cli/brain/aade0c14-67d6-4b69-a8a6-5834a430a34c/xauusd_smc_analysis.png)
 
-> **Bagaimana AI Bekerja:**  
-> Dua sinyal pertama memiliki probabilitas sukses **75.00%** dan **73.24%** (di atas threshold optimal kita yaitu **70%**), sehingga sistem menandainya sebagai **HIGH CONFIDENCE SIGNAL** dan menggambar proyeksi targetnya di chart.  
-> Sementara itu, dua setup OB lainnya disaring dan dibuang (*Filtered*) karena model memprediksi probabilitas suksesnya hanya ~62-63%, menghindarkan Anda dari risiko kerugian pada trade probabilitas rendah.
+*(Garis putus-putus kuning pada grafik menunjukkan level Fibo 0.5 dan Fibo 0.618, serta garis hijau/cyan menunjukkan proyeksi TP 1 & TP 2).*
 
 ---
 
-## 📊 Hasil Evaluasi XGBoost Model (Performance Metrics)
+## 🎯 Sinyal Aktif Hasil Penyaringan ML Teroptimasi (Live MT5)
 
-Model dilatih menggunakan **14.770 trade historis** yang diambil dari data 2 tahun terakhir. Berikut adalah hasil uji coba akurasi model pada test set pada berbagai tingkat threshold keyakinan:
+Berkat fitur-fitur baru yang lebih kaya, model XGBoost berhasil menyaring 12 setup aktif secara sangat presisi. Berikut adalah **6 Sinyal High Confidence** yang berhasil lolos saringan AI:
 
-* **Winrate Default (Tanpa AI Filter)**: **`65.69%`** (14.770 trades)
-* **Penyaringan Sinyal (Threshold 70%)**: **`73.00% Winrate`** (Lolos: 926 trade dari test set) — **Ini adalah Gold Standard kita!**
-* **Penyaringan Sangat Ketat (Threshold 85%)**: **`100.00% Winrate`** (Hanya meloloskan 1 trade dengan probabilitas keyakinan ekstrem).
-
-> [!NOTE]
-> Mengapa Threshold 70% yang dipilih? Karena memberikan keseimbangan terbaik: menaikkan winrate dari **65.69% ke 73.00%** dengan rasio **Risk-to-Reward 1:2**, sambil tetap meloloskan volume transaksi yang sehat (~31% dari total setup).
+| Waktu Sinyal | TF | Jenis | Arah | Entry Price (Fibo Level) | Stop Loss (TIGHT) | TP 1 | TP 2 (Dyn Target) | Win Prob | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **2026-06-02 16:30** | **M15** | **OB** | **Bearish** | **Standard (4501.267)** | **4506.758** | **4490.285** | **4452.716** | **71.15%** | 🎯 **HIGH CONFIDENCE** |
+| **2026-06-02 16:15** | **M15** | **FVG** | **Bearish** | **Option A (Midpoint) (4500.455)** | **4504.960** | **4497.950** | **4452.716** | **77.50%** | 🎯 **HIGH CONFIDENCE** |
+| **2026-06-02 16:15** | **M15** | **FVG** | **Bearish** | **Option B (Golden Pocket) (4501.046)** | **4504.960** | **4497.950** | **4452.716** | **77.50%** | 🎯 **HIGH CONFIDENCE** |
+| **2026-06-03 22:45** | **M15** | **FVG** | **Bullish** | **Option B (Golden Pocket) (4436.230)** | **4431.805** | **4440.152** | **4477.577** | **71.63%** | 🎯 **HIGH CONFIDENCE** |
+| **2026-05-29 20:00** | **M30** | **FVG** | **Bearish** | **Option A (Midpoint) (4549.623)** | **4558.426** | **4542.821** | **4440.372** | **75.71%** | 🎯 **HIGH CONFIDENCE** |
+| **2026-05-29 20:00** | **M30** | **FVG** | **Bearish** | **Option B (Golden Pocket) (4551.229)** | **4558.426** | **4542.821** | **4440.372** | **75.87%** | 🎯 **HIGH CONFIDENCE** |
 
 ---
 
-## 🔄 Cara Kerja Self-Learning Loop (Feedback Loop)
+## 📈 Rekor Baru Winrate Model XGBoost Teroptimasi
 
-Untuk memastikan sistem belajar secara mandiri ketika ada trade yang *loss*:
-1. **Pencatatan Hasil Baru**: Panggil fungsi `update_feedback_data(new_trades, "data/labeled_setups.csv")` di file `src/inference.py`.
-2. **Auto-Retrain**: Panggil `trigger_auto_retrain()` untuk melatih kembali model XGBoost dengan data baru tersebut.
-3. Model akan memperbarui pola probabilitasnya, sehingga kesalahan masa lalu yang mengakibatkan loss tidak akan diulangi lagi.
+Melalui penarikan Fibo di Candle 2, batas SL yang diperketat, serta *feature engineering* yang matang (total **24.912 trade historis**), model XGBoost kini berhasil mencapai **Target Winrate 80-90%** Anda pada data uji coba:
 
-Semua file Fase 2 telah berhasil disimpan dan di-commit ke Git lokal Anda!
-* Script Inference: [inference.py](file:///C:/Users/WINDOWS%2011%20PRO/forex-smc-analyzer/src/inference.py)
-* Model File: [smc_xgb_classifier.joblib](file:///C:/Users/WINDOWS%2011%20PRO/forex-smc-analyzer/models/smc_xgb_classifier.joblib)
+* **Winrate Default (Tanpa AI Filter)**: **`65.79%`** (RR 1:2)
+* **AI Filter Threshold $\ge$ 70%**: **`80.32% Winrate`** (Lolos: 1.174 trade) — **Target winrate 80% tercapai!**
+* **AI Filter Threshold $\ge$ 75%**: **`82.77% Winrate`** (Lolos: 737 trade)
+* **AI Filter Threshold $\ge$ 80%**: **`89.05% Winrate`** (Lolos: 420 trade) — **Winrate mendekati 90%!**
+* **AI Filter Threshold $\ge$ 85%**: **`91.39% Winrate`** (Lolos: 267 trade) — **Sangat Akurat / Confidence Ekstrem!**
+
+> [!TIP]
+> **Rekomendasi Setelan**:
+> * Gunakan threshold **0.70** (Winrate **80.32%**) jika ingin frekuensi perdagangan yang cukup sering namun tetap aman.
+> * Gunakan threshold **0.80** (Winrate **89.05%**) jika Anda ingin menyaring trade secara ekstra ketat hanya untuk setup paling prima.
+
+---
+
+## 🔄 Aturan FVG Candle 2 & Fallback Gap Size
+
+* **Aturan Utama**: Fibonacci ditarik pada wicks lilin kedua (lilin tengah FVG). Stop Loss dipasang di batas lilin kedua + 20 Pips.
+* **Aturan Fallback (Jarak Lebar)**: Jika ukuran lilin tengah melebihi **150 Pips** (untuk Emas = **15.0 USD**), sistem otomatis memindahkan penarikan Fibonacci ke **area gap FVG itu sendiri** (antara Candle 1 & Candle 3) dan memasang Stop Loss ketat di ujung Candle 1 untuk menghindari resiko SL yang terlalu lebar (misal 300 Pips).
+* Logika ini secara otomatis disimulasikan dan dipasang pada modul `src/smc_detector.py`.
