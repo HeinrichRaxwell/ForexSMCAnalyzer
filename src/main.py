@@ -628,35 +628,45 @@ def main():
             
     print(f"Detected {len(active_htf_fvgs)} active Higher Timeframe (HTF) FVGs.")
     
-    # Identify active setups on lower timeframes (M15 and M30)
-    active_setups_m15 = get_active_setups(timeframes_data['M15'])
-    for s in active_setups_m15:
-        s['timeframe'] = 'M15'
+    # Identify active setups on ALL timeframes
+    all_setups = []
+    for tf_name in ['D1', 'H4', 'H1', 'M30', 'M15']:
+        tf_setups = get_active_setups(timeframes_data[tf_name])
+        for s in tf_setups:
+            s['timeframe'] = tf_name
+            all_setups.append(s)
+            
+    # Extract active FVGs for all timeframes to check alignment
+    active_fvgs_by_tf = {}
+    for tf_name in ['M15', 'M30', 'H1', 'H4', 'D1']:
+        active_fvgs_by_tf[tf_name] = extract_active_htf_fvgs(timeframes_data[tf_name])
         
-    active_setups_m30 = get_active_setups(timeframes_data['M30'])
-    for s in active_setups_m30:
-        s['timeframe'] = 'M30'
-        
-    all_ltf_setups = active_setups_m15 + active_setups_m30
+    # Timeframe weights to check hierarchy
+    tf_weights = {'M15': 1, 'M30': 2, 'H1': 3, 'H4': 4, 'D1': 5}
     
     # Check if the setup entry price falls inside any active HTF FVG of the same direction
-    for setup in all_ltf_setups:
+    for setup in all_setups:
         setup['htf_prioritized'] = False
         setup['matching_htf_fvgs'] = []
+        setup_tf = setup['timeframe']
         
-        for htf_fvg in active_htf_fvgs:
-            # Check same direction
-            is_same_direction = (setup['direction'] == 1 and htf_fvg['type'] == 'BULLISH') or \
-                                (setup['direction'] == -1 and htf_fvg['type'] == 'BEARISH')
-            if is_same_direction:
-                entry = setup['entry_price']
-                if entry >= htf_fvg['bottom'] and entry <= htf_fvg['top']:
-                    setup['htf_prioritized'] = True
-                    setup['matching_htf_fvgs'].append(htf_fvg)
-                    
+        for htf_name in ['M30', 'H1', 'H4', 'D1']:
+            if tf_weights[htf_name] > tf_weights[setup_tf]:
+                for htf_fvg in active_fvgs_by_tf[htf_name]:
+                    # Check same direction
+                    is_same_direction = (setup['direction'] == 1 and htf_fvg['type'] == 'BULLISH') or \
+                                        (setup['direction'] == -1 and htf_fvg['type'] == 'BEARISH')
+                    if is_same_direction:
+                        entry = setup['entry_price']
+                        if entry >= htf_fvg['bottom'] and entry <= htf_fvg['top']:
+                            setup['htf_prioritized'] = True
+                            fvg_info = htf_fvg.copy()
+                            fvg_info['timeframe'] = htf_name
+                            setup['matching_htf_fvgs'].append(fvg_info)
+                            
     # Query model predictions for each setup
     filtered_setups_with_prob = []
-    for setup in all_ltf_setups:
+    for setup in all_setups:
         features = {
             'hour': setup['hour'],
             'day_of_week': setup['day_of_week'],
