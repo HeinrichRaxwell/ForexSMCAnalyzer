@@ -9,7 +9,7 @@ import matplotlib.patches as patches
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.data_loader import connect_mt5, fetch_historical_data
-from src.smc_detector import detect_swing_points, detect_structures, detect_fvg_and_ob
+from src.smc_detector import detect_swing_points, detect_structures, detect_fvg_and_ob, detect_snr_and_swapzones
 from src.labeler import get_killzone
 from src.inference import predict_setup_probability
 from src.rejection_detector import detect_rejection_at_level
@@ -523,6 +523,114 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
                     'rejection_confirmed': rejection_confirmed_b
                 })
                 
+    # 3. Breaker Block Setups
+    if 'BB_Type' in df.columns:
+        for i in range(len(df)):
+            bb_type = df['BB_Type'].iloc[i]
+            if pd.notna(bb_type) and bb_type is not None:
+                if not df['BB_Mitigated'].iloc[i]:
+                    bb_top = df['BB_Top'].iloc[i]
+                    bb_bottom = df['BB_Bottom'].iloc[i]
+                    t_val = pd.to_datetime(df['time'].iloc[i])
+                    hour_val = int(t_val.hour)
+                    day_of_week_val = int(t_val.dayofweek)
+                    trend_val = int(df['Trend'].iloc[i])
+                    killzone_val = get_killzone(hour_val)
+                    atr_val = df['ATR_14'].iloc[i] if 'ATR_14' in df.columns else 1.0
+                    if pd.isna(atr_val):
+                        atr_val = 1.0
+                        
+                    direction = 1 if bb_type == 'BULLISH' else -1
+                    if direction == 1:
+                        entry = bb_bottom  # Retest level
+                        sl = entry - buffer
+                        tp = entry + (entry - sl) * 2
+                    else:
+                        entry = bb_top
+                        sl = entry + buffer
+                        tp = entry - (sl - entry) * 2
+                        
+                    risk_pips = (entry - sl) if direction == 1 else (sl - entry)
+                    rejection_confirmed = detect_rejection_at_level(df, entry, direction)
+                    
+                    tp_dynamic = find_dynamic_tp(df, entry, direction)
+                    tp2 = tp_dynamic if tp_dynamic is not None else (entry + risk_pips * 3 if direction == 1 else entry - risk_pips * 3)
+                    tp3 = entry + risk_pips * 4 if direction == 1 else entry - risk_pips * 4
+                    
+                    active_setups.append({
+                        'index': i,
+                        'time': df['time'].iloc[i],
+                        'hour': hour_val,
+                        'day_of_week': day_of_week_val,
+                        'setup_type': 1,  # Treat as OB for ML
+                        'direction': direction,
+                        'entry_price': entry,
+                        'sl_price': sl,
+                        'tp_price': tp,
+                        'tp2_price': tp2,
+                        'tp3_price': tp3,
+                        'risk_pips': risk_pips,
+                        'atr_14': atr_val,
+                        'trend': trend_val,
+                        'relative_risk': risk_pips / atr_val,
+                        'killzone': killzone_val,
+                        'fvg_width': 0.0,
+                        'relative_fvg_width': 0.0,
+                        'option_name': f'Breaker ({bb_type})',
+                        'rejection_confirmed': rejection_confirmed
+                    })
+                    
+    # 4. Swapzone Setups
+    if 'Swap_Type' in df.columns:
+        for i in range(len(df)):
+            swap_type = df['Swap_Type'].iloc[i]
+            if pd.notna(swap_type) and swap_type is not None:
+                if not df['Swap_Mitigated'].iloc[i]:
+                    swap_level = df['Swap_Level'].iloc[i]
+                    t_val = pd.to_datetime(df['time'].iloc[i])
+                    hour_val = int(t_val.hour)
+                    day_of_week_val = int(t_val.dayofweek)
+                    trend_val = int(df['Trend'].iloc[i])
+                    killzone_val = get_killzone(hour_val)
+                    atr_val = df['ATR_14'].iloc[i] if 'ATR_14' in df.columns else 1.0
+                    if pd.isna(atr_val):
+                        atr_val = 1.0
+                        
+                    direction = 1 if swap_type == 'SUPPORT' else -1
+                    entry = swap_level
+                    sl = entry - buffer if direction == 1 else entry + buffer
+                    tp = entry + (entry - sl) * 2 if direction == 1 else entry - (sl - entry) * 2
+                    
+                    risk_pips = (entry - sl) if direction == 1 else (sl - entry)
+                    rejection_confirmed = detect_rejection_at_level(df, entry, direction)
+                    
+                    tp_dynamic = find_dynamic_tp(df, entry, direction)
+                    tp2 = tp_dynamic if tp_dynamic is not None else (entry + risk_pips * 3 if direction == 1 else entry - risk_pips * 3)
+                    tp3 = entry + risk_pips * 4 if direction == 1 else entry - risk_pips * 4
+                    
+                    active_setups.append({
+                        'index': i,
+                        'time': df['time'].iloc[i],
+                        'hour': hour_val,
+                        'day_of_week': day_of_week_val,
+                        'setup_type': 1,  # Treat as OB for ML
+                        'direction': direction,
+                        'entry_price': entry,
+                        'sl_price': sl,
+                        'tp_price': tp,
+                        'tp2_price': tp2,
+                        'tp3_price': tp3,
+                        'risk_pips': risk_pips,
+                        'atr_14': atr_val,
+                        'trend': trend_val,
+                        'relative_risk': risk_pips / atr_val,
+                        'killzone': killzone_val,
+                        'fvg_width': 0.0,
+                        'relative_fvg_width': 0.0,
+                        'option_name': f'Swapzone ({swap_type})',
+                        'rejection_confirmed': rejection_confirmed
+                    })
+                    
     return active_setups
 
 def extract_active_htf_fvgs(df: pd.DataFrame) -> list:
@@ -605,6 +713,7 @@ def main():
         df_tf = detect_swing_points(df_tf, window=5)
         df_tf = detect_structures(df_tf)
         df_tf = detect_fvg_and_ob(df_tf, symbol=symbol)
+        df_tf = detect_snr_and_swapzones(df_tf)
         
         # Calculate ATR_14
         close_prev = df_tf['Close'].shift(1).fillna(df_tf['Open'])

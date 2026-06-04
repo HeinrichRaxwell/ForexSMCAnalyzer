@@ -126,7 +126,14 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
     df['OB_Bottom'] = np.nan
     df['OB_Mitigated'] = False
     
+    # 3. Initialize Breaker Block (BB) columns
+    df['BB_Type'] = None
+    df['BB_Top'] = np.nan
+    df['BB_Bottom'] = np.nan
+    df['BB_Mitigated'] = False
+    
     active_obs = []
+    active_breakers = []
     
     # Ensure dependencies exist
     if 'BOS' not in df.columns or 'CHoCH' not in df.columns:
@@ -240,7 +247,7 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
                         'bottom': df['Low'].iloc[ob_idx]
                     })
                     
-        # --- C. OB Mitigation Check ---
+        # --- C. OB Mitigation Check & Breaker Block Creation ---
         still_active = []
         for ob in active_obs:
             if i <= ob['index']:
@@ -248,19 +255,148 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
                 continue
                 
             mitigated = False
+            broken = False
             if ob['type'] == 'BULLISH':
                 if df['Low'].iloc[i] <= ob['top']:
                     mitigated = True
+                if df['Close'].iloc[i] < ob['bottom']:
+                    broken = True
             else:  # BEARISH OB
                 if df['High'].iloc[i] >= ob['bottom']:
                     mitigated = True
+                if df['Close'].iloc[i] > ob['top']:
+                    broken = True
                     
-            if mitigated:
+            if broken:
+                # OB is broken! It is marked as mitigated, and a Breaker Block flips open
                 df.at[df.index[ob['index']], 'OB_Mitigated'] = True
+                
+                bb_type = 'BEARISH' if ob['type'] == 'BULLISH' else 'BULLISH'
+                df.at[df.index[i], 'BB_Type'] = bb_type
+                df.at[df.index[i], 'BB_Top'] = ob['top']
+                df.at[df.index[i], 'BB_Bottom'] = ob['bottom']
+                
+                active_breakers.append({
+                    'index': i,
+                    'type': bb_type,
+                    'top': ob['top'],
+                    'bottom': ob['bottom']
+                })
             else:
+                if mitigated:
+                    df.at[df.index[ob['index']], 'OB_Mitigated'] = True
+                # It is not broken yet, so it remains active for further retests or breaks
                 still_active.append(ob)
                 
         active_obs = still_active
+        
+        # --- D. Breaker Block Mitigation Check ---
+        still_active_breakers = []
+        for bb in active_breakers:
+            if i <= bb['index']:
+                still_active_breakers.append(bb)
+                continue
+                
+            mitigated = False
+            if bb['type'] == 'BULLISH':
+                # Mitigated if price touches support
+                if df['Low'].iloc[i] <= bb['top']:
+                    mitigated = True
+                # Invalidated if price closes below
+                if df['Close'].iloc[i] < bb['bottom']:
+                    mitigated = True
+            else:  # BEARISH
+                # Mitigated if price touches resistance
+                if df['High'].iloc[i] >= bb['bottom']:
+                    mitigated = True
+                # Invalidated if price closes above
+                if df['Close'].iloc[i] > bb['top']:
+                    mitigated = True
+                    
+            if mitigated:
+                df.at[df.index[bb['index']], 'BB_Mitigated'] = True
+            else:
+                still_active_breakers.append(bb)
+                
+        active_breakers = still_active_breakers
+        
+    return df
+
+def detect_snr_and_swapzones(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Detect key Support and Resistance levels from Swing Highs and Swing Lows,
+    and track Support-Resistance Flips (Swapzones).
+    """
+    df = df.copy()
+    
+    # Initialize columns
+    df['Swap_Type'] = None
+    df['Swap_Level'] = np.nan
+    df['Swap_Mitigated'] = False
+    
+    active_supports = [] # list of float levels
+    active_resistances = [] # list of float levels
+    active_swapzones = [] # list of dicts with 'index', 'type', 'level'
+    
+    for i in range(len(df)):
+        # 1. Update active supports/resistances if new Swing Point detected on this candle
+        if 'Swing_High' in df.columns and not pd.isna(df['Swing_High'].iloc[i]):
+            active_resistances.append(float(df['Swing_High'].iloc[i]))
+        if 'Swing_Low' in df.columns and not pd.isna(df['Swing_Low'].iloc[i]):
+            active_supports.append(float(df['Swing_Low'].iloc[i]))
+            
+        # 2. Check if price closes beyond any support or resistance (Swapzone trigger)
+        close_val = df['Close'].iloc[i]
+        
+        # Check broken Resistances (Resistance flips to Support)
+        broken_resistances = []
+        for res in active_resistances:
+            if close_val > res:
+                df.at[df.index[i], 'Swap_Type'] = 'SUPPORT' # Swap Support
+                df.at[df.index[i], 'Swap_Level'] = res
+                active_swapzones.append({
+                    'index': i,
+                    'type': 'SUPPORT',
+                    'level': res
+                })
+                broken_resistances.append(res)
+        for res in broken_resistances:
+            active_resistances.remove(res)
+            
+        # Check broken Supports (Support flips to Resistance)
+        broken_supports = []
+        for sup in active_supports:
+            if close_val < sup:
+                df.at[df.index[i], 'Swap_Type'] = 'RESISTANCE' # Swap Resistance
+                df.at[df.index[i], 'Swap_Level'] = sup
+                active_swapzones.append({
+                    'index': i,
+                    'type': 'RESISTANCE',
+                    'level': sup
+                })
+                broken_supports.append(sup)
+        for sup in broken_supports:
+            active_supports.remove(sup)
+            
+        # 3. Check mitigation of active swapzones
+        still_active_swaps = []
+        for swap in active_swapzones:
+            if i <= swap['index']:
+                still_active_swaps.append(swap)
+                continue
+                
+            high_val = df['High'].iloc[i]
+            low_val = df['Low'].iloc[i]
+            level = swap['level']
+            
+            # Mitigated if touched by high/low
+            mitigated = (low_val <= level <= high_val)
+            
+            if mitigated:
+                df.at[df.index[swap['index']], 'Swap_Mitigated'] = True
+            else:
+                still_active_swaps.append(swap)
+        active_swapzones = still_active_swaps
         
     return df
 
