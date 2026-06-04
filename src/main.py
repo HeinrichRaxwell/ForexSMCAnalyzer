@@ -12,6 +12,7 @@ from src.data_loader import connect_mt5, fetch_historical_data
 from src.smc_detector import detect_swing_points, detect_structures, detect_fvg_and_ob
 from src.labeler import get_killzone
 from src.inference import predict_setup_probability
+from src.rejection_detector import detect_rejection_at_level
 
 def generate_synthetic_data(num_candles=100, seed=42) -> pd.DataFrame:
     """
@@ -147,6 +148,15 @@ def plot_smc_chart(df: pd.DataFrame, title: str = "XAUUSD M15 - SMC/ICT Analysis
             rect_fvg = patches.Rectangle((idx - 2, row['FVG_Bottom']), 2, row['FVG_Top'] - row['FVG_Bottom'],
                                          facecolor=fvg_color, alpha=0.15, edgecolor='none', zorder=1)
             ax.add_patch(rect_fvg)
+            
+            # Show Fibo levels (0.5 and 0.618 zones) on the chart
+            fibo_0_5_val = row.get('FVG_Fibo_0.5', np.nan)
+            fibo_0_618_val = row.get('FVG_Fibo_0.618', np.nan)
+            if pd.notna(fibo_0_5_val) and pd.notna(fibo_0_618_val):
+                rect_fib = patches.Rectangle((idx - 2, min(fibo_0_5_val, fibo_0_618_val)), 2, abs(fibo_0_5_val - fibo_0_618_val),
+                                             facecolor='#eab308', alpha=0.3, edgecolor='none', zorder=1)
+                ax.add_patch(rect_fib)
+                
             # Add small text label inside FVG
             label_y = (row['FVG_Top'] + row['FVG_Bottom']) / 2
             ax.text(idx - 1, label_y, "FVG", color=fvg_color, fontsize=7, alpha=0.7, ha='center', va='center')
@@ -196,33 +206,62 @@ def plot_smc_chart(df: pd.DataFrame, title: str = "XAUUSD M15 - SMC/ICT Analysis
                 # Draw vertical dotted line at the detection candle
                 ax.axvline(x=idx, color=line_color, linestyle=':', alpha=0.7, linewidth=1.5)
                 
-                # Draw horizontal lines for Entry, SL, and TP
+                # Draw horizontal lines for Entry, SL, TP 1, and TP 2
                 end_x = min(idx + 15, len(df) - 1)
                 x_range = [idx, end_x]
                 
                 # Entry (Blue-ish)
                 ax.plot(x_range, [setup['entry_price'], setup['entry_price']], color='#2962ff', linestyle='-', linewidth=1.5, zorder=4)
+                ax.text(end_x + 0.2, setup['entry_price'], 'Entry', color='#2962ff', fontsize=7, fontweight='bold', va='center')
+                
                 # SL (Red)
                 ax.plot(x_range, [setup['sl_price'], setup['sl_price']], color='#f23645', linestyle='--', linewidth=1.2, zorder=4)
-                # TP (Green)
+                ax.text(end_x + 0.2, setup['sl_price'], 'SL', color='#f23645', fontsize=7, fontweight='bold', va='center')
+                
+                # TP 1 (Green)
                 ax.plot(x_range, [setup['tp_price'], setup['tp_price']], color='#089981', linestyle='--', linewidth=1.2, zorder=4)
+                ax.text(end_x + 0.2, setup['tp_price'], 'TP 1', color='#089981', fontsize=7, fontweight='bold', va='center')
+                
+                # TP 2 (Cyan/Teal)
+                ax.plot(x_range, [setup['tp2_price'], setup['tp2_price']], color='#0ea5e9', linestyle='-.', linewidth=1.2, zorder=4)
+                ax.text(end_x + 0.2, setup['tp2_price'], 'TP 2 (Dyn)', color='#0ea5e9', fontsize=7, fontweight='bold', va='center')
+                
+                # If FVG setup, show the Fibo levels 0.5 and 0.618 and the zone
+                if setup['setup_type'] == 0:
+                    setup_idx = setup['index']
+                    fibo_0_5_val = df['FVG_Fibo_0.5'].iloc[setup_idx]
+                    fibo_0_618_val = df['FVG_Fibo_0.618'].iloc[setup_idx]
+                    
+                    if pd.notna(fibo_0_5_val) and pd.notna(fibo_0_618_val):
+                        ax.plot(x_range, [fibo_0_5_val, fibo_0_5_val], color='#eab308', linestyle=':', linewidth=1.0, alpha=0.8, zorder=4)
+                        ax.plot(x_range, [fibo_0_618_val, fibo_0_618_val], color='#eab308', linestyle=':', linewidth=1.0, alpha=0.8, zorder=4)
+                        ax.fill_between(x_range, fibo_0_5_val, fibo_0_618_val, color='#eab308', alpha=0.08, zorder=3)
+                        ax.text(idx + 1, fibo_0_5_val, 'Fibo 0.5', color='#eab308', fontsize=6.5, va='bottom')
+                        ax.text(idx + 1, fibo_0_618_val, 'Fibo 0.618', color='#eab308', fontsize=6.5, va='bottom')
                 
                 # Annotation labels on the chart
                 setup_name = "OB" if setup['setup_type'] == 1 else "FVG"
                 dir_label = "BUY" if setup['direction'] == 1 else "SELL"
-                ax.text(idx + 0.5, setup['entry_price'] + 0.2, f"★ ML {dir_label} {setup_name} ({setup['probability']:.1%})",
+                opt_info = f" ({setup['option_name']})" if setup['setup_type'] == 0 else ""
+                ax.text(idx + 0.5, setup['entry_price'] + 0.2, f"★ ML {dir_label} {setup_name}{opt_info} ({setup['probability']:.1%})",
                         color='white', fontsize=7.5, fontweight='bold', 
                         bbox=dict(facecolor='#2962ff', alpha=0.9, edgecolor='none', boxstyle='round,pad=0.2'), zorder=5)
 
         # Draw a summary box of all active signals at the bottom left
         text_lines = ["ACTIVE SMC SIGNALS (ML FILTERED)"]
-        text_lines.append("-" * 35)
+        text_lines.append("-" * 50)
         for setup in active_setups:
             setup_name = "OB" if setup['setup_type'] == 1 else "FVG"
             dir_label = "BULL" if setup['direction'] == 1 else "BEAR"
             is_high = setup['status'] == "HIGH CONFIDENCE SIGNAL"
             status_text = "PASS" if is_high else "FILTERED"
-            text_lines.append(f"{setup_name} {dir_label} | Prob: {setup['probability']:.1%} | {status_text}")
+            rej_status = "Rej: Y" if setup.get('rejection_confirmed', False) else "Rej: N"
+            
+            opt_lbl = ""
+            if setup['setup_type'] == 0:
+                opt_lbl = " (Mid)" if "Midpoint" in setup['option_name'] else " (GP)"
+                
+            text_lines.append(f"{setup_name}{opt_lbl} {dir_label} | Prob: {setup['probability']:.1%} | {rej_status} | {status_text}")
             
         if len(active_setups) == 0:
             text_lines.append("No active setups found.")
@@ -236,6 +275,61 @@ def plot_smc_chart(df: pd.DataFrame, title: str = "XAUUSD M15 - SMC/ICT Analysis
     plt.savefig(output_filename, dpi=180, facecolor='#131722')
     plt.close()
     print(f"SMC analysis visualization successfully saved as '{output_filename}'")
+
+def find_dynamic_tp(df: pd.DataFrame, entry_price: float, direction: int) -> float:
+    """
+    Finds the dynamic Take Profit (TP 2) by searching for the first unmitigated
+    opposite structure in the dataframe.
+    """
+    levels = []
+    
+    # 1. Gather all active (unmitigated) opposite structures
+    for k in range(len(df)):
+        # Check Order Blocks
+        ob_type = df['OB_Type'].iloc[k]
+        if pd.notna(ob_type) and ob_type is not None:
+            if not df['OB_Mitigated'].iloc[k]:
+                if direction == 1 and ob_type == 'BEARISH':
+                    levels.append(float(df['OB_Bottom'].iloc[k]))
+                elif direction == -1 and ob_type == 'BULLISH':
+                    levels.append(float(df['OB_Top'].iloc[k]))
+                    
+        # Check Fair Value Gaps
+        fvg_type = df['FVG_Type'].iloc[k]
+        if pd.notna(fvg_type) and fvg_type is not None:
+            # Check mitigation from k+1 to the end of the dataframe
+            mitigated = False
+            fvg_top = float(df['FVG_Top'].iloc[k])
+            fvg_bottom = float(df['FVG_Bottom'].iloc[k])
+            for j in range(k + 1, len(df)):
+                if fvg_type == 'BULLISH':
+                    if df['Low'].iloc[j] <= fvg_top:
+                        mitigated = True
+                        break
+                elif fvg_type == 'BEARISH':
+                    if df['High'].iloc[j] >= fvg_bottom:
+                        mitigated = True
+                        break
+            if not mitigated:
+                if direction == 1 and fvg_type == 'BEARISH':
+                    levels.append(fvg_bottom)
+                elif direction == -1 and fvg_type == 'BULLISH':
+                    levels.append(fvg_top)
+                    
+    # 2. Filter levels above/below entry_price based on direction
+    tp_dynamic = None
+    if direction == 1:
+        # For Buy: lowest opposite level above entry_price
+        valid_levels = [lvl for lvl in levels if lvl > entry_price]
+        if valid_levels:
+            tp_dynamic = min(valid_levels)
+    else:
+        # For Sell: highest opposite level below entry_price
+        valid_levels = [lvl for lvl in levels if lvl < entry_price]
+        if valid_levels:
+            tp_dynamic = max(valid_levels)
+            
+    return tp_dynamic
     
 def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
     """
@@ -273,6 +367,17 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
                 
                 risk_pips = (entry - sl) if direction == 1 else (sl - entry)
                 
+                # Check rejection confirmation at the entry level
+                rejection_confirmed = detect_rejection_at_level(df, entry, direction)
+                
+                # Find Dynamic TP 2 using opposite target search
+                tp_dynamic = find_dynamic_tp(df, entry, direction)
+                if tp_dynamic is not None:
+                    tp2 = tp_dynamic
+                else:
+                    # Fallback to standard 1:3 RR
+                    tp2 = entry + (entry - sl) * 3 if direction == 1 else entry - (sl - entry) * 3
+                
                 active_setups.append({
                     'index': i,
                     'time': df['time'].iloc[i],
@@ -283,10 +388,13 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
                     'entry_price': entry,
                     'sl_price': sl,
                     'tp_price': tp,
+                    'tp2_price': tp2,
                     'risk_pips': risk_pips,
                     'atr_14': atr_val,
                     'trend': trend_val,
-                    'killzone': killzone_val
+                    'killzone': killzone_val,
+                    'option_name': 'Standard',
+                    'rejection_confirmed': rejection_confirmed
                 })
                 
     # 2. FVG Setups
@@ -318,18 +426,26 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
                 if pd.isna(atr_val):
                     atr_val = 1.0
                     
-                if fvg_type == 'BULLISH':
-                    direction = 1
-                    entry = fvg_top
-                    sl = fvg_bottom - buffer
-                    tp = entry + (entry - sl) * 2
-                else:
-                    direction = -1
-                    entry = fvg_bottom
-                    sl = fvg_top + buffer
-                    tp = entry - (sl - entry) * 2
+                direction = 1 if fvg_type == 'BULLISH' else -1
                 
-                risk_pips = (entry - sl) if direction == 1 else (sl - entry)
+                # Retrieve Fibonacci levels computed during smc_detector
+                fibo_0_5 = float(df['FVG_Fibo_0.5'].iloc[i])
+                fibo_0_618 = float(df['FVG_Fibo_0.618'].iloc[i])
+                fibo_0_0 = float(df['FVG_Fibo_0.0'].iloc[i])
+                fvg_sl = float(df['FVG_SL'].iloc[i])
+                
+                # --- Option A: Midpoint (Fibo 0.5) ---
+                entry_a = fibo_0_5
+                sl_a = fvg_sl
+                tp_a = fibo_0_0
+                risk_pips_a = (entry_a - sl_a) if direction == 1 else (sl_a - entry_a)
+                rejection_confirmed_a = detect_rejection_at_level(df, entry_a, direction)
+                
+                tp_dynamic_a = find_dynamic_tp(df, entry_a, direction)
+                if tp_dynamic_a is not None:
+                    tp2_a = tp_dynamic_a
+                else:
+                    tp2_a = entry_a + (entry_a - sl_a) * 3 if direction == 1 else entry_a - (sl_a - entry_a) * 3
                 
                 active_setups.append({
                     'index': i,
@@ -338,13 +454,48 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
                     'day_of_week': day_of_week_val,
                     'setup_type': 0,  # FVG
                     'direction': direction,
-                    'entry_price': entry,
-                    'sl_price': sl,
-                    'tp_price': tp,
-                    'risk_pips': risk_pips,
+                    'entry_price': entry_a,
+                    'sl_price': sl_a,
+                    'tp_price': tp_a,    # TP 1
+                    'tp2_price': tp2_a,  # TP 2 Dynamic
+                    'risk_pips': risk_pips_a,
                     'atr_14': atr_val,
                     'trend': trend_val,
-                    'killzone': killzone_val
+                    'killzone': killzone_val,
+                    'option_name': 'Option A (Midpoint)',
+                    'rejection_confirmed': rejection_confirmed_a
+                })
+                
+                # --- Option B: Golden Pocket (Fibo 0.618) ---
+                entry_b = fibo_0_618
+                sl_b = fvg_sl
+                tp_b = fibo_0_0
+                risk_pips_b = (entry_b - sl_b) if direction == 1 else (sl_b - entry_b)
+                rejection_confirmed_b = detect_rejection_at_level(df, entry_b, direction)
+                
+                tp_dynamic_b = find_dynamic_tp(df, entry_b, direction)
+                if tp_dynamic_b is not None:
+                    tp2_b = tp_dynamic_b
+                else:
+                    tp2_b = entry_b + (entry_b - sl_b) * 3 if direction == 1 else entry_b - (sl_b - entry_b) * 3
+                
+                active_setups.append({
+                    'index': i,
+                    'time': df['time'].iloc[i],
+                    'hour': hour_val,
+                    'day_of_week': day_of_week_val,
+                    'setup_type': 0,  # FVG
+                    'direction': direction,
+                    'entry_price': entry_b,
+                    'sl_price': sl_b,
+                    'tp_price': tp_b,    # TP 1
+                    'tp2_price': tp2_b,  # TP 2 Dynamic
+                    'risk_pips': risk_pips_b,
+                    'atr_14': atr_val,
+                    'trend': trend_val,
+                    'killzone': killzone_val,
+                    'option_name': 'Option B (Golden Pocket)',
+                    'rejection_confirmed': rejection_confirmed_b
                 })
                 
     return active_setups
@@ -506,30 +657,38 @@ def main():
         filtered_setups_with_prob.append(setup)
         
     # Print results in terminal
-    print("\n" + "="*95)
-    print("                    ACTIVE SMC TRADE SIGNALS & ML FILTERING")
-    print("="*95)
-    print(f"{'Time':<20} | {'TF':<4} | {'Type':<5} | {'Dir':<8} | {'Entry':<8} | {'SL':<8} | {'TP':<8} | {'Win Prob':<8} | {'HTF Prior':<9} | Status")
-    print("-"*95)
+    print("\n" + "="*145)
+    print("                                                 ACTIVE SMC TRADE SIGNALS & ML FILTERING")
+    print("="*145)
+    print(f"{'Time':<16} | {'TF':<3} | {'Type':<4} | {'Dir':<7} | {'Entry Option (Price)':<30} | {'SL':<8} | {'TP 1':<8} | {'TP 2 (Dyn)':<10} | {'Win Prob':<8} | {'HTF Prior':<9} | {'Rej Conf':<8} | Status")
+    print("-"*145)
     for setup in filtered_setups_with_prob:
         setup_name = "OB" if setup['setup_type'] == 1 else "FVG"
         dir_name = "Bullish" if setup['direction'] == 1 else "Bearish"
         prior_str = "YES" if setup['htf_prioritized'] else "NO"
-        print(f"{str(setup['time']):<20} | {setup['timeframe']:<4} | {setup_name:<5} | {dir_name:<8} | {setup['entry_price']:.3f} | {setup['sl_price']:.3f} | {setup['tp_price']:.3f} | {setup['probability']:.2%} | {prior_str:<9} | {setup['status']}")
-    print("="*95 + "\n")
+        rej_str = "YES" if setup.get('rejection_confirmed', False) else "NO"
+        entry_opt_str = f"{setup['option_name']} ({setup['entry_price']:.3f})"
+        
+        time_str = str(setup['time'])
+        if len(time_str) >= 16:
+            time_str = time_str[:16]
+            
+        print(f"{time_str:<16} | {setup['timeframe']:<3} | {setup_name:<4} | {dir_name:<7} | {entry_opt_str:<30} | {setup['sl_price']:.3f} | {setup['tp_price']:.3f} | {setup['tp2_price']:.3f} | {setup['probability']:.2%} | {prior_str:<9} | {rej_str:<8} | {setup['status']}")
+    print("="*145 + "\n")
     
     # Print prioritized setups clearly
     prioritized_setups = [s for s in filtered_setups_with_prob if s['htf_prioritized']]
     if prioritized_setups:
-        print("*"*95)
-        print("                    PRIORITIZED MULTI-TIMEFRAME (HTF) SETUPS")
-        print("*"*95)
+        print("*"*145)
+        print("                                            PRIORITIZED MULTI-TIMEFRAME (HTF) SETUPS")
+        print("*"*145)
         for setup in prioritized_setups:
             setup_name = "OB" if setup['setup_type'] == 1 else "FVG"
             dir_name = "Bullish" if setup['direction'] == 1 else "Bearish"
             matching_desc = ", ".join([f"{f['timeframe']} FVG ({f['bottom']:.3f}-{f['top']:.3f})" for f in setup['matching_htf_fvgs']])
-            print(f"* {setup['timeframe']} {dir_name} {setup_name} at {setup['entry_price']:.3f} matched HTF: {matching_desc} (Win Prob: {setup['probability']:.2%})")
-        print("*"*95 + "\n")
+            rej_str = "Confirmed" if setup.get('rejection_confirmed', False) else "No Rejection"
+            print(f"* {setup['timeframe']} {dir_name} {setup_name} | {setup['option_name']} at {setup['entry_price']:.3f} | SL: {setup['sl_price']:.3f} | TP 1: {setup['tp_price']:.3f} | TP 2: {setup['tp2_price']:.3f} | Rej: {rej_str} | matched HTF: {matching_desc} (Win Prob: {setup['probability']:.2%})")
+        print("*"*145 + "\n")
         
     # Display statistics
     df_m15 = timeframes_data['M15']
