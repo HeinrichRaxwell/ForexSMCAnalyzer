@@ -378,6 +378,9 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
                     # Fallback to standard 1:3 RR
                     tp2 = entry + (entry - sl) * 3 if direction == 1 else entry - (sl - entry) * 3
                 
+                # Extended Target (TP 3) at 1:4 RR
+                tp3 = entry + (entry - sl) * 4 if direction == 1 else entry - (sl - entry) * 4
+                
                 active_setups.append({
                     'index': i,
                     'time': df['time'].iloc[i],
@@ -389,6 +392,7 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
                     'sl_price': sl,
                     'tp_price': tp,
                     'tp2_price': tp2,
+                    'tp3_price': tp3,
                     'risk_pips': risk_pips,
                     'atr_14': atr_val,
                     'trend': trend_val,
@@ -454,6 +458,9 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
                 else:
                     tp2_a = entry_a + (entry_a - sl_a) * 3 if direction == 1 else entry_a - (sl_a - entry_a) * 3
                 
+                # Extended Target (TP 3) at 1:4 RR
+                tp3_a = entry_a + (entry_a - sl_a) * 4 if direction == 1 else entry_a - (sl_a - entry_a) * 4
+                
                 active_setups.append({
                     'index': i,
                     'time': df['time'].iloc[i],
@@ -465,6 +472,7 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
                     'sl_price': sl_a,
                     'tp_price': tp_a,    # TP 1
                     'tp2_price': tp2_a,  # TP 2 Dynamic
+                    'tp3_price': tp3_a,  # TP 3 Extended
                     'risk_pips': risk_pips_a,
                     'atr_14': atr_val,
                     'trend': trend_val,
@@ -489,6 +497,9 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
                 else:
                     tp2_b = entry_b + (entry_b - sl_b) * 3 if direction == 1 else entry_b - (sl_b - entry_b) * 3
                 
+                # Extended Target (TP 3) at 1:4 RR
+                tp3_b = entry_b + (entry_b - sl_b) * 4 if direction == 1 else entry_b - (sl_b - entry_b) * 4
+                
                 active_setups.append({
                     'index': i,
                     'time': df['time'].iloc[i],
@@ -500,6 +511,7 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
                     'sl_price': sl_b,
                     'tp_price': tp_b,    # TP 1
                     'tp2_price': tp2_b,  # TP 2 Dynamic
+                    'tp3_price': tp3_b,  # TP 3 Extended
                     'risk_pips': risk_pips_b,
                     'atr_14': atr_val,
                     'trend': trend_val,
@@ -673,11 +685,11 @@ def main():
         filtered_setups_with_prob.append(setup)
         
     # Print results in terminal
-    print("\n" + "="*145)
-    print("                                                 ACTIVE SMC TRADE SIGNALS & ML FILTERING")
-    print("="*145)
-    print(f"{'Time':<16} | {'TF':<3} | {'Type':<4} | {'Dir':<7} | {'Entry Option (Price)':<30} | {'SL':<8} | {'TP 1':<8} | {'TP 2 (Dyn)':<10} | {'Win Prob':<8} | {'HTF Prior':<9} | {'Rej Conf':<8} | Status")
-    print("-"*145)
+    print("\n" + "="*160)
+    print("                                                         ACTIVE SMC TRADE SIGNALS & ML FILTERING")
+    print("="*160)
+    print(f"{'Time':<16} | {'TF':<3} | {'Type':<4} | {'Dir':<7} | {'Entry Option (Price)':<30} | {'SL':<8} | {'TP 1':<8} | {'TP 2 (Dyn)':<10} | {'TP 3 (Ext)':<10} | {'Win Prob':<8} | {'HTF Prior':<9} | {'Rej Conf':<8} | Status")
+    print("-"*160)
     for setup in filtered_setups_with_prob:
         setup_name = "OB" if setup['setup_type'] == 1 else "FVG"
         dir_name = "Bullish" if setup['direction'] == 1 else "Bearish"
@@ -689,22 +701,22 @@ def main():
         if len(time_str) >= 16:
             time_str = time_str[:16]
             
-        print(f"{time_str:<16} | {setup['timeframe']:<3} | {setup_name:<4} | {dir_name:<7} | {entry_opt_str:<30} | {setup['sl_price']:.3f} | {setup['tp_price']:.3f} | {setup['tp2_price']:.3f} | {setup['probability']:.2%} | {prior_str:<9} | {rej_str:<8} | {setup['status']}")
-    print("="*145 + "\n")
+        print(f"{time_str:<16} | {setup['timeframe']:<3} | {setup_name:<4} | {dir_name:<7} | {entry_opt_str:<30} | {setup['sl_price']:.3f} | {setup['tp_price']:.3f} | {setup['tp2_price']:.3f} | {setup['tp3_price']:.3f} | {setup['probability']:.2%} | {prior_str:<9} | {rej_str:<8} | {setup['status']}")
+    print("="*160 + "\n")
     
     # Print prioritized setups clearly
     prioritized_setups = [s for s in filtered_setups_with_prob if s['htf_prioritized']]
     if prioritized_setups:
-        print("*"*145)
-        print("                                            PRIORITIZED MULTI-TIMEFRAME (HTF) SETUPS")
-        print("*"*145)
+        print("*"*160)
+        print("                                                    PRIORITIZED MULTI-TIMEFRAME (HTF) SETUPS")
+        print("*"*160)
         for setup in prioritized_setups:
             setup_name = "OB" if setup['setup_type'] == 1 else "FVG"
             dir_name = "Bullish" if setup['direction'] == 1 else "Bearish"
             matching_desc = ", ".join([f"{f['timeframe']} FVG ({f['bottom']:.3f}-{f['top']:.3f})" for f in setup['matching_htf_fvgs']])
             rej_str = "Confirmed" if setup.get('rejection_confirmed', False) else "No Rejection"
-            print(f"* {setup['timeframe']} {dir_name} {setup_name} | {setup['option_name']} at {setup['entry_price']:.3f} | SL: {setup['sl_price']:.3f} | TP 1: {setup['tp_price']:.3f} | TP 2: {setup['tp2_price']:.3f} | Rej: {rej_str} | matched HTF: {matching_desc} (Win Prob: {setup['probability']:.2%})")
-        print("*"*145 + "\n")
+            print(f"* {setup['timeframe']} {dir_name} {setup_name} | {setup['option_name']} at {setup['entry_price']:.3f} | SL: {setup['sl_price']:.3f} | TP 1: {setup['tp_price']:.3f} | TP 2: {setup['tp2_price']:.3f} | TP 3: {setup['tp3_price']:.3f} | Rej: {rej_str} | matched HTF: {matching_desc} (Win Prob: {setup['probability']:.2%})")
+        print("*"*160 + "\n")
         
     # Display statistics
     df_m15 = timeframes_data['M15']
