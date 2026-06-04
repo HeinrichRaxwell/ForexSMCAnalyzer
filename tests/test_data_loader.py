@@ -20,7 +20,7 @@ def test_connect_mt5_failure(mock_last_error, mock_initialize):
     assert connect_mt5() is False
     mock_initialize.assert_called_once()
 
-@patch('src.data_loader.mt5.copy_rates_from_now', create=True)
+@patch('src.data_loader.mt5.copy_rates_from_pos', create=True)
 def test_fetch_historical_data_success(mock_copy_rates):
     """Test successful historical data retrieval and column formatting."""
     # Mock data structured array as typically returned by MT5 API
@@ -42,7 +42,7 @@ def test_fetch_historical_data_success(mock_copy_rates):
     
     df = fetch_historical_data("XAUUSD", 15, 2)
     
-    mock_copy_rates.assert_called_once_with("XAUUSD", 15, 2)
+    mock_copy_rates.assert_called_once_with("XAUUSD", 15, 0, 2)
     assert isinstance(df, pd.DataFrame)
     assert list(df.columns) == ['time', 'Open', 'High', 'Low', 'Close', 'Volume']
     assert len(df) == 2
@@ -53,7 +53,7 @@ def test_fetch_historical_data_success(mock_copy_rates):
     assert df['Volume'].iloc[0] == 100
     assert df['time'].iloc[0] == pd.to_datetime(1685748000, unit='s')
 
-@patch('src.data_loader.mt5.copy_rates_from_now', create=True)
+@patch('src.data_loader.mt5.copy_rates_from_pos', create=True)
 def test_fetch_historical_data_failure_none(mock_copy_rates):
     """Test data fetching when copy_rates_from_now returns None."""
     mock_copy_rates.return_value = None
@@ -61,7 +61,7 @@ def test_fetch_historical_data_failure_none(mock_copy_rates):
         fetch_historical_data("XAUUSD", 15, 2)
     assert "Failed to fetch historical data" in str(excinfo.value)
 
-@patch('src.data_loader.mt5.copy_rates_from_now', create=True)
+@patch('src.data_loader.mt5.copy_rates_from_pos', create=True)
 def test_fetch_historical_data_failure_empty(mock_copy_rates):
     """Test data fetching when copy_rates_from_now returns an empty sequence."""
     mock_copy_rates.return_value = np.array([])
