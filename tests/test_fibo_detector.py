@@ -22,18 +22,18 @@ def test_bullish_fvg_fibo_xauusd():
     assert result['FVG_Type'].iloc[2] == 'BULLISH'
     
     # Assert Fibonacci Levels
-    expected_fibo_1_0 = 8.0  # Low of Candle 0
-    expected_fibo_0_0 = 16.0 # High of Candle 2
-    expected_fibo_0_5 = 12.0 # 16.0 - 0.5 * (16.0 - 8.0)
-    expected_fibo_0_618 = 11.056 # 16.0 - 0.618 * (16.0 - 8.0)
-    expected_sl = 6.0        # 8.0 - 2.0 (XAUUSD buffer = 20 * 0.1)
+    expected_fibo_1_0 = 10.0  # Low of Candle 1 (index i-1)
+    expected_fibo_0_0 = 15.0  # High of Candle 1 (index i-1)
+    expected_fibo_0_5 = 12.5  # 15.0 - 0.5 * (15.0 - 10.0)
+    expected_fibo_0_618 = 11.91 # 15.0 - 0.618 * (15.0 - 10.0)
+    expected_sl = 8.0        # 10.0 - 2.0 (XAUUSD buffer = 20 * 0.1, boundary = High of Candle 0 = 10.0)
     
     assert np.isclose(result['FVG_Fibo_1.0'].iloc[2], expected_fibo_1_0)
     assert np.isclose(result['FVG_Fibo_0.0'].iloc[2], expected_fibo_0_0)
     assert np.isclose(result['FVG_Fibo_0.5'].iloc[2], expected_fibo_0_5)
     assert np.isclose(result['FVG_Fibo_0.618'].iloc[2], expected_fibo_0_618)
     assert np.isclose(result['FVG_SL'].iloc[2], expected_sl)
-
+ 
 def test_bullish_fvg_fibo_jpy():
     """Test Fibonacci calculations for a Bullish FVG using a JPY pair (pip size 0.01)."""
     data = {
@@ -46,9 +46,9 @@ def test_bullish_fvg_fibo_jpy():
     
     result = detect_fvg_and_ob(df, symbol="USDJPY")
     
-    expected_sl = 7.8        # 8.0 - 0.2 (USDJPY buffer = 20 * 0.01)
+    expected_sl = 9.8        # 10.0 - 0.2 (USDJPY buffer = 20 * 0.01, boundary = High of Candle 0 = 10.0)
     assert np.isclose(result['FVG_SL'].iloc[2], expected_sl)
-
+ 
 def test_bullish_fvg_fibo_forex_standard():
     """Test Fibonacci calculations for a Bullish FVG using standard forex (pip size 0.0001)."""
     data = {
@@ -61,9 +61,9 @@ def test_bullish_fvg_fibo_forex_standard():
     
     result = detect_fvg_and_ob(df, symbol="EURUSD")
     
-    expected_sl = 7.998      # 8.0 - 0.002 (EURUSD buffer = 20 * 0.0001)
+    expected_sl = 9.998      # 10.0 - 0.002 (EURUSD buffer = 20 * 0.0001, boundary = High of Candle 0 = 10.0)
     assert np.isclose(result['FVG_SL'].iloc[2], expected_sl)
-
+ 
 def test_bearish_fvg_fibo_xauusd():
     """Test Fibonacci calculations for a Bearish FVG using XAUUSD (pip size 0.1)."""
     # Candle 0 (i-2): Low is 15.0, High is 17.0
@@ -83,11 +83,38 @@ def test_bearish_fvg_fibo_xauusd():
     assert result['FVG_Type'].iloc[2] == 'BEARISH'
     
     # Assert Fibonacci Levels
-    expected_fibo_1_0 = 17.0  # High of Candle 0
-    expected_fibo_0_0 = 10.0  # Low of Candle 2
-    expected_fibo_0_5 = 13.5  # 10.0 + 0.5 * (17.0 - 10.0)
-    expected_fibo_0_618 = 14.326 # 10.0 + 0.618 * (17.0 - 10.0)
-    expected_sl = 19.0        # 17.0 + 2.0 (XAUUSD buffer = 20 * 0.1)
+    expected_fibo_1_0 = 15.0  # High of Candle 1 (index i-1)
+    expected_fibo_0_0 = 11.0  # Low of Candle 1 (index i-1)
+    expected_fibo_0_5 = 13.0  # 11.0 + 0.5 * (15.0 - 11.0)
+    expected_fibo_0_618 = 13.472 # 11.0 + 0.618 * (15.0 - 11.0)
+    expected_sl = 17.0        # 15.0 + 2.0 (XAUUSD buffer = 20 * 0.1, boundary = Low of Candle 0 = 15.0)
+    
+    assert np.isclose(result['FVG_Fibo_1.0'].iloc[2], expected_fibo_1_0)
+    assert np.isclose(result['FVG_Fibo_0.0'].iloc[2], expected_fibo_0_0)
+    assert np.isclose(result['FVG_Fibo_0.5'].iloc[2], expected_fibo_0_5)
+    assert np.isclose(result['FVG_Fibo_0.618'].iloc[2], expected_fibo_0_618)
+    assert np.isclose(result['FVG_SL'].iloc[2], expected_sl)
+
+def test_bullish_fvg_fibo_large_candle2():
+    """Test FVG Fibonacci fallback when Candle 2 range is > 150 pips on XAUUSD."""
+    data = {
+        'Open':  [9.0, 10.0, 29.0],
+        'High':  [10.0, 30.0, 32.0],
+        'Low':   [8.0, 10.0, 12.0],
+        'Close': [9.5, 29.0, 30.0]
+    }
+    df = pd.DataFrame(data)
+    
+    result = detect_fvg_and_ob(df, symbol="XAUUSD")
+    
+    assert result['FVG_Type'].iloc[2] == 'BULLISH'
+    
+    # Expected levels (since Candle 2 range is 20.0 = 200 pips > 150)
+    expected_fibo_1_0 = 10.0  # High of Candle 0
+    expected_fibo_0_0 = 12.0  # Low of Candle 2
+    expected_fibo_0_5 = 11.0  # 12.0 - 0.5 * 2.0
+    expected_fibo_0_618 = 10.764 # 12.0 - 0.618 * 2.0
+    expected_sl = 8.0        # 10.0 - 2.0
     
     assert np.isclose(result['FVG_Fibo_1.0'].iloc[2], expected_fibo_1_0)
     assert np.isclose(result['FVG_Fibo_0.0'].iloc[2], expected_fibo_0_0)

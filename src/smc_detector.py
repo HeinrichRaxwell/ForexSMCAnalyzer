@@ -143,12 +143,22 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
                 df.at[df.index[i], 'FVG_Top'] = df['Low'].iloc[i]
                 df.at[df.index[i], 'FVG_Bottom'] = df['High'].iloc[i-2]
                 
-                # Fibonacci Calculations
-                fibo_1_0 = df['Low'].iloc[i-2]
-                fibo_0_0 = df['High'].iloc[i]
+                # Check Candle 2 range in pips
+                pip_multiplier = get_pip_multiplier(symbol)
+                candle2_range_pips = (df['High'].iloc[i-1] - df['Low'].iloc[i-1]) / pip_multiplier
+                buffer = 20 * pip_multiplier
+                
+                if candle2_range_pips > 150:
+                    # Draw Fibo on FVG gap
+                    fibo_1_0 = df['High'].iloc[i-2]
+                    fibo_0_0 = df['Low'].iloc[i]
+                else:
+                    # Draw Fibo on Candle 2 wicks
+                    fibo_1_0 = df['Low'].iloc[i-1]
+                    fibo_0_0 = df['High'].iloc[i-1]
+                
                 fibo_0_5 = fibo_0_0 - 0.5 * (fibo_0_0 - fibo_1_0)
                 fibo_0_618 = fibo_0_0 - 0.618 * (fibo_0_0 - fibo_1_0)
-                buffer = 20 * get_pip_multiplier(symbol)
                 fvg_sl = fibo_1_0 - buffer
                 
                 df.at[df.index[i], 'FVG_Fibo_0.0'] = fibo_0_0
@@ -163,12 +173,22 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
                 df.at[df.index[i], 'FVG_Top'] = df['Low'].iloc[i-2]
                 df.at[df.index[i], 'FVG_Bottom'] = df['High'].iloc[i]
                 
-                # Fibonacci Calculations
-                fibo_1_0 = df['High'].iloc[i-2]
-                fibo_0_0 = df['Low'].iloc[i]
+                # Check Candle 2 range in pips
+                pip_multiplier = get_pip_multiplier(symbol)
+                candle2_range_pips = (df['High'].iloc[i-1] - df['Low'].iloc[i-1]) / pip_multiplier
+                buffer = 20 * pip_multiplier
+                
+                if candle2_range_pips > 150:
+                    # Draw Fibo on FVG gap
+                    fibo_1_0 = df['Low'].iloc[i-2]
+                    fibo_0_0 = df['High'].iloc[i]
+                else:
+                    # Draw Fibo on Candle 2 wicks
+                    fibo_1_0 = df['High'].iloc[i-1]
+                    fibo_0_0 = df['Low'].iloc[i-1]
+                
                 fibo_0_5 = fibo_0_0 + 0.5 * (fibo_1_0 - fibo_0_0)
                 fibo_0_618 = fibo_0_0 + 0.618 * (fibo_1_0 - fibo_0_0)
-                buffer = 20 * get_pip_multiplier(symbol)
                 fvg_sl = fibo_1_0 + buffer
                 
                 df.at[df.index[i], 'FVG_Fibo_0.0'] = fibo_0_0

@@ -101,12 +101,10 @@ def test_label_smc_setups_fvg_bullish():
     lows[13] = 12.0
     
     # Subsequent candles: index 14 goes up to hit TP
-    # Entry = 12.0, SL = 10.5 - 0.5 = 10.0, TP = 12.0 + 2.0 * 2 = 16.0
-    # Candle 14: High goes to 17.0, Low stays above SL
     opens[14] = 14.5
-    closes[14] = 16.5
-    highs[14] = 17.0
-    lows[14] = 14.0
+    closes[14] = 25.0
+    highs[14] = 30.0
+    lows[14] = 11.0
     
     df = pd.DataFrame({
         'time': times,
@@ -119,53 +117,56 @@ def test_label_smc_setups_fvg_bullish():
     
     labeled_df = label_smc_setups(df, buffer=0.5)
     
-    # Should find 1 setup
-    assert len(labeled_df) >= 1
-    # Check that setup_type is 0 (FVG) and label is 1 (Win)
+    # Should find 2 setups now
+    assert len(labeled_df) >= 2
     fvg_trades = labeled_df[labeled_df['setup_type'] == 0]
-    assert len(fvg_trades) == 1
+    assert len(fvg_trades) == 2
+    
+    # Option A (Midpoint): Entry = 12.25, SL = 8.0, TP = 20.75
     trade = fvg_trades.iloc[0]
     assert trade['direction'] == 1
-    assert trade['entry_price'] == 12.0
-    assert trade['sl_price'] == 10.0
-    assert trade['tp_price'] == 16.0
+    assert np.isclose(trade['entry_price'], 12.25)
+    assert np.isclose(trade['sl_price'], 8.0)
+    assert np.isclose(trade['tp_price'], 20.75)
     assert trade['label'] == 1
-    assert trade['killzone'] == 1  # 09:00 + 15*13 mins = 12:15 MT5 (Wait, check exact hour of candle 13)
-    # let's print the hour: 9:00 + 13*15 minutes = 9:00 + 195 minutes = 12:15.
-    # get_killzone(12) = 0 (since NY starts at 14 and London ends at 12).
-    # That is fine as long as get_killzone is verified.
+    
+    # Option B (Golden Pocket): Entry = 11.719, SL = 8.0, TP = 19.157
+    trade2 = fvg_trades.iloc[1]
+    assert trade2['direction'] == 1
+    assert np.isclose(trade2['entry_price'], 11.719)
+    assert np.isclose(trade2['sl_price'], 8.0)
+    assert np.isclose(trade2['tp_price'], 19.157, atol=1e-3)
+    assert trade2['label'] == 1
 
 def test_label_smc_setups_fvg_bearish():
     times = [datetime(2026, 6, 1, 14, 0) + timedelta(minutes=15*i) for i in range(20)]
     
-    opens = [10.0] * 20
-    highs = [10.5] * 20
-    lows = [9.5] * 20
-    closes = [10.0] * 20
+    opens = [20.0] * 20
+    highs = [20.5] * 20
+    lows = [19.5] * 20
+    closes = [20.0] * 20
     
     # Configure Bearish FVG pattern
-    # Candle 11 (i-2): Low = 9.5
-    lows[11] = 9.5
+    # Candle 11 (i-2): Low = 19.5
+    lows[11] = 19.5
     
     # Candle 12 (i-1): Bearish expansion
-    opens[12] = 10.0
-    closes[12] = 6.0
-    highs[12] = 10.0
-    lows[12] = 5.5
+    opens[12] = 20.0
+    closes[12] = 16.0
+    highs[12] = 20.0
+    lows[12] = 15.5
     
-    # Candle 13 (i): High = 8.0. So 9.5 > 8.0 -> Bearish FVG!
-    opens[13] = 6.0
-    closes[13] = 5.5
-    highs[13] = 8.0
-    lows[13] = 5.0
+    # Candle 13 (i): High = 18.0. So 19.5 > 18.0 -> Bearish FVG!
+    opens[13] = 16.0
+    closes[13] = 15.5
+    highs[13] = 18.0
+    lows[13] = 15.0
     
     # Subsequent candles: index 14 goes down to hit TP
-    # Entry = 8.0, SL = 9.5 + 0.5 = 10.0, TP = 8.0 - (10.0 - 8.0) * 2 = 4.0
-    # Candle 14: Low goes to 3.0, High stays below SL
-    opens[14] = 5.5
-    closes[14] = 3.5
-    highs[14] = 6.0
-    lows[14] = 3.0
+    opens[14] = 15.5
+    closes[14] = 10.5
+    highs[14] = 19.0
+    lows[14] = 8.0
     
     df = pd.DataFrame({
         'time': times,
@@ -178,12 +179,22 @@ def test_label_smc_setups_fvg_bearish():
     
     labeled_df = label_smc_setups(df, buffer=0.5)
     
-    assert len(labeled_df) >= 1
+    assert len(labeled_df) >= 2
     fvg_trades = labeled_df[labeled_df['setup_type'] == 0]
-    assert len(fvg_trades) == 1
+    assert len(fvg_trades) == 2
+    
+    # Option A (Midpoint): Entry = 17.75, SL = 22.0, TP = 9.25
     trade = fvg_trades.iloc[0]
     assert trade['direction'] == -1
-    assert trade['entry_price'] == 8.0
-    assert trade['sl_price'] == 10.0
-    assert trade['tp_price'] == 4.0
+    assert np.isclose(trade['entry_price'], 17.75)
+    assert np.isclose(trade['sl_price'], 22.0)
+    assert np.isclose(trade['tp_price'], 9.25)
     assert trade['label'] == 1
+    
+    # Option B (Golden Pocket): Entry = 18.281, SL = 22.0, TP = 10.843
+    trade2 = fvg_trades.iloc[1]
+    assert trade2['direction'] == -1
+    assert np.isclose(trade2['entry_price'], 18.281)
+    assert np.isclose(trade2['sl_price'], 22.0)
+    assert np.isclose(trade2['tp_price'], 10.843, atol=1e-3)
+    assert trade2['label'] == 1

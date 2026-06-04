@@ -392,7 +392,10 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
                     'risk_pips': risk_pips,
                     'atr_14': atr_val,
                     'trend': trend_val,
+                    'relative_risk': risk_pips / atr_val,
                     'killzone': killzone_val,
+                    'fvg_width': 0.0,
+                    'relative_fvg_width': 0.0,
                     'option_name': 'Standard',
                     'rejection_confirmed': rejection_confirmed
                 })
@@ -427,6 +430,10 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
                     atr_val = 1.0
                     
                 direction = 1 if fvg_type == 'BULLISH' else -1
+                if direction == 1:
+                    fvg_width = df['Low'].iloc[i] - df['High'].iloc[i-2]
+                else:
+                    fvg_width = df['Low'].iloc[i-2] - df['High'].iloc[i]
                 
                 # Retrieve Fibonacci levels computed during smc_detector
                 fibo_0_5 = float(df['FVG_Fibo_0.5'].iloc[i])
@@ -461,7 +468,10 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
                     'risk_pips': risk_pips_a,
                     'atr_14': atr_val,
                     'trend': trend_val,
+                    'relative_risk': risk_pips_a / atr_val,
                     'killzone': killzone_val,
+                    'fvg_width': fvg_width,
+                    'relative_fvg_width': fvg_width / atr_val,
                     'option_name': 'Option A (Midpoint)',
                     'rejection_confirmed': rejection_confirmed_a
                 })
@@ -493,7 +503,10 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
                     'risk_pips': risk_pips_b,
                     'atr_14': atr_val,
                     'trend': trend_val,
+                    'relative_risk': risk_pips_b / atr_val,
                     'killzone': killzone_val,
+                    'fvg_width': fvg_width,
+                    'relative_fvg_width': fvg_width / atr_val,
                     'option_name': 'Option B (Golden Pocket)',
                     'rejection_confirmed': rejection_confirmed_b
                 })
@@ -643,7 +656,10 @@ def main():
             'risk_pips': setup['risk_pips'],
             'atr_14': setup['atr_14'],
             'trend': setup['trend'],
-            'killzone': setup['killzone']
+            'relative_risk': setup['relative_risk'],
+            'killzone': setup['killzone'],
+            'fvg_width': setup['fvg_width'],
+            'relative_fvg_width': setup['relative_fvg_width']
         }
         try:
             prob = predict_setup_probability(features)

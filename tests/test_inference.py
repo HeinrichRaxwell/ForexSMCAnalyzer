@@ -96,7 +96,7 @@ def test_update_feedback_data(tmp_path):
     assert list(df.columns) == [
         'time', 'hour', 'day_of_week', 'setup_type', 'direction', 
         'entry_price', 'sl_price', 'tp_price', 'risk_pips', 'atr_14', 
-        'trend', 'killzone', 'label'
+        'trend', 'relative_risk', 'killzone', 'fvg_width', 'relative_fvg_width', 'label'
     ]
     assert df.iloc[0]['hour'] == 12
     assert df.iloc[0]['label'] == 1

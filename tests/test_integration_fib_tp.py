@@ -33,16 +33,16 @@ def test_fvg_double_options_generation():
     opt_a = [s for s in fvg_setups if 'Option A' in s['option_name']][0]
     opt_b = [s for s in fvg_setups if 'Option B' in s['option_name']][0]
     
-    # Option A (Midpoint): Entry = Fibo 0.5 (12.0), SL = FVG_SL (6.0), TP 1 = Fibo 0.0 (16.0)
-    assert np.isclose(opt_a['entry_price'], 12.0)
-    assert np.isclose(opt_a['sl_price'], 6.0)
-    assert np.isclose(opt_a['tp_price'], 16.0)
+    # Option A (Midpoint): Entry = Fibo 0.5 (12.5), SL = FVG_SL (8.0), TP 1 = Fibo 0.0 (15.0)
+    assert np.isclose(opt_a['entry_price'], 12.5)
+    assert np.isclose(opt_a['sl_price'], 8.0)
+    assert np.isclose(opt_a['tp_price'], 15.0)
     assert opt_a['rejection_confirmed'] is False # No touch yet
     
-    # Option B (Golden Pocket): Entry = Fibo 0.618 (11.056), SL = FVG_SL (6.0), TP 1 = Fibo 0.0 (16.0)
-    assert np.isclose(opt_b['entry_price'], 11.056)
-    assert np.isclose(opt_b['sl_price'], 6.0)
-    assert np.isclose(opt_b['tp_price'], 16.0)
+    # Option B (Golden Pocket): Entry = Fibo 0.618 (11.91), SL = FVG_SL (8.0), TP 1 = Fibo 0.0 (15.0)
+    assert np.isclose(opt_b['entry_price'], 11.91)
+    assert np.isclose(opt_b['sl_price'], 8.0)
+    assert np.isclose(opt_b['tp_price'], 15.0)
     assert opt_b['rejection_confirmed'] is False # No touch yet
 
 def test_rejection_detection_at_fibo_levels():

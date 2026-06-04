@@ -108,27 +108,33 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
         day_of_week_val = int(t_val.dayofweek)
         trend_val = int(df['Trend'].iloc[i])
         killzone_val = get_killzone(hour_val)
+        atr_val = df['ATR_14'].iloc[i]
         
         # 1. Check FVG Setup
         fvg_type = df['FVG_Type'].iloc[i] if 'FVG_Type' in df.columns else None
         if pd.notna(fvg_type) and fvg_type is not None:
             fvg_top = df['FVG_Top'].iloc[i]
             fvg_bottom = df['FVG_Bottom'].iloc[i]
+            fvg_sl = df['FVG_SL'].iloc[i]
             
             if fvg_type == 'BULLISH':
                 direction = 1
-                entry = fvg_top
-                sl = fvg_bottom - buffer
-                tp = entry + (entry - sl) * 2
-            elif fvg_type == 'BEARISH':
+                fvg_width = df['Low'].iloc[i] - df['High'].iloc[i-2]
+            else: # BEARISH
                 direction = -1
-                entry = fvg_bottom
-                sl = fvg_top + buffer
-                tp = entry - (sl - entry) * 2
-            else:
-                direction = None
+                fvg_width = df['Low'].iloc[i-2] - df['High'].iloc[i]
                 
-            if direction is not None:
+            # For FVGs, test both Fibo 0.5 (Midpoint) and Fibo 0.618 (GP) entry options separately
+            for entry_col in ['FVG_Fibo_0.5', 'FVG_Fibo_0.618']:
+                entry = df[entry_col].iloc[i]
+                sl = fvg_sl
+                if direction == 1:
+                    tp = entry + (entry - sl) * 2
+                    risk_pips = entry - sl
+                else:
+                    tp = entry - (sl - entry) * 2
+                    risk_pips = sl - entry
+                    
                 label = simulate_trade(df, i + 1, direction, sl, tp)
                 if label is not None:
                     setups.append({
@@ -140,10 +146,13 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
                         'entry_price': entry,
                         'sl_price': sl,
                         'tp_price': tp,
-                        'risk_pips': (entry - sl) if direction == 1 else (sl - entry),
-                        'atr_14': df['ATR_14'].iloc[i],
+                        'risk_pips': risk_pips,
+                        'atr_14': atr_val,
                         'trend': trend_val,
+                        'relative_risk': risk_pips / atr_val,
                         'killzone': killzone_val,
+                        'fvg_width': fvg_width,
+                        'relative_fvg_width': fvg_width / atr_val,
                         'label': int(label)
                     })
                     
@@ -158,11 +167,13 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
                 entry = ob_top
                 sl = ob_bottom - buffer
                 tp = entry + (entry - sl) * 2
+                risk_pips = entry - sl
             elif ob_type == 'BEARISH':
                 direction = -1
                 entry = ob_bottom
                 sl = ob_top + buffer
                 tp = entry - (sl - entry) * 2
+                risk_pips = sl - entry
             else:
                 direction = None
                 
@@ -178,10 +189,13 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
                         'entry_price': entry,
                         'sl_price': sl,
                         'tp_price': tp,
-                        'risk_pips': (entry - sl) if direction == 1 else (sl - entry),
-                        'atr_14': df['ATR_14'].iloc[i],
+                        'risk_pips': risk_pips,
+                        'atr_14': atr_val,
                         'trend': trend_val,
+                        'relative_risk': risk_pips / atr_val,
                         'killzone': killzone_val,
+                        'fvg_width': 0.0,
+                        'relative_fvg_width': 0.0,
                         'label': int(label)
                     })
                     

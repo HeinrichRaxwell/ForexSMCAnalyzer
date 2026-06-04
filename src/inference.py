@@ -71,7 +71,7 @@ def update_feedback_data(new_trades_list, labeled_data_path="data/labeled_setups
     columns_order = [
         'time', 'hour', 'day_of_week', 'setup_type', 'direction', 
         'entry_price', 'sl_price', 'tp_price', 'risk_pips', 'atr_14', 
-        'trend', 'killzone', 'label'
+        'trend', 'relative_risk', 'killzone', 'fvg_width', 'relative_fvg_width', 'label'
     ]
     
     # Ensure all columns exist
