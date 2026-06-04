@@ -10,6 +10,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.data_loader import connect_mt5, fetch_historical_data
 from src.smc_detector import detect_swing_points, detect_structures, detect_fvg_and_ob
+from src.labeler import get_killzone
+from src.inference import predict_setup_probability
 
 def generate_synthetic_data(num_candles=100) -> pd.DataFrame:
     """
@@ -59,7 +61,7 @@ def generate_synthetic_data(num_candles=100) -> pd.DataFrame:
     
     return df
 
-def plot_smc_chart(df: pd.DataFrame, title: str = "XAUUSD M15 - SMC/ICT Analysis"):
+def plot_smc_chart(df: pd.DataFrame, title: str = "XAUUSD M15 - SMC/ICT Analysis", active_setups=None):
     """
     Plot a premium, dark-themed TradingView style chart displaying candlesticks
     along with detected Swing Points, BOS, CHoCH, FVGs, and Order Blocks.
@@ -162,12 +164,170 @@ def plot_smc_chart(df: pd.DataFrame, title: str = "XAUUSD M15 - SMC/ICT Analysis
     ax.set_ylabel("Price (USD)", color='#9ca3af', fontsize=10, labelpad=10)
     ax.set_xlabel("Bars (Timeline)", color='#9ca3af', fontsize=10, labelpad=10)
     
+    # 6. Plot Active ML-Filtered Signals
+    if active_setups:
+        # Draw high confidence signals on the chart
+        for setup in active_setups:
+            if setup['status'] == "HIGH CONFIDENCE SIGNAL":
+                idx = setup['index']
+                line_color = '#089981' if setup['direction'] == 1 else '#f23645'
+                
+                # Draw vertical dotted line at the detection candle
+                ax.axvline(x=idx, color=line_color, linestyle=':', alpha=0.7, linewidth=1.5)
+                
+                # Draw horizontal lines for Entry, SL, and TP
+                end_x = min(idx + 15, len(df) - 1)
+                x_range = [idx, end_x]
+                
+                # Entry (Blue-ish)
+                ax.plot(x_range, [setup['entry_price'], setup['entry_price']], color='#2962ff', linestyle='-', linewidth=1.5, zorder=4)
+                # SL (Red)
+                ax.plot(x_range, [setup['sl_price'], setup['sl_price']], color='#f23645', linestyle='--', linewidth=1.2, zorder=4)
+                # TP (Green)
+                ax.plot(x_range, [setup['tp_price'], setup['tp_price']], color='#089981', linestyle='--', linewidth=1.2, zorder=4)
+                
+                # Annotation labels on the chart
+                setup_name = "OB" if setup['setup_type'] == 1 else "FVG"
+                dir_label = "BUY" if setup['direction'] == 1 else "SELL"
+                ax.text(idx + 0.5, setup['entry_price'] + 0.2, f"★ ML {dir_label} {setup_name} ({setup['probability']:.1%})",
+                        color='white', fontsize=7.5, fontweight='bold', 
+                        bbox=dict(facecolor='#2962ff', alpha=0.9, edgecolor='none', boxstyle='round,pad=0.2'), zorder=5)
+
+        # Draw a summary box of all active signals at the bottom left
+        text_lines = ["ACTIVE SMC SIGNALS (ML FILTERED)"]
+        text_lines.append("-" * 35)
+        for setup in active_setups:
+            setup_name = "OB" if setup['setup_type'] == 1 else "FVG"
+            dir_label = "BULL" if setup['direction'] == 1 else "BEAR"
+            is_high = setup['status'] == "HIGH CONFIDENCE SIGNAL"
+            status_text = "PASS" if is_high else "FILTERED"
+            text_lines.append(f"{setup_name} {dir_label} | Prob: {setup['probability']:.1%} | {status_text}")
+            
+        if len(active_setups) == 0:
+            text_lines.append("No active setups found.")
+            
+        text_str = "\n".join(text_lines)
+        ax.text(0.02, 0.05, text_str, transform=ax.transAxes, color='#e5e7eb', fontsize=8, fontfamily='monospace',
+                bbox=dict(facecolor='#1e222d', alpha=0.85, edgecolor='#2a2e39', boxstyle='round,pad=0.5'), zorder=5)
+                
     plt.tight_layout()
     output_filename = "xauusd_smc_analysis.png"
     plt.savefig(output_filename, dpi=180, facecolor='#131722')
     plt.close()
     print(f"SMC analysis visualization successfully saved as '{output_filename}'")
     
+def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
+    """
+    Identify active (unmitigated) SMC setups (OBs and FVGs) from the detected structures.
+    """
+    active_setups = []
+    
+    # 1. OB Setups
+    for i in range(len(df)):
+        ob_type = df['OB_Type'].iloc[i]
+        if pd.notna(ob_type) and ob_type is not None:
+            # Check if it remains unmitigated (OB_Mitigated is False)
+            if not df['OB_Mitigated'].iloc[i]:
+                ob_top = df['OB_Top'].iloc[i]
+                ob_bottom = df['OB_Bottom'].iloc[i]
+                t_val = pd.to_datetime(df['time'].iloc[i])
+                hour_val = int(t_val.hour)
+                day_of_week_val = int(t_val.dayofweek)
+                trend_val = int(df['Trend'].iloc[i])
+                killzone_val = get_killzone(hour_val)
+                atr_val = df['ATR_14'].iloc[i] if 'ATR_14' in df.columns else 1.0
+                if pd.isna(atr_val):
+                    atr_val = 1.0
+                
+                if ob_type == 'BULLISH':
+                    direction = 1
+                    entry = ob_top
+                    sl = ob_bottom - buffer
+                    tp = entry + (entry - sl) * 2
+                else:
+                    direction = -1
+                    entry = ob_bottom
+                    sl = ob_top + buffer
+                    tp = entry - (sl - entry) * 2
+                
+                risk_pips = (entry - sl) if direction == 1 else (sl - entry)
+                
+                active_setups.append({
+                    'index': i,
+                    'time': df['time'].iloc[i],
+                    'hour': hour_val,
+                    'day_of_week': day_of_week_val,
+                    'setup_type': 1,  # OB
+                    'direction': direction,
+                    'entry_price': entry,
+                    'sl_price': sl,
+                    'tp_price': tp,
+                    'risk_pips': risk_pips,
+                    'atr_14': atr_val,
+                    'trend': trend_val,
+                    'killzone': killzone_val
+                })
+                
+    # 2. FVG Setups
+    for i in range(len(df)):
+        fvg_type = df['FVG_Type'].iloc[i]
+        if pd.notna(fvg_type) and fvg_type is not None:
+            fvg_top = df['FVG_Top'].iloc[i]
+            fvg_bottom = df['FVG_Bottom'].iloc[i]
+            
+            # Check mitigation from i+1 to end of df
+            mitigated = False
+            for j in range(i + 1, len(df)):
+                if fvg_type == 'BULLISH':
+                    if df['Low'].iloc[j] <= fvg_top:
+                        mitigated = True
+                        break
+                elif fvg_type == 'BEARISH':
+                    if df['High'].iloc[j] >= fvg_bottom:
+                        mitigated = True
+                        break
+            
+            if not mitigated:
+                t_val = pd.to_datetime(df['time'].iloc[i])
+                hour_val = int(t_val.hour)
+                day_of_week_val = int(t_val.dayofweek)
+                trend_val = int(df['Trend'].iloc[i])
+                killzone_val = get_killzone(hour_val)
+                atr_val = df['ATR_14'].iloc[i] if 'ATR_14' in df.columns else 1.0
+                if pd.isna(atr_val):
+                    atr_val = 1.0
+                    
+                if fvg_type == 'BULLISH':
+                    direction = 1
+                    entry = fvg_top
+                    sl = fvg_bottom - buffer
+                    tp = entry + (entry - sl) * 2
+                else:
+                    direction = -1
+                    entry = fvg_bottom
+                    sl = fvg_top + buffer
+                    tp = entry - (sl - entry) * 2
+                
+                risk_pips = (entry - sl) if direction == 1 else (sl - entry)
+                
+                active_setups.append({
+                    'index': i,
+                    'time': df['time'].iloc[i],
+                    'hour': hour_val,
+                    'day_of_week': day_of_week_val,
+                    'setup_type': 0,  # FVG
+                    'direction': direction,
+                    'entry_price': entry,
+                    'sl_price': sl,
+                    'tp_price': tp,
+                    'risk_pips': risk_pips,
+                    'atr_14': atr_val,
+                    'trend': trend_val,
+                    'killzone': killzone_val
+                })
+                
+    return active_setups
+
 def main():
     print("=== SMC/ICT AUTO-ANALYZER CORE ENGINE ===")
     
@@ -180,7 +340,6 @@ def main():
             # Check symbol list
             symbol = "XAUUSD"
             # Try fetching M15 timeframe (200 candles)
-            # mt5.TIMEFRAME_M15 = 15
             print(f"Fetching last 150 candles of {symbol} from MT5...")
             df = fetch_historical_data(symbol, 15, 150)
             mt5_active = True
@@ -201,6 +360,59 @@ def main():
     df = detect_structures(df)
     df = detect_fvg_and_ob(df)
     
+    # Calculate ATR_14
+    close_prev = df['Close'].shift(1).fillna(df['Open'])
+    tr = np.maximum(
+        df['High'] - df['Low'],
+        np.maximum(
+            np.abs(df['High'] - close_prev),
+            np.abs(df['Low'] - close_prev)
+        )
+    )
+    df['ATR_14'] = tr.rolling(window=14, min_periods=1).mean()
+    
+    # Identify active setups
+    active_setups = get_active_setups(df)
+    
+    # Query model predictions for each setup
+    filtered_setups_with_prob = []
+    for setup in active_setups:
+        features = {
+            'hour': setup['hour'],
+            'day_of_week': setup['day_of_week'],
+            'setup_type': setup['setup_type'],
+            'direction': setup['direction'],
+            'entry_price': setup['entry_price'],
+            'sl_price': setup['sl_price'],
+            'tp_price': setup['tp_price'],
+            'risk_pips': setup['risk_pips'],
+            'atr_14': setup['atr_14'],
+            'trend': setup['trend'],
+            'killzone': setup['killzone']
+        }
+        try:
+            prob = predict_setup_probability(features)
+            setup['probability'] = prob
+            setup['status'] = "HIGH CONFIDENCE SIGNAL" if prob >= 0.70 else "FILTERED (Low Confidence)"
+        except Exception as e:
+            print(f"Error predicting setup probability: {e}")
+            setup['probability'] = 0.0
+            setup['status'] = "ERROR"
+            
+        filtered_setups_with_prob.append(setup)
+        
+    # Print results in terminal
+    print("\n" + "="*80)
+    print("                    ACTIVE SMC TRADE SIGNALS & ML FILTERING")
+    print("="*80)
+    print(f"{'Time':<20} | {'Type':<5} | {'Dir':<8} | {'Entry':<8} | {'SL':<8} | {'TP':<8} | {'Win Prob':<8} | Status")
+    print("-"*80)
+    for setup in filtered_setups_with_prob:
+        setup_name = "OB" if setup['setup_type'] == 1 else "FVG"
+        dir_name = "Bullish" if setup['direction'] == 1 else "Bearish"
+        print(f"{str(setup['time']):<20} | {setup_name:<5} | {dir_name:<8} | {setup['entry_price']:.3f} | {setup['sl_price']:.3f} | {setup['tp_price']:.3f} | {setup['probability']:.2%} | {setup['status']}")
+    print("="*80 + "\n")
+    
     # Display statistics
     num_bos = df['BOS'].notna().sum()
     num_choch = df['CHoCH'].notna().sum()
@@ -213,12 +425,14 @@ def main():
     print(f"Change of Character (CHoCH) signals: {num_choch}")
     print(f"Fair Value Gaps (FVG) detected: {num_fvg}")
     print(f"Order Blocks (OB) created: {num_ob}")
+    print(f"Active Setups Found: {len(filtered_setups_with_prob)}")
+    print(f"High Confidence Signals: {sum(1 for s in filtered_setups_with_prob if s['status'] == 'HIGH CONFIDENCE SIGNAL')}")
     print("-------------------------\n")
     
     # Generate visualization
     chart_title = "XAUUSD M15 - Exness Live Data" if mt5_active else "XAUUSD M15 - Simulated Market Structure"
-    plot_smc_chart(df, title=chart_title)
-    print("Phase 1 complete! SMC Engine successfully validated.")
+    plot_smc_chart(df, title=chart_title, active_setups=filtered_setups_with_prob)
+    print("Phase 2 complete! Signal Filtering Engine & Self-Learning Loop successfully integrated.")
 
 if __name__ == "__main__":
     main()
