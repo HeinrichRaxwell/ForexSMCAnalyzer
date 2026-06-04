@@ -13,13 +13,13 @@ from src.smc_detector import detect_swing_points, detect_structures, detect_fvg_
 from src.labeler import get_killzone
 from src.inference import predict_setup_probability
 
-def generate_synthetic_data(num_candles=100) -> pd.DataFrame:
+def generate_synthetic_data(num_candles=100, seed=42) -> pd.DataFrame:
     """
     Generate synthetic candlestick data representing simulated market structures.
     This acts as a fallback when MT5 terminal is not active.
     """
-    print("Generating synthetic XAUUSD data for visualization...")
-    np.random.seed(42)
+    print(f"Generating synthetic XAUUSD data (seed={seed})...")
+    np.random.seed(seed)
     time = pd.date_range(start="2026-06-01", periods=num_candles, freq="15min")
     
     # Generate a trend with clear structure: Bullish expansion, pullback, bearish reversal
@@ -59,7 +59,28 @@ def generate_synthetic_data(num_candles=100) -> pd.DataFrame:
     df.loc[21, 'Open'] = 2350.0
     df.loc[21, 'Low'] = 2345.0  # Candle 19 High < Candle 21 Low (2341.0 < 2345.0) -> Bullish FVG!
     
+    # Inject a guaranteed active Bullish FVG near the end of the dataset
+    if num_candles > 30:
+        idx_base = num_candles - 5
+        df.loc[idx_base - 2, 'High'] = 2360.0
+        df.loc[idx_base - 2, 'Close'] = 2359.5
+        df.loc[idx_base - 1, 'Open'] = 2359.5
+        df.loc[idx_base - 1, 'High'] = 2375.0
+        df.loc[idx_base - 1, 'Low'] = 2359.0
+        df.loc[idx_base - 1, 'Close'] = 2374.0
+        df.loc[idx_base, 'Open'] = 2374.0
+        df.loc[idx_base, 'Low'] = 2365.0
+        df.loc[idx_base, 'Close'] = 2370.0
+        
+        # Subsequent candles shouldn't close below FVG_Bottom (2360.0)
+        for k in range(idx_base + 1, num_candles):
+            df.loc[k, 'Open'] = 2370.0
+            df.loc[k, 'High'] = 2373.0
+            df.loc[k, 'Low'] = 2366.0
+            df.loc[k, 'Close'] = 2368.0
+            
     return df
+
 
 def plot_smc_chart(df: pd.DataFrame, title: str = "XAUUSD M15 - SMC/ICT Analysis", active_setups=None):
     """
@@ -328,19 +349,62 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
                 
     return active_setups
 
+def extract_active_htf_fvgs(df: pd.DataFrame) -> list:
+    """
+    Extract active (unmitigated) FVGs on a higher timeframe (HTF).
+    A Bullish HTF FVG is active if subsequent price has not closed below FVG_Bottom.
+    A Bearish HTF FVG is active if subsequent price has not closed above FVG_Top.
+    """
+    active_fvgs = []
+    if 'FVG_Type' not in df.columns:
+        return active_fvgs
+        
+    for i in range(len(df)):
+        fvg_type = df['FVG_Type'].iloc[i]
+        if pd.notna(fvg_type) and fvg_type is not None:
+            fvg_top = df['FVG_Top'].iloc[i]
+            fvg_bottom = df['FVG_Bottom'].iloc[i]
+            
+            # Check mitigation from i+1 to end of df
+            mitigated = False
+            for j in range(i + 1, len(df)):
+                if fvg_type == 'BULLISH':
+                    if df['Close'].iloc[j] < fvg_bottom:
+                        mitigated = True
+                        break
+                elif fvg_type == 'BEARISH':
+                    if df['Close'].iloc[j] > fvg_top:
+                        mitigated = True
+                        break
+            
+            if not mitigated:
+                active_fvgs.append({
+                    'index': i,
+                    'time': df['time'].iloc[i],
+                    'type': fvg_type,
+                    'top': fvg_top,
+                    'bottom': fvg_bottom
+                })
+    return active_fvgs
+
 def main():
     print("=== SMC/ICT AUTO-ANALYZER CORE ENGINE ===")
     
     # Try to connect to MT5 Exness terminal
     mt5_active = False
     symbol = "XAUUSD"
+    timeframes_data = {}
+    
     try:
         import MetaTrader5 as mt5
         if connect_mt5():
             print("Connected successfully to MetaTrader 5!")
-            # Try fetching M15 timeframe (200 candles)
-            print(f"Fetching last 150 candles of {symbol} from MT5...")
-            df = fetch_historical_data(symbol, 15, 150)
+            print(f"Fetching multi-timeframe data for {symbol} from MT5...")
+            timeframes_data['D1'] = fetch_historical_data(symbol, mt5.TIMEFRAME_D1, 50)
+            timeframes_data['H4'] = fetch_historical_data(symbol, mt5.TIMEFRAME_H4, 100)
+            timeframes_data['H1'] = fetch_historical_data(symbol, mt5.TIMEFRAME_H1, 150)
+            timeframes_data['M30'] = fetch_historical_data(symbol, mt5.TIMEFRAME_M30, 200)
+            timeframes_data['M15'] = fetch_historical_data(symbol, mt5.TIMEFRAME_M15, 200)
             mt5_active = True
             mt5.shutdown()
         else:
@@ -351,31 +415,72 @@ def main():
         
     if not mt5_active:
         # Fallback to simulated data
-        df = generate_synthetic_data(120)
+        print("Generating synthetic multi-timeframe data...")
+        timeframes_data['D1'] = generate_synthetic_data(50, seed=42)
+        timeframes_data['H4'] = generate_synthetic_data(100, seed=43)
+        timeframes_data['H1'] = generate_synthetic_data(150, seed=44)
+        timeframes_data['M30'] = generate_synthetic_data(200, seed=45)
+        timeframes_data['M15'] = generate_synthetic_data(200, seed=46)
         
-    # Run SMC detection algorithms
-    print("Running SMC structure detection algorithms...")
-    df = detect_swing_points(df, window=5)
-    df = detect_structures(df)
-    df = detect_fvg_and_ob(df, symbol=symbol)
-    
-    # Calculate ATR_14
-    close_prev = df['Close'].shift(1).fillna(df['Open'])
-    tr = np.maximum(
-        df['High'] - df['Low'],
-        np.maximum(
-            np.abs(df['High'] - close_prev),
-            np.abs(df['Low'] - close_prev)
+    # Run SMC detection algorithms on all timeframes
+    print("Running SMC structure detection algorithms on all timeframes...")
+    for tf_name in timeframes_data:
+        df_tf = timeframes_data[tf_name]
+        df_tf = detect_swing_points(df_tf, window=5)
+        df_tf = detect_structures(df_tf)
+        df_tf = detect_fvg_and_ob(df_tf, symbol=symbol)
+        
+        # Calculate ATR_14
+        close_prev = df_tf['Close'].shift(1).fillna(df_tf['Open'])
+        tr = np.maximum(
+            df_tf['High'] - df_tf['Low'],
+            np.maximum(
+                np.abs(df_tf['High'] - close_prev),
+                np.abs(df_tf['Low'] - close_prev)
+            )
         )
-    )
-    df['ATR_14'] = tr.rolling(window=14, min_periods=1).mean()
+        df_tf['ATR_14'] = tr.rolling(window=14, min_periods=1).mean()
+        timeframes_data[tf_name] = df_tf
+        
+    # Extract active HTF FVGs (from H1, H4, and D1)
+    active_htf_fvgs = []
+    for tf_name in ['H1', 'H4', 'D1']:
+        tf_fvgs = extract_active_htf_fvgs(timeframes_data[tf_name])
+        for fvg in tf_fvgs:
+            fvg['timeframe'] = tf_name
+            active_htf_fvgs.append(fvg)
+            
+    print(f"Detected {len(active_htf_fvgs)} active Higher Timeframe (HTF) FVGs.")
     
-    # Identify active setups
-    active_setups = get_active_setups(df)
+    # Identify active setups on lower timeframes (M15 and M30)
+    active_setups_m15 = get_active_setups(timeframes_data['M15'])
+    for s in active_setups_m15:
+        s['timeframe'] = 'M15'
+        
+    active_setups_m30 = get_active_setups(timeframes_data['M30'])
+    for s in active_setups_m30:
+        s['timeframe'] = 'M30'
+        
+    all_ltf_setups = active_setups_m15 + active_setups_m30
     
+    # Check if the setup entry price falls inside any active HTF FVG of the same direction
+    for setup in all_ltf_setups:
+        setup['htf_prioritized'] = False
+        setup['matching_htf_fvgs'] = []
+        
+        for htf_fvg in active_htf_fvgs:
+            # Check same direction
+            is_same_direction = (setup['direction'] == 1 and htf_fvg['type'] == 'BULLISH') or \
+                                (setup['direction'] == -1 and htf_fvg['type'] == 'BEARISH')
+            if is_same_direction:
+                entry = setup['entry_price']
+                if entry >= htf_fvg['bottom'] and entry <= htf_fvg['top']:
+                    setup['htf_prioritized'] = True
+                    setup['matching_htf_fvgs'].append(htf_fvg)
+                    
     # Query model predictions for each setup
     filtered_setups_with_prob = []
-    for setup in active_setups:
+    for setup in all_ltf_setups:
         features = {
             'hour': setup['hour'],
             'day_of_week': setup['day_of_week'],
@@ -401,25 +506,40 @@ def main():
         filtered_setups_with_prob.append(setup)
         
     # Print results in terminal
-    print("\n" + "="*80)
+    print("\n" + "="*95)
     print("                    ACTIVE SMC TRADE SIGNALS & ML FILTERING")
-    print("="*80)
-    print(f"{'Time':<20} | {'Type':<5} | {'Dir':<8} | {'Entry':<8} | {'SL':<8} | {'TP':<8} | {'Win Prob':<8} | Status")
-    print("-"*80)
+    print("="*95)
+    print(f"{'Time':<20} | {'TF':<4} | {'Type':<5} | {'Dir':<8} | {'Entry':<8} | {'SL':<8} | {'TP':<8} | {'Win Prob':<8} | {'HTF Prior':<9} | Status")
+    print("-"*95)
     for setup in filtered_setups_with_prob:
         setup_name = "OB" if setup['setup_type'] == 1 else "FVG"
         dir_name = "Bullish" if setup['direction'] == 1 else "Bearish"
-        print(f"{str(setup['time']):<20} | {setup_name:<5} | {dir_name:<8} | {setup['entry_price']:.3f} | {setup['sl_price']:.3f} | {setup['tp_price']:.3f} | {setup['probability']:.2%} | {setup['status']}")
-    print("="*80 + "\n")
+        prior_str = "YES" if setup['htf_prioritized'] else "NO"
+        print(f"{str(setup['time']):<20} | {setup['timeframe']:<4} | {setup_name:<5} | {dir_name:<8} | {setup['entry_price']:.3f} | {setup['sl_price']:.3f} | {setup['tp_price']:.3f} | {setup['probability']:.2%} | {prior_str:<9} | {setup['status']}")
+    print("="*95 + "\n")
     
+    # Print prioritized setups clearly
+    prioritized_setups = [s for s in filtered_setups_with_prob if s['htf_prioritized']]
+    if prioritized_setups:
+        print("*"*95)
+        print("                    PRIORITIZED MULTI-TIMEFRAME (HTF) SETUPS")
+        print("*"*95)
+        for setup in prioritized_setups:
+            setup_name = "OB" if setup['setup_type'] == 1 else "FVG"
+            dir_name = "Bullish" if setup['direction'] == 1 else "Bearish"
+            matching_desc = ", ".join([f"{f['timeframe']} FVG ({f['bottom']:.3f}-{f['top']:.3f})" for f in setup['matching_htf_fvgs']])
+            print(f"* {setup['timeframe']} {dir_name} {setup_name} at {setup['entry_price']:.3f} matched HTF: {matching_desc} (Win Prob: {setup['probability']:.2%})")
+        print("*"*95 + "\n")
+        
     # Display statistics
-    num_bos = df['BOS'].notna().sum()
-    num_choch = df['CHoCH'].notna().sum()
-    num_fvg = df['FVG_Type'].notna().sum() if 'FVG_Type' in df.columns else 0
-    num_ob = df['OB_Type'].notna().sum() if 'OB_Type' in df.columns else 0
+    df_m15 = timeframes_data['M15']
+    num_bos = df_m15['BOS'].notna().sum()
+    num_choch = df_m15['CHoCH'].notna().sum()
+    num_fvg = df_m15['FVG_Type'].notna().sum() if 'FVG_Type' in df_m15.columns else 0
+    num_ob = df_m15['OB_Type'].notna().sum() if 'OB_Type' in df_m15.columns else 0
     
-    print("\n--- Detection Summary ---")
-    print(f"Total Candles Analyzed: {len(df)}")
+    print("\n--- M15 Detection Summary ---")
+    print(f"Total Candles Analyzed: {len(df_m15)}")
     print(f"Break of Structure (BOS) signals: {num_bos}")
     print(f"Change of Character (CHoCH) signals: {num_choch}")
     print(f"Fair Value Gaps (FVG) detected: {num_fvg}")
@@ -428,10 +548,11 @@ def main():
     print(f"High Confidence Signals: {sum(1 for s in filtered_setups_with_prob if s['status'] == 'HIGH CONFIDENCE SIGNAL')}")
     print("-------------------------\n")
     
-    # Generate visualization
+    # Generate visualization (only for M15 setups to avoid index mismatch on M15 chart)
     chart_title = "XAUUSD M15 - Exness Live Data" if mt5_active else "XAUUSD M15 - Simulated Market Structure"
-    plot_smc_chart(df, title=chart_title, active_setups=filtered_setups_with_prob)
-    print("Phase 2 complete! Signal Filtering Engine & Self-Learning Loop successfully integrated.")
+    m15_filtered_setups = [s for s in filtered_setups_with_prob if s.get('timeframe') == 'M15']
+    plot_smc_chart(df_m15, title=chart_title, active_setups=m15_filtered_setups)
+    print("Phase 2 complete! Signal Filtering Engine & Self-Learning Loop successfully integrated with MTF.")
 
 if __name__ == "__main__":
     main()
