@@ -333,12 +333,11 @@ def main():
     
     # Try to connect to MT5 Exness terminal
     mt5_active = False
+    symbol = "XAUUSD"
     try:
         import MetaTrader5 as mt5
         if connect_mt5():
             print("Connected successfully to MetaTrader 5!")
-            # Check symbol list
-            symbol = "XAUUSD"
             # Try fetching M15 timeframe (200 candles)
             print(f"Fetching last 150 candles of {symbol} from MT5...")
             df = fetch_historical_data(symbol, 15, 150)
@@ -358,7 +357,7 @@ def main():
     print("Running SMC structure detection algorithms...")
     df = detect_swing_points(df, window=5)
     df = detect_structures(df)
-    df = detect_fvg_and_ob(df)
+    df = detect_fvg_and_ob(df, symbol=symbol)
     
     # Calculate ATR_14
     close_prev = df['Close'].shift(1).fillna(df['Open'])

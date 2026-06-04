@@ -61,7 +61,7 @@ def simulate_trade(df: pd.DataFrame, start_idx: int, direction: int, sl: float, 
                 
     return None
 
-def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5) -> pd.DataFrame:
+def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUSD") -> pd.DataFrame:
     """
     Load historical data, run SMC detection algorithms, and simulate trade setups
     to label them with outcomes.
@@ -69,6 +69,7 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5) -> pd.DataFrame:
     Args:
         df (pd.DataFrame): Input DataFrame containing OHLCV.
         buffer (float): Distance in USD to add to SL (below Low for Buy, above High for Sell).
+        symbol (str): Symbol name (e.g., "XAUUSD", "EURUSD").
         
     Returns:
         pd.DataFrame: A DataFrame of labeled setups with features.
@@ -81,7 +82,7 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5) -> pd.DataFrame:
     # Run SMC detectors
     df = detect_swing_points(df, window=5)
     df = detect_structures(df)
-    df = detect_fvg_and_ob(df)
+    df = detect_fvg_and_ob(df, symbol=symbol)
     
     # Calculate ATR_14
     close_prev = df['Close'].shift(1).fillna(df['Open'])

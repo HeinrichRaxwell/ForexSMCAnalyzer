@@ -85,12 +85,25 @@ def detect_structures(df: pd.DataFrame) -> pd.DataFrame:
             
     return df
 
-def detect_fvg_and_ob(df: pd.DataFrame) -> pd.DataFrame:
+def get_pip_multiplier(symbol: str) -> float:
+    """
+    Get the pip multiplier for a given symbol to calculate price values from pips.
+    """
+    symbol_upper = symbol.upper()
+    if "JPY" in symbol_upper:
+        return 0.01
+    elif "XAUUSD" in symbol_upper or "GOLD" in symbol_upper:
+        return 0.1
+    else:
+        return 0.0001
+
+def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
     """
     Detect Fair Value Gaps (FVG) and Order Blocks (OB) with mitigation tracking.
     
     Args:
         df (pd.DataFrame): DataFrame containing candle data and structure signals.
+        symbol (str): Symbol name (e.g., "XAUUSD", "EURUSD").
         
     Returns:
         pd.DataFrame: DataFrame with FVG and OB columns.
@@ -101,6 +114,11 @@ def detect_fvg_and_ob(df: pd.DataFrame) -> pd.DataFrame:
     df['FVG_Type'] = None
     df['FVG_Top'] = np.nan
     df['FVG_Bottom'] = np.nan
+    df['FVG_Fibo_0.0'] = np.nan
+    df['FVG_Fibo_0.5'] = np.nan
+    df['FVG_Fibo_0.618'] = np.nan
+    df['FVG_Fibo_1.0'] = np.nan
+    df['FVG_SL'] = np.nan
     
     # 2. Initialize OB columns
     df['OB_Type'] = None
@@ -124,11 +142,40 @@ def detect_fvg_and_ob(df: pd.DataFrame) -> pd.DataFrame:
                 df.at[df.index[i], 'FVG_Type'] = 'BULLISH'
                 df.at[df.index[i], 'FVG_Top'] = df['Low'].iloc[i]
                 df.at[df.index[i], 'FVG_Bottom'] = df['High'].iloc[i-2]
+                
+                # Fibonacci Calculations
+                fibo_1_0 = df['Low'].iloc[i-2]
+                fibo_0_0 = df['High'].iloc[i]
+                fibo_0_5 = fibo_0_0 - 0.5 * (fibo_0_0 - fibo_1_0)
+                fibo_0_618 = fibo_0_0 - 0.618 * (fibo_0_0 - fibo_1_0)
+                buffer = 20 * get_pip_multiplier(symbol)
+                fvg_sl = fibo_1_0 - buffer
+                
+                df.at[df.index[i], 'FVG_Fibo_0.0'] = fibo_0_0
+                df.at[df.index[i], 'FVG_Fibo_0.5'] = fibo_0_5
+                df.at[df.index[i], 'FVG_Fibo_0.618'] = fibo_0_618
+                df.at[df.index[i], 'FVG_Fibo_1.0'] = fibo_1_0
+                df.at[df.index[i], 'FVG_SL'] = fvg_sl
+                
             # Bearish FVG: Low[i-2] > High[i] and Candle i-1 is bearish
             elif df['Low'].iloc[i-2] > df['High'].iloc[i] and df['Close'].iloc[i-1] < df['Open'].iloc[i-1]:
                 df.at[df.index[i], 'FVG_Type'] = 'BEARISH'
                 df.at[df.index[i], 'FVG_Top'] = df['Low'].iloc[i-2]
                 df.at[df.index[i], 'FVG_Bottom'] = df['High'].iloc[i]
+                
+                # Fibonacci Calculations
+                fibo_1_0 = df['High'].iloc[i-2]
+                fibo_0_0 = df['Low'].iloc[i]
+                fibo_0_5 = fibo_0_0 + 0.5 * (fibo_1_0 - fibo_0_0)
+                fibo_0_618 = fibo_0_0 + 0.618 * (fibo_1_0 - fibo_0_0)
+                buffer = 20 * get_pip_multiplier(symbol)
+                fvg_sl = fibo_1_0 + buffer
+                
+                df.at[df.index[i], 'FVG_Fibo_0.0'] = fibo_0_0
+                df.at[df.index[i], 'FVG_Fibo_0.5'] = fibo_0_5
+                df.at[df.index[i], 'FVG_Fibo_0.618'] = fibo_0_618
+                df.at[df.index[i], 'FVG_Fibo_1.0'] = fibo_1_0
+                df.at[df.index[i], 'FVG_SL'] = fvg_sl
                 
         # --- B. OB Detection ---
         has_bos = not pd.isna(df['BOS'].iloc[i])
