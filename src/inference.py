@@ -69,7 +69,7 @@ def update_feedback_data(new_trades_list, labeled_data_path="data/labeled_setups
     
     # Standard columns order for labeled_setups.csv
     columns_order = [
-        'time', 'hour', 'day_of_week', 'setup_type', 'direction', 
+        'time', 'timeframe', 'hour', 'day_of_week', 'setup_type', 'direction', 
         'entry_price', 'sl_price', 'tp_price', 'risk_pips', 'atr_14', 
         'trend', 'relative_risk', 'killzone', 'fvg_width', 'relative_fvg_width', 'label'
     ]
@@ -94,3 +94,106 @@ def trigger_auto_retrain():
     from src.model_trainer import train_xgboost_filter
     print("Triggering automatic model retraining...")
     return train_xgboost_filter()
+
+def process_mt5_history_feedback(sent_signals_file="data/sent_signals.json", labeled_data_path="data/labeled_setups.csv"):
+    """
+    Query MT5 history to check outcomes of sent orders, record wins/losses,
+    and trigger retraining if new outcomes are recorded.
+    
+    Returns:
+        int: Number of newly recorded trade outcomes.
+    """
+    import json
+    import MetaTrader5 as mt5
+    from datetime import datetime, timedelta
+    
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if not os.path.isabs(sent_signals_file):
+        sent_signals_file = os.path.join(base_dir, sent_signals_file)
+    if not os.path.isabs(labeled_data_path):
+        labeled_data_path = os.path.join(base_dir, labeled_data_path)
+        
+    if not os.path.exists(sent_signals_file):
+        return 0
+        
+    try:
+        with open(sent_signals_file, "r") as f:
+            sent_signals = json.load(f)
+    except Exception:
+        return 0
+        
+    # Check if MT5 is initialized
+    mt5_initialized = True
+    if not mt5.initialize():
+        mt5_initialized = False
+        
+    if not mt5_initialized:
+        print("[Feedback Loop] Error: MT5 terminal connection not available.")
+        return 0
+        
+    feedback_trades = []
+    updated = False
+    
+    # Query history from 3 days ago to 1 day in future
+    from_date = datetime.now() - timedelta(days=3)
+    to_date = datetime.now() + timedelta(days=1)
+    
+    for sig_key, sig_data in sent_signals.items():
+        ticket_id = sig_data.get('ticket_id')
+        if ticket_id is None or sig_data.get('outcome_recorded', False):
+            continue
+            
+        # 1. Check if still active pending order
+        active_orders = mt5.orders_get(ticket=ticket_id)
+        if active_orders is not None and len(active_orders) > 0:
+            continue  # Still pending, skip
+            
+        # 2. Check if still open position
+        active_positions = mt5.positions_get(ticket=ticket_id)
+        if active_positions is not None and len(active_positions) > 0:
+            continue  # Still open position, skip
+            
+        # 3. Not pending, not open. Check if there are deals in history
+        # (This history check is relative to position ticket id)
+        deals = mt5.history_deals_get(position=ticket_id)
+        if deals is None or len(deals) == 0:
+            # Order was cancelled or expired without being filled
+            sig_data['outcome_recorded'] = True
+            updated = True
+            print(f"[Feedback Loop] Signal {sig_key} (Ticket #{ticket_id}) was cancelled/expired.")
+            continue
+            
+        # 4. Closed! Calculate net profit
+        # (Note: profit can be in account currency, e.g. IDR, USD, etc. We just need > 0 for Win)
+        total_profit = sum([d.profit for d in deals if d.position_id == ticket_id])
+        label = 1 if total_profit > 0 else 0
+        
+        # Check if features are stored
+        features = sig_data.get('features')
+        if features:
+            features_dict = features.copy()
+            features_dict['label'] = label
+            # Map time format
+            features_dict['time'] = sig_data.get('time_sent', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+            feedback_trades.append(features_dict)
+            print(f"[Feedback Loop] Recorded outcome for signal {sig_key}: {'WIN' if label == 1 else 'LOSS'} (Profit: ${total_profit:.2f})")
+            
+        sig_data['outcome_recorded'] = True
+        updated = True
+        
+    if feedback_trades:
+        # Save feedback data
+        update_feedback_data(feedback_trades, labeled_data_path)
+        # Retrain model
+        try:
+            trigger_auto_retrain()
+        except Exception as e:
+            print(f"[Feedback Loop] Auto-retraining error: {e}")
+            
+    if updated:
+        # Save signals registry back
+        with open(sent_signals_file, "w") as f:
+            json.dump(sent_signals, f, indent=4)
+            
+    return len(feedback_trades)
+

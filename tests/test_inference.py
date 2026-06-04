@@ -94,7 +94,7 @@ def test_update_feedback_data(tmp_path):
     df = pd.read_csv(labeled_data_path)
     assert len(df) == 1
     assert list(df.columns) == [
-        'time', 'hour', 'day_of_week', 'setup_type', 'direction', 
+        'time', 'timeframe', 'hour', 'day_of_week', 'setup_type', 'direction', 
         'entry_price', 'sl_price', 'tp_price', 'risk_pips', 'atr_14', 
         'trend', 'relative_risk', 'killzone', 'fvg_width', 'relative_fvg_width', 'label'
     ]
