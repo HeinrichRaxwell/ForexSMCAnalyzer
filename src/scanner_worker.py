@@ -62,6 +62,7 @@ def prune_invalid_pending_orders(symbol: str, magic: int, active_high_confidence
         o_type = 2 if s['direction'] == 1 else 3
         active_keys.add((round(s['entry_price'], 3), o_type))
         
+    cancelled_tickets = []
     for o in orders:
         o_price = round(o.price_open, 3)
         o_type = o.type
@@ -81,10 +82,16 @@ def prune_invalid_pending_orders(symbol: str, magic: int, active_high_confidence
             res = mt5.order_send(request)
             if res is not None and res.retcode == mt5.TRADE_RETCODE_DONE:
                 print(f"[Risk Management] Order #{o.ticket} successfully cancelled.")
-                try:
-                    send_telegram_alert(f"🧹 <b>[Risk Management] Pending Order #{o.ticket} cancelled</b> ({reason}).")
-                except Exception:
-                    pass
+                cancelled_tickets.append((o.ticket, reason))
+                
+    if cancelled_tickets:
+        try:
+            lines = [f"🧹 <b>[Risk Management] Cleaned up {len(cancelled_tickets)} zombie pending orders:</b>"]
+            for ticket, reason in cancelled_tickets:
+                lines.append(f"• Order #{ticket} ({reason})")
+            send_telegram_alert("\n".join(lines))
+        except Exception:
+            pass
 
 def run_scan(symbol: str, confidence_threshold: float):
     """Run a single scan cycle across all timeframes and send new signals to Telegram."""
@@ -236,6 +243,13 @@ def run_scan(symbol: str, confidence_threshold: float):
             'relative_fvg_width': setup['relative_fvg_width']
         }
         
+        # Check setup age in bars to avoid executing/alerting stale historical setups
+        tf_df = timeframes_data[setup['timeframe']]
+        setup_age_bars = len(tf_df) - 1 - setup['index']
+        max_age_bars = int(os.getenv("MT5_MAX_SETUP_AGE_BARS", "5"))
+        if setup_age_bars > max_age_bars:
+            continue
+            
         try:
             prob = predict_setup_probability(features)
         except Exception as e:
