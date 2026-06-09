@@ -13,6 +13,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.smc_detector import detect_swing_points, detect_structures, detect_fvg_and_ob, detect_bpr, detect_snr_and_swapzones, detect_indecision_candles, detect_supply_demand_zones
 from src.rejection_detector import is_near_psychological_level
+from src.setup_features import (
+    rr_ratio, atr_percentile, body_to_range_ratio,
+    dist_to_recent_swing_norm, htf_trend_aligned, confluence_score,
+)
 from src.indicators.knn_classifier import run_knn_classifier, calculate_knn_probability_at_bar
 from src.indicators.volume_clusters import calculate_volume_clusters
 
@@ -761,7 +765,46 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
             floop_trend_val = int(df['floop_trend'].iloc[idx]) if 'floop_trend' in df.columns else 0
             s['floop_trend'] = floop_trend_val
             s['floop_trend_aligned'] = 1 if floop_trend_val == s['direction'] else 0
-            
+
+            # --- New entry-quality features (model inputs only; strategy rules unchanged) ---
+            entry_px = s['entry_price']; sl_px = s['sl_price']; tp_px = s['tp_price']
+            atr_now = s.get('atr_14', 0.0) or 0.0
+            direction = s['direction']
+
+            # rr_ratio: explicit reward-to-risk at entry
+            s['rr_ratio'] = rr_ratio(entry_px, sl_px, tp_px)
+
+            # atr_percentile: where current volatility sits in its trailing window
+            atr_win = df['ATR_14'].iloc[max(0, idx - 100):idx + 1] if 'ATR_14' in df.columns else pd.Series(dtype=float)
+            s['atr_percentile'] = atr_percentile(atr_win, atr_now)
+
+            # body_to_range_ratio: conviction of the signal candle at idx
+            s['body_to_range_ratio'] = body_to_range_ratio(
+                float(df['Open'].iloc[idx]), float(df['High'].iloc[idx]),
+                float(df['Low'].iloc[idx]), float(df['Close'].iloc[idx])
+            )
+
+            # dist_to_recent_swing: room to the most recent opposing swing (ATR-normalized)
+            swing_col = 'Swing_High' if direction == 1 else 'Swing_Low'
+            swing_px = tp_px  # fallback to target if no swing found
+            if swing_col in df.columns:
+                prior = df[swing_col].iloc[max(0, idx - 100):idx + 1].dropna()
+                if not prior.empty:
+                    swing_px = float(prior.iloc[-1])
+            s['dist_to_recent_swing'] = dist_to_recent_swing_norm(entry_px, swing_px, atr_now)
+
+            # htf_trend_aligned: direction matches FLOOP higher-timeframe trend
+            s['htf_trend_aligned'] = htf_trend_aligned(direction, floop_trend_val)
+
+            # confluence_score: how many SMC elements co-occur at this bar
+            def _present(col):
+                return col in df.columns and pd.notna(df[col].iloc[idx])
+            s['confluence_score'] = confluence_score([
+                _present('FVG_Type'), _present('OB_Type'), _present('BPR_Type'),
+                _present('Swap_Type'), _present('SND_Type'),
+                s.get('near_psychological_level', 0) == 1,
+            ])
+
             # KNN (lazy evaluation only on index)
             if has_knn:
                 knn_up, knn_down = calculate_knn_probability_at_bar(
@@ -805,7 +848,16 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
             s['knn_prob_opp'] = 0.0
             s['dist_entry_to_poc'] = 0.0
             s['dist_entry_to_nearest_poc'] = 0.0
-            
+            # New entry-quality feature defaults (idx not found -> no NaN leak)
+            s['floop_trend'] = s.get('floop_trend', 0)
+            s['floop_trend_aligned'] = s.get('floop_trend_aligned', 0)
+            s['rr_ratio'] = rr_ratio(s['entry_price'], s['sl_price'], s['tp_price'])
+            s['atr_percentile'] = 0.0
+            s['body_to_range_ratio'] = 0.0
+            s['dist_to_recent_swing'] = 0.0
+            s['htf_trend_aligned'] = 0
+            s['confluence_score'] = 0
+
     return pd.DataFrame(setups)
 
 def main():

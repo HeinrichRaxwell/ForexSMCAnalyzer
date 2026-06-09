@@ -55,3 +55,13 @@ def test_losing_setups_deeper_than_minus_one(labeled):
     losses = labeled[labeled["label"] == 0]
     assert not losses.empty, "tidak ada losing setup pada slice ini"
     assert (losses["pnl_relative"] <= -1.0 + 1e-9).all()
+
+
+def test_labeled_setups_have_new_features():
+    df = _real_slice()
+    out = label_smc_setups(df, symbol="XAUUSD")
+    assert not out.empty, "real data slice must produce setups"
+    for col in ["rr_ratio", "atr_percentile", "body_to_range_ratio",
+                "dist_to_recent_swing", "htf_trend_aligned", "confluence_score"]:
+        assert col in out.columns, f"missing feature {col}"
+        assert out[col].notna().all(), f"NaN leaked in {col}"

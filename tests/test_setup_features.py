@@ -59,3 +59,12 @@ def test_htf_trend_aligned_match():
 def test_htf_trend_aligned_mismatch():
     assert htf_trend_aligned(direction=1, htf_trend=-1) == 0
     assert htf_trend_aligned(direction=1, htf_trend=0) == 0
+
+
+from src.setup_features import confluence_score
+
+
+def test_confluence_score_counts_true_flags():
+    assert confluence_score([True, False, True, True]) == 3
+    assert confluence_score([False, False]) == 0
+    assert confluence_score([]) == 0
