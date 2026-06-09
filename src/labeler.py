@@ -749,18 +749,12 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
         t_val = s['time']
         s['near_psychological_level'] = int(is_near_psychological_level(s['entry_price'], symbol))
         
-        # Calculate simulated PnL relative to risk
-        entry_price = s['entry_price']
-        tp_price = s['tp_price']
-        sl_price = s['sl_price']
-        risk_price = abs(entry_price - sl_price)
-        if risk_price > 0:
-            if s['label'] == 1:
-                s['pnl_relative'] = abs(tp_price - entry_price) / risk_price
-            else:
-                s['pnl_relative'] = -1.0
-        else:
-            s['pnl_relative'] = 2.0 if s['label'] == 1 else -1.0
+        # Calculate simulated PnL relative to risk, adjusted for trading cost
+        # (spread + slippage). Win/loss label is unchanged; only the R magnitude
+        # is reduced by cost_R so expectancy reflects real-world friction.
+        s['pnl_relative'] = compute_pnl_relative(
+            int(s['label']), s['entry_price'], s['sl_price'], s['tp_price']
+        )
         
         idx = time_to_idx.get(t_val)
         if idx is not None:
