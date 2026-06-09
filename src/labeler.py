@@ -11,7 +11,10 @@ except ImportError:
 # Add project root to python path if not present
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.smc_detector import detect_swing_points, detect_structures, detect_fvg_and_ob, detect_bpr
+from src.smc_detector import detect_swing_points, detect_structures, detect_fvg_and_ob, detect_bpr, detect_snr_and_swapzones, detect_indecision_candles, detect_supply_demand_zones
+from src.rejection_detector import is_near_psychological_level
+from src.indicators.knn_classifier import run_knn_classifier, calculate_knn_probability_at_bar
+from src.indicators.volume_clusters import calculate_volume_clusters
 
 def get_killzone(hour: int) -> int:
     """
@@ -36,13 +39,25 @@ def get_timeframe_delta(df: pd.DataFrame) -> pd.Timedelta:
         return df['time'].iloc[1] - df['time'].iloc[0]
     return pd.Timedelta(minutes=15) # Default fallback
 
+_TICK_RESOLUTION_CACHE = {}
+
 def resolve_ambiguity_with_ticks(symbol: str, start_time: pd.Timestamp, end_time: pd.Timestamp, direction: int, entry: float, sl: float, tp: float, is_filled: bool) -> tuple:
     """
     Fetch tick data from MT5 for the specified time range and simulate the exact path.
+    Uses a global cache to avoid redundant network queries for identical trade scenarios.
     Returns: (is_filled_now, resolved_outcome)
     resolved_outcome is 1.0 (win), 0.0 (loss), or None (still open/no tick data).
     """
-    if mt5 is None:
+    global _TICK_RESOLUTION_CACHE
+    cache_key = (symbol, start_time, end_time, direction, entry, sl, tp, is_filled)
+    if cache_key in _TICK_RESOLUTION_CACHE:
+        return _TICK_RESOLUTION_CACHE[cache_key]
+        
+    # Avoid fetching huge tick ranges for HTF (H4, D1) to prevent API timeouts
+    if (end_time - start_time) > pd.Timedelta(hours=1):
+        return is_filled, None
+
+    if mt5 is None or "PYTEST_CURRENT_TEST" in os.environ:
         return is_filled, None # Fallback: let caller handle candle-level logic
         
     # Make sure MT5 is initialized
@@ -60,19 +75,25 @@ def resolve_ambiguity_with_ticks(symbol: str, start_time: pd.Timestamp, end_time
             break
             
     if not active_sym:
-        return is_filled, None
+        res_val = (is_filled, None)
+        _TICK_RESOLUTION_CACHE[cache_key] = res_val
+        return res_val
         
     dt_from = start_time.to_pydatetime()
     dt_to = end_time.to_pydatetime()
     
     ticks = mt5.copy_ticks_range(active_sym, dt_from, dt_to, mt5.COPY_TICKS_ALL)
     if ticks is None or len(ticks) == 0:
-        return is_filled, None
+        res_val = (is_filled, None)
+        _TICK_RESOLUTION_CACHE[cache_key] = res_val
+        return res_val
 
     # Verify price scale compatibility (avoid mixing synthetic test data with real ticks)
     first_tick_price = ticks[0]['bid']
     if abs(first_tick_price - entry) > entry * 0.5:
-        return is_filled, None
+        res_val = (is_filled, None)
+        _TICK_RESOLUTION_CACHE[cache_key] = res_val
+        return res_val
         
     filled = is_filled
     for tick in ticks:
@@ -90,28 +111,46 @@ def resolve_ambiguity_with_ticks(symbol: str, start_time: pd.Timestamp, end_time
             if not filled:
                 if direction == 1:
                     if price <= sl: # Invalidated before entry
-                        return False, None
+                        res_val = (False, None)
+                        _TICK_RESOLUTION_CACHE[cache_key] = res_val
+                        return res_val
                     if price >= tp: # Mitigated before entry
-                        return False, None
+                        res_val = (False, None)
+                        _TICK_RESOLUTION_CACHE[cache_key] = res_val
+                        return res_val
                 else:
                     if price >= sl: # Invalidated
-                        return False, None
+                        res_val = (False, None)
+                        _TICK_RESOLUTION_CACHE[cache_key] = res_val
+                        return res_val
                     if price <= tp: # Mitigated
-                        return False, None
+                        res_val = (False, None)
+                        _TICK_RESOLUTION_CACHE[cache_key] = res_val
+                        return res_val
                         
         if filled:
             if direction == 1:
                 if price <= sl:
-                    return True, 0.0 # Loss
+                    res_val = (True, 0.0) # Loss
+                    _TICK_RESOLUTION_CACHE[cache_key] = res_val
+                    return res_val
                 if price >= tp:
-                    return True, 1.0 # Win
+                    res_val = (True, 1.0) # Win
+                    _TICK_RESOLUTION_CACHE[cache_key] = res_val
+                    return res_val
             else:
                 if price >= sl:
-                    return True, 0.0 # Loss
+                    res_val = (True, 0.0) # Loss
+                    _TICK_RESOLUTION_CACHE[cache_key] = res_val
+                    return res_val
                 if price <= tp:
-                    return True, 1.0 # Win
+                    res_val = (True, 1.0) # Win
+                    _TICK_RESOLUTION_CACHE[cache_key] = res_val
+                    return res_val
                     
-    return filled, None
+    res_val = (filled, None)
+    _TICK_RESOLUTION_CACHE[cache_key] = res_val
+    return res_val
 
 def simulate_trade(df: pd.DataFrame, start_idx: int, direction: int, sl: float, tp: float, entry: float = None, symbol: str = "XAUUSD") -> float:
     """
@@ -155,7 +194,7 @@ def simulate_trade(df: pd.DataFrame, start_idx: int, direction: int, sl: float, 
     
     # Initialize connection once if needed
     mt5_active = False
-    if mt5 is not None:
+    if mt5 is not None and "PYTEST_CURRENT_TEST" not in os.environ:
         mt5_active = mt5.initialize()
         
     for j in range(start_idx, len(df)):
@@ -241,7 +280,7 @@ def simulate_trade(df: pd.DataFrame, start_idx: int, direction: int, sl: float, 
     return None
 
 
-def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUSD") -> pd.DataFrame:
+def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUSD", tf_trends: dict = None, df_d1: pd.DataFrame = None) -> pd.DataFrame:
     """
     Load historical data, run SMC detection algorithms, and simulate trade setups
     to label them with outcomes.
@@ -250,6 +289,8 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
         df (pd.DataFrame): Input DataFrame containing OHLCV.
         buffer (float): Distance in USD to add to SL (below Low for Buy, above High for Sell).
         symbol (str): Symbol name (e.g., "XAUUSD", "EURUSD").
+        tf_trends (dict): Pre-calculated trends from other timeframes for FLOOP Pro.
+        df_d1 (pd.DataFrame): Daily DataFrame to calculate key pivot levels.
         
     Returns:
         pd.DataFrame: A DataFrame of labeled setups with features.
@@ -267,7 +308,38 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
     df = detect_swing_points(df, window=5)
     df = detect_structures(df)
     df = detect_fvg_and_ob(df, symbol=symbol)
+    df = detect_snr_and_swapzones(df, symbol=symbol)
     df = detect_bpr(df, symbol=symbol)
+    df = detect_indecision_candles(df, symbol=symbol)
+    df = detect_supply_demand_zones(df, symbol=symbol)
+    
+    # Align daily pivots if df_d1 is provided
+    if df_d1 is not None:
+        from src.indicators.pivots import align_daily_pivots
+        try:
+            df = align_daily_pivots(df, df_d1)
+        except Exception as e:
+            print(f"Error aligning daily pivots: {e}")
+            
+    # Pre-calculate KNN features for lazy execution
+    try:
+        print("Pre-calculating KNN features...")
+        pc1, pc2, pc3, pc4, target_clean = run_knn_classifier(
+            df,
+            atr_period=10, factor=2.0,
+            k_neighbors=10, sampling_window_size=1000, momentum_window=10,
+            normalizing_window_size=1000,
+            lazy=True
+        )
+        pc1_vals = pc1.values
+        pc2_vals = pc2.values
+        pc3_vals = pc3.values
+        pc4_vals = pc4.values
+        tgt_vals = target_clean.values
+        has_knn = True
+    except Exception as e:
+        print(f"Error pre-calculating KNN features: {e}")
+        has_knn = False
     
     # Calculate ATR_14
     close_prev = df['Close'].shift(1).fillna(df['Open'])
@@ -280,7 +352,37 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
     )
     df['ATR_14'] = tr.rolling(window=14, min_periods=1).mean()
     
+    # Calculate FLOOP Pro signals
+    from src.indicators.floop import run_floop_pro
+    htf_trend_series = None
+    mtf_trends_list = None
+    if tf_trends is not None:
+        htf_trend_series = tf_trends.get('H4')
+        if htf_trend_series is None:
+            htf_trend_series = tf_trends.get('4h')
+        mtf_trends_list = tf_trends
+        
+    floop_signals, floop_strengths, floop_trends = run_floop_pro(
+        df,
+        sensitivity=6,
+        atr_len=14,
+        atr_mult=0.8,
+        use_adx=True,
+        adx_thresh=20.0,
+        use_chop=True,
+        chop_thresh=61.8,
+        use_cooldown=True,
+        cooldown_len=5,
+        ema_filter=False,
+        htf_trend_series=htf_trend_series,
+        mtf_trends=mtf_trends_list
+    )
+    df['floop_signal'] = floop_signals
+    df['floop_strength'] = floop_strengths
+    df['floop_trend'] = floop_trends
+    
     setups = []
+    from src.indicators.pivots import get_pivot_features_at_idx
     
     for i in range(len(df)):
         # Skip if ATR_14 is NaN
@@ -293,6 +395,8 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
         trend_val = int(df['Trend'].iloc[i])
         killzone_val = get_killzone(hour_val)
         atr_val = df['ATR_14'].iloc[i]
+        floop_sig_val = int(df['floop_signal'].iloc[i]) if 'floop_signal' in df.columns else 0
+        floop_strength_val = float(df['floop_strength'].iloc[i]) if 'floop_strength' in df.columns else 0.0
         
         # 1. Check FVG Setup
         fvg_type = df['FVG_Type'].iloc[i] if 'FVG_Type' in df.columns else None
@@ -314,6 +418,7 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
                 tp = df['FVG_Fibo_0.0'].iloc[i]
                 
                 risk_pips = abs(entry - sl)
+                p_feat = get_pivot_features_at_idx(df, i, entry)
                     
                 label = simulate_trade(df, i + 1, direction, sl, tp, entry=entry, symbol=symbol)
                 if label is not None:
@@ -323,6 +428,7 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
                         'hour': hour_val,
                         'day_of_week': day_of_week_val,
                         'setup_type': 0,  # FVG
+                        'strategy': 'FVG',
                         'direction': direction,
                         'entry_price': entry,
                         'sl_price': sl,
@@ -334,6 +440,10 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
                         'killzone': killzone_val,
                         'fvg_width': fvg_width,
                         'relative_fvg_width': fvg_width / atr_val,
+                        'floop_signal': floop_sig_val,
+                        'floop_strength': floop_strength_val,
+                        'dist_entry_to_pp': p_feat['dist_entry_to_pp'],
+                        'dist_entry_to_nearest_pivot': p_feat['dist_entry_to_nearest_pivot'],
                         'label': int(label)
                     })
                     
@@ -350,6 +460,7 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
                 sl = ob_sl
                 tp = df['OB_Fibo_0.0'].iloc[i]
                 risk_pips = abs(entry - sl)
+                p_feat = get_pivot_features_at_idx(df, i, entry)
                 
                 label = simulate_trade(df, i + 1, direction, sl, tp, entry=entry, symbol=symbol)
                 if label is not None:
@@ -359,6 +470,7 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
                         'hour': hour_val,
                         'day_of_week': day_of_week_val,
                         'setup_type': 1,  # OB
+                        'strategy': 'OB',
                         'direction': direction,
                         'entry_price': entry,
                         'sl_price': sl,
@@ -370,9 +482,13 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
                         'killzone': killzone_val,
                         'fvg_width': 0.0,
                         'relative_fvg_width': 0.0,
+                        'floop_signal': floop_sig_val,
+                        'floop_strength': floop_strength_val,
+                        'dist_entry_to_pp': p_feat['dist_entry_to_pp'],
+                        'dist_entry_to_nearest_pivot': p_feat['dist_entry_to_nearest_pivot'],
                         'label': int(label)
                     })
-
+ 
         # 3. Check BPR Setup
         bpr_type = df['BPR_Type'].iloc[i] if 'BPR_Type' in df.columns else None
         if pd.notna(bpr_type) and bpr_type is not None:
@@ -386,6 +502,7 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
                 sl = bpr_sl
                 tp = df['BPR_Fibo_0.0'].iloc[i]
                 risk_pips = abs(entry - sl)
+                p_feat = get_pivot_features_at_idx(df, i, entry)
                 
                 label = simulate_trade(df, i + 1, direction, sl, tp, entry=entry, symbol=symbol)
                 if label is not None:
@@ -395,6 +512,7 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
                         'hour': hour_val,
                         'day_of_week': day_of_week_val,
                         'setup_type': 0,  # Treat as FVG for ML
+                        'strategy': 'BPR',
                         'direction': direction,
                         'entry_price': entry,
                         'sl_price': sl,
@@ -406,9 +524,243 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
                         'killzone': killzone_val,
                         'fvg_width': abs(bpr_top - bpr_bottom),
                         'relative_fvg_width': abs(bpr_top - bpr_bottom) / atr_val,
+                        'floop_signal': floop_sig_val,
+                        'floop_strength': floop_strength_val,
+                        'dist_entry_to_pp': p_feat['dist_entry_to_pp'],
+                        'dist_entry_to_nearest_pivot': p_feat['dist_entry_to_nearest_pivot'],
                         'label': int(label)
                     })
                     
+        # 4. Check Swapzone Setup
+        swap_type = df['Swap_Type'].iloc[i] if 'Swap_Type' in df.columns else None
+        if pd.notna(swap_type) and swap_type is not None:
+            swap_sl = df['Swap_SL'].iloc[i]
+            direction = 1 if swap_type == 'SUPPORT' else -1
+            
+            for entry_col in ['Swap_Fibo_0.5', 'Swap_Fibo_0.618']:
+                entry = df[entry_col].iloc[i]
+                sl = swap_sl
+                tp = df['Swap_Fibo_0.0'].iloc[i]
+                risk_pips = abs(entry - sl)
+                p_feat = get_pivot_features_at_idx(df, i, entry)
+                
+                label = simulate_trade(df, i + 1, direction, sl, tp, entry=entry, symbol=symbol)
+                if label is not None:
+                    setups.append({
+                        'time': t_val,
+                        'timeframe': timeframe_minutes,
+                        'hour': hour_val,
+                        'day_of_week': day_of_week_val,
+                        'setup_type': 1,  # Treat as OB for ML
+                        'strategy': 'Swapzone',
+                        'direction': direction,
+                        'entry_price': entry,
+                        'sl_price': sl,
+                        'tp_price': tp,
+                        'risk_pips': risk_pips,
+                        'atr_14': atr_val,
+                        'trend': trend_val,
+                        'relative_risk': risk_pips / atr_val,
+                        'killzone': killzone_val,
+                        'fvg_width': 0.0,
+                        'relative_fvg_width': 0.0,
+                        'floop_signal': floop_sig_val,
+                        'floop_strength': floop_strength_val,
+                        'dist_entry_to_pp': p_feat['dist_entry_to_pp'],
+                        'dist_entry_to_nearest_pivot': p_feat['dist_entry_to_nearest_pivot'],
+                        'label': int(label)
+                    })
+                    
+        # 5. Check Indecision Candle Setup
+        ic_type = df['IC_Type'].iloc[i] if 'IC_Type' in df.columns else None
+        if pd.notna(ic_type) and ic_type is not None:
+            ic_sl = df['IC_SL'].iloc[i]
+            direction = 1 if ic_type == 'BULLISH' else -1
+            
+            for entry_col in ['IC_Fibo_0.5', 'IC_Fibo_0.618']:
+                entry = df[entry_col].iloc[i]
+                sl = ic_sl
+                tp = df['IC_Fibo_0.0'].iloc[i]
+                risk_pips = abs(entry - sl)
+                p_feat = get_pivot_features_at_idx(df, i, entry)
+                
+                label = simulate_trade(df, i + 1, direction, sl, tp, entry=entry, symbol=symbol)
+                if label is not None:
+                    setups.append({
+                        'time': t_val,
+                        'timeframe': timeframe_minutes,
+                        'hour': hour_val,
+                        'day_of_week': day_of_week_val,
+                        'setup_type': 1,  # Treat as OB for ML
+                        'strategy': 'IC',
+                        'direction': direction,
+                        'entry_price': entry,
+                        'sl_price': sl,
+                        'tp_price': tp,
+                        'risk_pips': risk_pips,
+                        'atr_14': atr_val,
+                        'trend': trend_val,
+                        'relative_risk': risk_pips / atr_val,
+                        'killzone': killzone_val,
+                        'fvg_width': 0.0,
+                        'relative_fvg_width': 0.0,
+                        'floop_signal': floop_sig_val,
+                        'floop_strength': floop_strength_val,
+                        'dist_entry_to_pp': p_feat['dist_entry_to_pp'],
+                        'dist_entry_to_nearest_pivot': p_feat['dist_entry_to_nearest_pivot'],
+                        'label': int(label)
+                    })
+                    
+        # 6. Check Supply & Demand Setup
+        sd_type = df['SD_Type'].iloc[i] if 'SD_Type' in df.columns else None
+        if pd.notna(sd_type) and sd_type is not None:
+            sd_sl = df['SD_SL'].iloc[i]
+            direction = 1 if 'DEMAND' in sd_type else -1
+            
+            for entry_col in ['SD_Fibo_0.5', 'SD_Fibo_0.618']:
+                entry = df[entry_col].iloc[i]
+                sl = sd_sl
+                tp = df['SD_Fibo_0.0'].iloc[i]
+                risk_pips = abs(entry - sl)
+                p_feat = get_pivot_features_at_idx(df, i, entry)
+                
+                label = simulate_trade(df, i + 1, direction, sl, tp, entry=entry, symbol=symbol)
+                if label is not None:
+                    setups.append({
+                        'time': t_val,
+                        'timeframe': timeframe_minutes,
+                        'hour': hour_val,
+                        'day_of_week': day_of_week_val,
+                        'setup_type': 1,  # Treat as OB for ML
+                        'strategy': 'SND',
+                        'direction': direction,
+                        'entry_price': entry,
+                        'sl_price': sl,
+                        'tp_price': tp,
+                        'risk_pips': risk_pips,
+                        'atr_14': atr_val,
+                        'trend': trend_val,
+                        'relative_risk': risk_pips / atr_val,
+                        'killzone': killzone_val,
+                        'fvg_width': 0.0,
+                        'relative_fvg_width': 0.0,
+                        'floop_signal': floop_sig_val,
+                        'floop_strength': floop_strength_val,
+                        'dist_entry_to_pp': p_feat['dist_entry_to_pp'],
+                        'dist_entry_to_nearest_pivot': p_feat['dist_entry_to_nearest_pivot'],
+                        'label': int(label)
+                    })
+
+        # 7. Check Pivot Rejection Setup
+        from src.indicators.pivots import detect_pivot_rejection_setups_at_idx
+        pivot_setups = detect_pivot_rejection_setups_at_idx(df, i, symbol=symbol)
+        for ps in pivot_setups:
+            direction = ps['direction']
+            entry = ps['entry_price']
+            sl = ps['sl_price']
+            tp = ps['tp_price']
+            risk_pips = abs(entry - sl)
+            p_feat = get_pivot_features_at_idx(df, i, entry)
+            
+            label = simulate_trade(df, i + 1, direction, sl, tp, entry=entry, symbol=symbol)
+            if label is not None:
+                setups.append({
+                    'time': t_val,
+                    'timeframe': timeframe_minutes,
+                    'hour': hour_val,
+                    'day_of_week': day_of_week_val,
+                    'setup_type': 2,  # 2: Pivot Rejection
+                    'strategy': 'Pivot',
+                    'direction': direction,
+                    'entry_price': entry,
+                    'sl_price': sl,
+                    'tp_price': tp,
+                    'risk_pips': risk_pips,
+                    'atr_14': atr_val,
+                    'trend': trend_val,
+                    'relative_risk': risk_pips / atr_val,
+                    'killzone': killzone_val,
+                    'fvg_width': 0.0,
+                    'relative_fvg_width': 0.0,
+                    'floop_signal': floop_sig_val,
+                    'floop_strength': floop_strength_val,
+                    'dist_entry_to_pp': p_feat['dist_entry_to_pp'],
+                    'dist_entry_to_nearest_pivot': p_feat['dist_entry_to_nearest_pivot'],
+                    'label': int(label)
+                })
+                    
+    time_to_idx = {t: idx for idx, t in enumerate(df['time'])}
+    
+    print("Appending ML indicator features...")
+    vp_cache = {}
+    
+    for s in setups:
+        t_val = s['time']
+        s['near_psychological_level'] = int(is_near_psychological_level(s['entry_price'], symbol))
+        
+        # Calculate simulated PnL relative to risk
+        entry_price = s['entry_price']
+        tp_price = s['tp_price']
+        sl_price = s['sl_price']
+        risk_price = abs(entry_price - sl_price)
+        if risk_price > 0:
+            if s['label'] == 1:
+                s['pnl_relative'] = abs(tp_price - entry_price) / risk_price
+            else:
+                s['pnl_relative'] = -1.0
+        else:
+            s['pnl_relative'] = 2.0 if s['label'] == 1 else -1.0
+        
+        idx = time_to_idx.get(t_val)
+        if idx is not None:
+            floop_trend_val = int(df['floop_trend'].iloc[idx]) if 'floop_trend' in df.columns else 0
+            s['floop_trend'] = floop_trend_val
+            s['floop_trend_aligned'] = 1 if floop_trend_val == s['direction'] else 0
+            
+            # KNN (lazy evaluation only on index)
+            if has_knn:
+                knn_up, knn_down = calculate_knn_probability_at_bar(
+                    idx, pc1_vals, pc2_vals, pc3_vals, pc4_vals, tgt_vals,
+                    k=10, sampling_window=1000, stride=10
+                )
+            else:
+                knn_up, knn_down = 0.0, 0.0
+            s['knn_prob_sig'] = knn_up if s['direction'] == 1 else knn_down
+            s['knn_prob_opp'] = knn_down if s['direction'] == 1 else knn_up
+            
+            # K-Means Volume Profile
+            if idx >= 200:
+                if idx not in vp_cache:
+                    try:
+                        vp_cache[idx] = calculate_volume_clusters(
+                            df.iloc[:idx+1], lookback=200, k=5, iterations=20, rows=20
+                        )
+                    except Exception:
+                        vp_cache[idx] = {}
+                
+                clusters_data = vp_cache[idx]
+                if clusters_data and 'current_poc' in clusters_data:
+                    curr_poc = clusters_data['current_poc']
+                    entry = s['entry_price']
+                    s['dist_entry_to_poc'] = (entry - curr_poc) / curr_poc if curr_poc > 0 else 0.0
+                    
+                    pocs = clusters_data.get('pocs', [])
+                    if pocs:
+                        s['dist_entry_to_nearest_poc'] = min(abs(entry - poc) for poc in pocs) / entry
+                    else:
+                        s['dist_entry_to_nearest_poc'] = 0.0
+                else:
+                    s['dist_entry_to_poc'] = 0.0
+                    s['dist_entry_to_nearest_poc'] = 0.0
+            else:
+                s['dist_entry_to_poc'] = 0.0
+                s['dist_entry_to_nearest_poc'] = 0.0
+        else:
+            s['knn_prob_sig'] = 0.0
+            s['knn_prob_opp'] = 0.0
+            s['dist_entry_to_poc'] = 0.0
+            s['dist_entry_to_nearest_poc'] = 0.0
+            
     return pd.DataFrame(setups)
 
 def main():
@@ -427,28 +779,46 @@ def main():
         '1d': 'historical_xauusdm_1d.csv'
     }
     
-    all_labeled_dfs = []
-    
-    # Try loading files for each timeframe
-    files_processed = 0
+    loaded_dfs = {}
     for tf, fname in tf_files.items():
         fpath = os.path.join(data_dir, fname)
         if os.path.exists(fpath):
             print(f"Loading historical data for TF {tf} from {fpath}...")
-            df = pd.read_csv(fpath)
-            print(f"Loaded {len(df)} candles. Simulating setups...")
-            labeled_df = label_smc_setups(df)
-            print(f"Generated {len(labeled_df)} labeled setups.")
-            all_labeled_dfs.append(labeled_df)
-            files_processed += 1
+            loaded_dfs[tf] = pd.read_csv(fpath)
             
+    # Pre-calculate trends for FLOOP Pro MTF/HTF
+    tf_trends = {}
+    from src.indicators.floop import calculate_atr, calculate_range_filter
+    for tf, df_tf in loaded_dfs.items():
+        try:
+            df_tf_copy = df_tf.copy()
+            df_tf_copy['time'] = pd.to_datetime(df_tf_copy['time'])
+            df_tf_copy.set_index('time', inplace=True)
+            
+            atr = calculate_atr(df_tf_copy, 14)
+            _, trend, _ = calculate_range_filter(df_tf_copy['Close'], atr, sensitivity=6, atr_multiplier=0.8)
+            tf_trends[tf] = pd.Series(trend, index=df_tf_copy.index)
+        except Exception as e:
+            print(f"Error calculating RF trend for TF {tf}: {e}")
+            tf_trends[tf] = None
+
+    all_labeled_dfs = []
+    files_processed = 0
+    symbol = "XAUUSD" # Define symbol here
+    for tf, df in loaded_dfs.items():
+        print(f"Simulating setups for TF {tf}...")
+        labeled_df = label_smc_setups(df, symbol=symbol, tf_trends=tf_trends, df_d1=loaded_dfs.get('1d'))
+        print(f"Generated {len(labeled_df)} labeled setups.")
+        all_labeled_dfs.append(labeled_df)
+        files_processed += 1
+        
     # Fall back to historical_xauusdm.csv if no timeframe files exist
     if files_processed == 0:
         fallback_path = os.path.join(data_dir, 'historical_xauusdm.csv')
         if os.path.exists(fallback_path):
             print(f"No timeframe-specific files found. Falling back to default: {fallback_path}")
             df = pd.read_csv(fallback_path)
-            labeled_df = label_smc_setups(df)
+            labeled_df = label_smc_setups(df, symbol=symbol)
             all_labeled_dfs.append(labeled_df)
         else:
             print(f"Error: No historical data files found in {data_dir}")
@@ -479,4 +849,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

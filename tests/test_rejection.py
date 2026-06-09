@@ -105,3 +105,46 @@ def test_rejection_empty_and_invalid():
         'Close': 1.000
     }])
     assert detect_rejection_at_level(df_flat, entry_level=1.000, direction=1) is False
+
+def test_bullish_engulfing_rejection():
+    # Candle 0 touches level 2340 but has no wick rejection
+    # Candle 1 is bullish and engulfs candle 0
+    df = pd.DataFrame([
+        {'Open': 2342.0, 'High': 2343.0, 'Low': 2339.5, 'Close': 2341.0}, # Bearish touch at 2340
+        {'Open': 2340.5, 'High': 2345.0, 'Low': 2340.0, 'Close': 2344.0}  # Bullish engulfing (close 2344 > open 2342)
+    ])
+    assert detect_rejection_at_level(df, entry_level=2340.0, direction=1, lookback=2) is True
+
+def test_bearish_engulfing_rejection():
+    # Candle 0 touches level 2350
+    # Candle 1 is bearish and engulfs candle 0
+    df = pd.DataFrame([
+        {'Open': 2348.0, 'High': 2351.0, 'Low': 2347.0, 'Close': 2349.5}, # Bullish touch at 2350
+        {'Open': 2349.8, 'High': 2350.0, 'Low': 2344.0, 'Close': 2345.0}  # Bearish engulfing (close 2345 < open 2348)
+    ])
+    assert detect_rejection_at_level(df, entry_level=2350.0, direction=-1, lookback=2) is True
+
+def test_double_touch_rejection():
+    # Candle 0 touches level 2340
+    # Candle 1 is far (no touch) and closes above 2340 (no body break)
+    # Candle 2 touches level 2340 again
+    df = pd.DataFrame([
+        {'Open': 2342.0, 'High': 2343.0, 'Low': 2339.5, 'Close': 2341.0}, # Touch
+        {'Open': 2341.5, 'High': 2344.0, 'Low': 2341.0, 'Close': 2343.0}, # No touch, body above
+        {'Open': 2343.0, 'High': 2344.0, 'Low': 2339.8, 'Close': 2342.0}  # Touch again
+    ])
+    assert detect_rejection_at_level(df, entry_level=2340.0, direction=1, lookback=3) is True
+
+def test_psychological_price_helpers():
+    from src.rejection_detector import get_nearest_psychological_level, is_near_psychological_level
+    # Check nearest multiples of 5
+    assert get_nearest_psychological_level(2338.2) == 2340.0
+    assert get_nearest_psychological_level(2342.3) == 2340.0
+    assert get_nearest_psychological_level(2342.6) == 2345.0
+    
+    # Check near psychological levels within 10 pips (for XAUUSD, pip=0.1, threshold=1.0 USD)
+    assert is_near_psychological_level(2340.8, "XAUUSD") is True
+    assert is_near_psychological_level(2339.2, "XAUUSD") is True
+    assert is_near_psychological_level(2341.5, "XAUUSD") is False
+    assert is_near_psychological_level(2344.2, "XAUUSD") is True
+

@@ -9,10 +9,12 @@ import matplotlib.patches as patches
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.data_loader import connect_mt5, fetch_historical_data
-from src.smc_detector import detect_swing_points, detect_structures, detect_fvg_and_ob, detect_snr_and_swapzones, detect_bpr
+from src.smc_detector import detect_swing_points, detect_structures, detect_fvg_and_ob, detect_snr_and_swapzones, detect_bpr, detect_indecision_candles, detect_supply_demand_zones
 from src.labeler import get_killzone
 from src.inference import predict_setup_probability
-from src.rejection_detector import detect_rejection_at_level
+from src.rejection_detector import detect_rejection_at_level, is_near_psychological_level
+from src.indicators.knn_classifier import run_knn_classifier, calculate_knn_probability_at_bar
+from src.indicators.volume_clusters import calculate_volume_clusters
 
 def generate_synthetic_data(num_candles=100, seed=42) -> pd.DataFrame:
     """
@@ -95,10 +97,22 @@ def plot_smc_chart(df: pd.DataFrame, title: str = "XAUUSD - SMC/ICT Analysis", a
     
     ax.grid(color='#2a2e39', linestyle='--', linewidth=0.5, alpha=0.5)
     
-    # Set axis limits with margin
-    ax.set_xlim(-1, len(df))
-    price_min = df['Low'].min() - 2.0
-    price_max = df['High'].max() + 2.0
+    # Determine the visible range (zoom in on the last 60 candles for clarity)
+    visible_candles = 60
+    start_idx = max(0, len(df) - visible_candles)
+    
+    # Calculate price limits based only on the visible range
+    df_visible = df.iloc[start_idx:]
+    price_min = df_visible['Low'].min()
+    price_max = df_visible['High'].max()
+    price_range = price_max - price_min
+    
+    # Add a 10% margin to the top and bottom of the price limits
+    price_min = price_min - 0.10 * price_range if price_range > 0 else price_min - 5.0
+    price_max = price_max + 0.10 * price_range if price_range > 0 else price_max + 5.0
+    
+    # Set axis limits with margin on the right for labels
+    ax.set_xlim(start_idx - 1, len(df) + 12)
     ax.set_ylim(price_min, price_max)
     
     for idx, row in df.iterrows():
@@ -145,15 +159,15 @@ def plot_smc_chart(df: pd.DataFrame, title: str = "XAUUSD - SMC/ICT Analysis", a
             is_bull_fvg = row['FVG_Type'] == 'BULLISH'
             fvg_color = '#10b981' if is_bull_fvg else '#ef4444'
             
-            # Check mitigation from idx+1 to end of df
+            # Check mitigation from idx+1 to end of df (closing-basis check to allow retracement entries)
             mitigated = False
             for j in range(idx + 1, len(df)):
                 if is_bull_fvg:
-                    if df['Low'].iloc[j] <= row['FVG_Top']:
+                    if df['Close'].iloc[j] < row['FVG_Bottom']:
                         mitigated = True
                         break
                 else:
-                    if df['High'].iloc[j] >= row['FVG_Bottom']:
+                    if df['Close'].iloc[j] > row['FVG_Top']:
                         mitigated = True
                         break
             
@@ -163,8 +177,8 @@ def plot_smc_chart(df: pd.DataFrame, title: str = "XAUUSD - SMC/ICT Analysis", a
                                              facecolor=fvg_color, alpha=0.04, edgecolor='none', zorder=1)
                 ax.add_patch(rect_fvg)
             else:
-                # Active (Unmitigated): extend all the way to the right edge
-                width = len(df) - (idx - 2)
+                # Active (Unmitigated): extend all the way to the right edge with extra margin
+                width = (len(df) + 4) - (idx - 2)
                 rect_fvg = patches.Rectangle((idx - 2, row['FVG_Bottom']), width, row['FVG_Top'] - row['FVG_Bottom'],
                                              facecolor=fvg_color, alpha=0.10, edgecolor=fvg_color, linestyle=':', linewidth=0.5, zorder=1)
                 ax.add_patch(rect_fvg)
@@ -192,8 +206,8 @@ def plot_smc_chart(df: pd.DataFrame, title: str = "XAUUSD - SMC/ICT Analysis", a
                                             facecolor=ob_color, alpha=0.03, edgecolor='none', zorder=1)
                 ax.add_patch(rect_ob)
             else:
-                # Active (Unmitigated): extend all the way to the right
-                width = len(df) - idx
+                # Active (Unmitigated): extend all the way to the right with extra margin
+                width = (len(df) + 4) - idx
                 rect_ob = patches.Rectangle((idx, row['OB_Bottom']), width, row['OB_Top'] - row['OB_Bottom'],
                                             facecolor=ob_color, alpha=0.08, edgecolor=ob_color, 
                                             linestyle='--', linewidth=0.6, zorder=1)
@@ -213,8 +227,8 @@ def plot_smc_chart(df: pd.DataFrame, title: str = "XAUUSD - SMC/ICT Analysis", a
                                              facecolor=bpr_color, alpha=0.03, edgecolor='none', zorder=1)
                 ax.add_patch(rect_bpr)
             else:
-                # Active (Unmitigated): extend to the right
-                width = len(df) - (idx - 2)
+                # Active (Unmitigated): extend to the right with extra margin
+                width = (len(df) + 4) - (idx - 2)
                 rect_bpr = patches.Rectangle((idx - 2, row['BPR_Bottom']), width, row['BPR_Top'] - row['BPR_Bottom'],
                                              facecolor=bpr_color, alpha=0.08, edgecolor=bpr_color, 
                                              linestyle='-.', linewidth=0.6, zorder=1)
@@ -248,25 +262,25 @@ def plot_smc_chart(df: pd.DataFrame, title: str = "XAUUSD - SMC/ICT Analysis", a
                 # Draw vertical dotted line at the detection candle
                 ax.axvline(x=idx, color=line_color, linestyle=':', alpha=0.7, linewidth=1.5)
                 
-                # Draw horizontal lines for Entry, SL, TP 1, and TP 2
-                end_x = min(idx + 15, len(df) - 1)
+                # Draw horizontal lines for Entry, SL, TP 1, and TP 2 extending to right margin
+                end_x = len(df) + 3
                 x_range = [idx, end_x]
                 
                 # Entry (Blue-ish)
                 ax.plot(x_range, [setup['entry_price'], setup['entry_price']], color='#2962ff', linestyle='-', linewidth=1.5, zorder=4)
-                ax.text(end_x + 0.2, setup['entry_price'], 'Entry', color='#2962ff', fontsize=7, fontweight='bold', va='center')
+                ax.text(end_x + 0.4, setup['entry_price'], 'Entry', color='#2962ff', fontsize=8, fontweight='bold', va='center')
                 
                 # SL (Red)
                 ax.plot(x_range, [setup['sl_price'], setup['sl_price']], color='#f23645', linestyle='--', linewidth=1.2, zorder=4)
-                ax.text(end_x + 0.2, setup['sl_price'], 'SL', color='#f23645', fontsize=7, fontweight='bold', va='center')
+                ax.text(end_x + 0.4, setup['sl_price'], 'SL', color='#f23645', fontsize=8, fontweight='bold', va='center')
                 
                 # TP 1 (Green)
                 ax.plot(x_range, [setup['tp_price'], setup['tp_price']], color='#089981', linestyle='--', linewidth=1.2, zorder=4)
-                ax.text(end_x + 0.2, setup['tp_price'], 'TP 1', color='#089981', fontsize=7, fontweight='bold', va='center')
+                ax.text(end_x + 0.4, setup['tp_price'], 'TP 1', color='#089981', fontsize=8, fontweight='bold', va='center')
                 
                 # TP 2 (Cyan/Teal)
                 ax.plot(x_range, [setup['tp2_price'], setup['tp2_price']], color='#0ea5e9', linestyle='-.', linewidth=1.2, zorder=4)
-                ax.text(end_x + 0.2, setup['tp2_price'], 'TP 2 (Dyn)', color='#0ea5e9', fontsize=7, fontweight='bold', va='center')
+                ax.text(end_x + 0.4, setup['tp2_price'], 'TP 2 (Dyn)', color='#0ea5e9', fontsize=8, fontweight='bold', va='center')
 
                 # TradingView-style shaded position zones (Green for Profit, Red for Loss)
                 rect_tp = patches.Rectangle((idx, min(setup['entry_price'], setup['tp_price'])), 
@@ -357,11 +371,11 @@ def find_dynamic_tp(df: pd.DataFrame, entry_price: float, direction: int) -> flo
             fvg_bottom = float(df['FVG_Bottom'].iloc[k])
             for j in range(k + 1, len(df)):
                 if fvg_type == 'BULLISH':
-                    if df['Low'].iloc[j] <= fvg_top:
+                    if df['Close'].iloc[j] < fvg_bottom:
                         mitigated = True
                         break
                 elif fvg_type == 'BEARISH':
-                    if df['High'].iloc[j] >= fvg_bottom:
+                    if df['Close'].iloc[j] > fvg_top:
                         mitigated = True
                         break
             if not mitigated:
@@ -385,10 +399,49 @@ def find_dynamic_tp(df: pd.DataFrame, entry_price: float, direction: int) -> flo
             
     return tp_dynamic
     
-def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
+def get_active_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUSD", tf_trends: dict = None, df_d1: pd.DataFrame = None):
     """
     Identify active (unmitigated) SMC setups (OBs and FVGs) from the detected structures.
     """
+    df = df.copy()
+    
+    # Align daily pivots if df_d1 is provided
+    if df_d1 is not None:
+        from src.indicators.pivots import align_daily_pivots
+        try:
+            df = align_daily_pivots(df, df_d1)
+        except Exception as e:
+            print(f"Error aligning daily pivots in get_active_setups: {e}")
+
+    # Calculate FLOOP Pro signals
+    from src.indicators.floop import run_floop_pro
+    htf_trend_series = None
+    mtf_trends_list = None
+    if tf_trends is not None:
+        htf_trend_series = tf_trends.get('H4')
+        if htf_trend_series is None:
+            htf_trend_series = tf_trends.get('4h')
+        mtf_trends_list = tf_trends
+        
+    floop_signals, floop_strengths, floop_trends = run_floop_pro(
+        df,
+        sensitivity=6,
+        atr_len=14,
+        atr_mult=0.8,
+        use_adx=True,
+        adx_thresh=20.0,
+        use_chop=True,
+        chop_thresh=61.8,
+        use_cooldown=True,
+        cooldown_len=5,
+        ema_filter=False,
+        htf_trend_series=htf_trend_series,
+        mtf_trends=mtf_trends_list
+    )
+    df['floop_signal'] = floop_signals
+    df['floop_strength'] = floop_strengths
+    df['floop_trend'] = floop_trends
+    
     active_setups = []
     
     # 1. OB Setups
@@ -493,11 +546,11 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
             mitigated = False
             for j in range(i + 1, len(df)):
                 if fvg_type == 'BULLISH':
-                    if df['Low'].iloc[j] <= fvg_top:
+                    if df['Close'].iloc[j] < fvg_bottom:
                         mitigated = True
                         break
                 elif fvg_type == 'BEARISH':
-                    if df['High'].iloc[j] >= fvg_bottom:
+                    if df['Close'].iloc[j] > fvg_top:
                         mitigated = True
                         break
             
@@ -802,6 +855,263 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5):
                         'rejection_confirmed': rejection_confirmed_b
                     })
                     
+    # 6. Indecision Candle (IC) Setups
+    if 'IC_Type' in df.columns:
+        for i in range(len(df)):
+            ic_type = df['IC_Type'].iloc[i]
+            if pd.notna(ic_type) and ic_type is not None:
+                if not df['IC_Mitigated'].iloc[i]:
+                    t_val = pd.to_datetime(df['time'].iloc[i])
+                    hour_val = int(t_val.hour)
+                    day_of_week_val = int(t_val.dayofweek)
+                    trend_val = int(df['Trend'].iloc[i]) if 'Trend' in df.columns else 1
+                    killzone_val = get_killzone(hour_val)
+                    atr_val = df['ATR_14'].iloc[i] if 'ATR_14' in df.columns else 1.0
+                    if pd.isna(atr_val):
+                        atr_val = 1.0
+                        
+                    direction = 1 if ic_type == 'BULLISH' else -1
+                    fibo_0_5 = float(df['IC_Fibo_0.5'].iloc[i])
+                    fibo_0_618 = float(df['IC_Fibo_0.618'].iloc[i])
+                    fibo_0_0 = float(df['IC_Fibo_0.0'].iloc[i])
+                    ic_sl = float(df['IC_SL'].iloc[i])
+                    
+                    # --- Option A: Midpoint (Fibo 0.5) ---
+                    entry_a = fibo_0_5
+                    sl_a = ic_sl
+                    tp_a = fibo_0_0
+                    risk_pips_a = abs(entry_a - sl_a)
+                    rejection_confirmed_a = detect_rejection_at_level(df, entry_a, direction)
+                    
+                    tp_dynamic_a = find_dynamic_tp(df, entry_a, direction)
+                    tp2_a = tp_dynamic_a if tp_dynamic_a is not None else (entry_a + risk_pips_a * 3 if direction == 1 else entry_a - risk_pips_a * 3)
+                    tp3_a = entry_a + risk_pips_a * 4 if direction == 1 else entry_a - risk_pips_a * 4
+                    
+                    active_setups.append({
+                        'index': i,
+                        'time': df['time'].iloc[i],
+                        'hour': hour_val,
+                        'day_of_week': day_of_week_val,
+                        'setup_type': 1,  # OB
+                        'direction': direction,
+                        'entry_price': entry_a,
+                        'sl_price': sl_a,
+                        'tp_price': tp_a,
+                        'tp2_price': tp2_a,
+                        'tp3_price': tp3_a,
+                        'risk_pips': risk_pips_a,
+                        'atr_14': atr_val,
+                        'trend': trend_val,
+                        'relative_risk': risk_pips_a / atr_val,
+                        'killzone': killzone_val,
+                        'fvg_width': 0.0,
+                        'relative_fvg_width': 0.0,
+                        'option_name': 'IC Midpoint 0.5',
+                        'rejection_confirmed': rejection_confirmed_a
+                    })
+                    
+                    # --- Option B: Golden Pocket (Fibo 0.618) ---
+                    entry_b = fibo_0_618
+                    sl_b = ic_sl
+                    tp_b = fibo_0_0
+                    risk_pips_b = abs(entry_b - sl_b)
+                    rejection_confirmed_b = detect_rejection_at_level(df, entry_b, direction)
+                    
+                    tp_dynamic_b = find_dynamic_tp(df, entry_b, direction)
+                    tp2_b = tp_dynamic_b if tp_dynamic_b is not None else (entry_b + risk_pips_b * 3 if direction == 1 else entry_b - risk_pips_b * 3)
+                    tp3_b = entry_b + risk_pips_b * 4 if direction == 1 else entry_b - risk_pips_b * 4
+                    
+                    active_setups.append({
+                        'index': i,
+                        'time': df['time'].iloc[i],
+                        'hour': hour_val,
+                        'day_of_week': day_of_week_val,
+                        'setup_type': 1,  # Treat as OB for ML
+                        'direction': direction,
+                        'entry_price': entry_b,
+                        'sl_price': sl_b,
+                        'tp_price': tp_b,
+                        'tp2_price': tp2_b,
+                        'tp3_price': tp3_b,
+                        'risk_pips': risk_pips_b,
+                        'atr_14': atr_val,
+                        'trend': trend_val,
+                        'relative_risk': risk_pips_b / atr_val,
+                        'killzone': killzone_val,
+                        'fvg_width': 0.0,
+                        'relative_fvg_width': 0.0,
+                        'option_name': 'IC GoldenPocket 0.618',
+                        'rejection_confirmed': rejection_confirmed_b
+                    })
+                    
+    # 7. Supply & Demand (SND) Setups
+    if 'SD_Type' in df.columns:
+        for i in range(len(df)):
+            sd_type = df['SD_Type'].iloc[i]
+            if pd.notna(sd_type) and sd_type is not None:
+                if not df['SD_Mitigated'].iloc[i]:
+                    sd_top = df['SD_Top'].iloc[i]
+                    sd_bottom = df['SD_Bottom'].iloc[i]
+                    t_val = pd.to_datetime(df['time'].iloc[i])
+                    hour_val = int(t_val.hour)
+                    day_of_week_val = int(t_val.dayofweek)
+                    trend_val = int(df['Trend'].iloc[i]) if 'Trend' in df.columns else 1
+                    killzone_val = get_killzone(hour_val)
+                    atr_val = df['ATR_14'].iloc[i] if 'ATR_14' in df.columns else 1.0
+                    if pd.isna(atr_val):
+                        atr_val = 1.0
+                        
+                    direction = 1 if 'DEMAND' in sd_type else -1
+                    fibo_0_5 = float(df['SD_Fibo_0.5'].iloc[i])
+                    fibo_0_618 = float(df['SD_Fibo_0.618'].iloc[i])
+                    fibo_0_0 = float(df['SD_Fibo_0.0'].iloc[i])
+                    sd_sl = float(df['SD_SL'].iloc[i])
+                    
+                    # --- Option A: Midpoint (Fibo 0.5) ---
+                    entry_a = fibo_0_5
+                    sl_a = sd_sl
+                    tp_a = fibo_0_0
+                    risk_pips_a = abs(entry_a - sl_a)
+                    rejection_confirmed_a = detect_rejection_at_level(df, entry_a, direction)
+                    
+                    tp_dynamic_a = find_dynamic_tp(df, entry_a, direction)
+                    tp2_a = tp_dynamic_a if tp_dynamic_a is not None else (entry_a + risk_pips_a * 3 if direction == 1 else entry_a - risk_pips_a * 3)
+                    tp3_a = entry_a + risk_pips_a * 4 if direction == 1 else entry_a - risk_pips_a * 4
+                    
+                    active_setups.append({
+                        'index': i,
+                        'time': df['time'].iloc[i],
+                        'hour': hour_val,
+                        'day_of_week': day_of_week_val,
+                        'setup_type': 1,  # Treat as OB for ML
+                        'direction': direction,
+                        'entry_price': entry_a,
+                        'sl_price': sl_a,
+                        'tp_price': tp_a,
+                        'tp2_price': tp2_a,
+                        'tp3_price': tp3_a,
+                        'risk_pips': risk_pips_a,
+                        'atr_14': atr_val,
+                        'trend': trend_val,
+                        'relative_risk': risk_pips_a / atr_val,
+                        'killzone': killzone_val,
+                        'fvg_width': 0.0,
+                        'relative_fvg_width': 0.0,
+                        'option_name': f'SND Midpoint 0.5 ({sd_type})',
+                        'rejection_confirmed': rejection_confirmed_a
+                    })
+                    
+                    # --- Option B: Golden Pocket (Fibo 0.618) ---
+                    entry_b = fibo_0_618
+                    sl_b = sd_sl
+                    tp_b = fibo_0_0
+                    risk_pips_b = abs(entry_b - sl_b)
+                    rejection_confirmed_b = detect_rejection_at_level(df, entry_b, direction)
+                    
+                    tp_dynamic_b = find_dynamic_tp(df, entry_b, direction)
+                    tp2_b = tp_dynamic_b if tp_dynamic_b is not None else (entry_b + risk_pips_b * 3 if direction == 1 else entry_b - risk_pips_b * 3)
+                    tp3_b = entry_b + risk_pips_b * 4 if direction == 1 else entry_b - risk_pips_b * 4
+                    
+                    active_setups.append({
+                        'index': i,
+                        'time': df['time'].iloc[i],
+                        'hour': hour_val,
+                        'day_of_week': day_of_week_val,
+                        'setup_type': 1,  # Treat as OB for ML
+                        'direction': direction,
+                        'entry_price': entry_b,
+                        'sl_price': sl_b,
+                        'tp_price': tp_b,
+                        'tp2_price': tp2_b,
+                        'tp3_price': tp3_b,
+                        'risk_pips': risk_pips_b,
+                        'atr_14': atr_val,
+                        'trend': trend_val,
+                        'relative_risk': risk_pips_b / atr_val,
+                        'killzone': killzone_val,
+                        'fvg_width': 0.0,
+                        'relative_fvg_width': 0.0,
+                        'option_name': f'SND GoldenPocket 0.618 ({sd_type})',
+                        'rejection_confirmed': rejection_confirmed_b
+                    })
+                    
+    # 8. Pivot Rejection Setups
+    from src.indicators.pivots import detect_pivot_rejection_setups_at_idx
+    # Look back over the last 10 bars to find any active/open pivot rejection setups
+    lookback_scan = min(10, len(df))
+    start_scan_idx = len(df) - lookback_scan
+    
+    for k in range(start_scan_idx, len(df)):
+        pivot_setups = detect_pivot_rejection_setups_at_idx(df, k, symbol=symbol)
+        for ps in pivot_setups:
+            direction = ps['direction']
+            entry = ps['entry_price']
+            sl = ps['sl_price']
+            tp = ps['tp_price']
+            
+            # Check if this setup is still active (has not resolved to Win or Loss)
+            is_active = True
+            if k < len(df) - 1:
+                from src.labeler import simulate_trade
+                outcome = simulate_trade(df, k + 1, direction, sl, tp, entry=entry, symbol=symbol)
+                if outcome is not None:
+                    # Already resolved, not active
+                    is_active = False
+                    
+            if is_active:
+                t_val = pd.to_datetime(df['time'].iloc[k])
+                hour_val = int(t_val.hour)
+                day_of_week_val = int(t_val.dayofweek)
+                trend_val = int(df['Trend'].iloc[k]) if 'Trend' in df.columns else 1
+                killzone_val = get_killzone(hour_val)
+                atr_val = df['ATR_14'].iloc[k] if 'ATR_14' in df.columns else 1.0
+                if pd.isna(atr_val):
+                    atr_val = 1.0
+                risk_pips = abs(entry - sl)
+                
+                # Pivot setups detected on candle k already confirmed rejection
+                rejection_confirmed = True
+                
+                tp_dynamic = find_dynamic_tp(df, entry, direction)
+                tp2 = tp_dynamic if tp_dynamic is not None else (entry + risk_pips * 3 if direction == 1 else entry - risk_pips * 3)
+                tp3 = entry + risk_pips * 4 if direction == 1 else entry - risk_pips * 4
+                
+                active_setups.append({
+                    'index': k,
+                    'time': df['time'].iloc[k],
+                    'hour': hour_val,
+                    'day_of_week': day_of_week_val,
+                    'setup_type': 2,  # 2: Pivot Rejection
+                    'direction': direction,
+                    'entry_price': entry,
+                    'sl_price': sl,
+                    'tp_price': tp,
+                    'tp2_price': tp2,
+                    'tp3_price': tp3,
+                    'risk_pips': risk_pips,
+                    'atr_14': atr_val,
+                    'trend': trend_val,
+                    'relative_risk': risk_pips / atr_val,
+                    'killzone': killzone_val,
+                    'fvg_width': 0.0,
+                    'relative_fvg_width': 0.0,
+                    'option_name': ps['option_name'],
+                    'rejection_confirmed': rejection_confirmed
+                })
+                    
+    # Tag setups with psychological price proximity status and FLOOP Pro features
+    from src.indicators.pivots import get_pivot_features_at_idx
+    for s in active_setups:
+        s['near_psychological_level'] = int(is_near_psychological_level(s['entry_price'], symbol))
+        idx = s['index']
+        s['floop_signal'] = int(df['floop_signal'].iloc[idx]) if 'floop_signal' in df.columns else 0
+        s['floop_strength'] = float(df['floop_strength'].iloc[idx]) if 'floop_strength' in df.columns else 0.0
+        s['floop_trend'] = int(df['floop_trend'].iloc[idx]) if 'floop_trend' in df.columns else 0
+        
+        p_feat = get_pivot_features_at_idx(df, idx, s['entry_price'])
+        s['dist_entry_to_pp'] = p_feat['dist_entry_to_pp']
+        s['dist_entry_to_nearest_pivot'] = p_feat['dist_entry_to_nearest_pivot']
+        
     return active_setups
 
 def extract_active_htf_fvgs(df: pd.DataFrame) -> list:
@@ -860,6 +1170,8 @@ def main():
             timeframes_data['H1'] = fetch_historical_data(symbol, mt5.TIMEFRAME_H1, 150)
             timeframes_data['M30'] = fetch_historical_data(symbol, mt5.TIMEFRAME_M30, 200)
             timeframes_data['M15'] = fetch_historical_data(symbol, mt5.TIMEFRAME_M15, 200)
+            timeframes_data['M5'] = fetch_historical_data(symbol, mt5.TIMEFRAME_M5, 300)
+            timeframes_data['M1'] = fetch_historical_data(symbol, mt5.TIMEFRAME_M1, 300)
             mt5_active = True
             mt5.shutdown()
         else:
@@ -876,6 +1188,8 @@ def main():
         timeframes_data['H1'] = generate_synthetic_data(150, seed=44)
         timeframes_data['M30'] = generate_synthetic_data(200, seed=45)
         timeframes_data['M15'] = generate_synthetic_data(200, seed=46)
+        timeframes_data['M5'] = generate_synthetic_data(300, seed=47)
+        timeframes_data['M1'] = generate_synthetic_data(300, seed=48)
         
     # Run SMC detection algorithms on all timeframes
     print("Running SMC structure detection algorithms on all timeframes...")
@@ -884,8 +1198,10 @@ def main():
         df_tf = detect_swing_points(df_tf, window=5)
         df_tf = detect_structures(df_tf)
         df_tf = detect_fvg_and_ob(df_tf, symbol=symbol)
-        df_tf = detect_snr_and_swapzones(df_tf)
+        df_tf = detect_snr_and_swapzones(df_tf, symbol=symbol)
         df_tf = detect_bpr(df_tf, symbol=symbol)
+        df_tf = detect_indecision_candles(df_tf, symbol=symbol)
+        df_tf = detect_supply_demand_zones(df_tf, symbol=symbol)
         
         # Calculate ATR_14
         close_prev = df_tf['Close'].shift(1).fillna(df_tf['Open'])
@@ -899,6 +1215,23 @@ def main():
         df_tf['ATR_14'] = tr.rolling(window=14, min_periods=1).mean()
         timeframes_data[tf_name] = df_tf
         
+    # Pre-calculate trends for FLOOP Pro MTF/HTF
+    from src.indicators.floop import calculate_atr, calculate_range_filter
+    tf_trends = {}
+    for tf_name in timeframes_data:
+        df_tf = timeframes_data[tf_name]
+        try:
+            df_tf_copy = df_tf.copy()
+            df_tf_copy['time'] = pd.to_datetime(df_tf_copy['time'])
+            df_tf_copy.set_index('time', inplace=True)
+            
+            atr_floop = calculate_atr(df_tf_copy, 14)
+            _, trend_floop, _ = calculate_range_filter(df_tf_copy['Close'], atr_floop, sensitivity=6, atr_multiplier=0.8)
+            tf_trends[tf_name] = pd.Series(trend_floop, index=df_tf_copy.index)
+        except Exception as e:
+            print(f"Error calculating RF trend for TF {tf_name}: {e}")
+            tf_trends[tf_name] = None
+
     # Extract active HTF FVGs (from H1, H4, and D1)
     active_htf_fvgs = []
     for tf_name in ['H1', 'H4', 'D1']:
@@ -912,7 +1245,7 @@ def main():
     # Identify active setups on ALL timeframes
     all_setups = []
     for tf_name in ['D1', 'H4', 'H1', 'M30', 'M15']:
-        tf_setups = get_active_setups(timeframes_data[tf_name])
+        tf_setups = get_active_setups(timeframes_data[tf_name], symbol=symbol, tf_trends=tf_trends, df_d1=timeframes_data.get('D1'))
         for s in tf_setups:
             s['timeframe'] = tf_name
             all_setups.append(s)
@@ -950,25 +1283,102 @@ def main():
                             fvg_info['timeframe'] = htf_name
                             setup['matching_htf_fvgs'].append(fvg_info)
                             
-                # 2. Conflict Suppression
+                # 2. Conflict Suppression - only if entry is inside the opposite HTF FVG
                 for htf_fvg in active_fvgs_by_tf[htf_name]:
                     is_opposite_direction = (setup['direction'] == 1 and htf_fvg['type'] == 'BEARISH') or \
                                              (setup['direction'] == -1 and htf_fvg['type'] == 'BULLISH')
                     if is_opposite_direction:
-                        setup['suppressed'] = True
-                        setup['htf_conflict_reason'] = f"Opposite active {htf_name} FVG"
-                        break
+                        entry = setup['entry_price']
+                        if entry >= htf_fvg['bottom'] and entry <= htf_fvg['top']:
+                            setup['suppressed'] = True
+                            setup['htf_conflict_reason'] = f"Entry inside opposite active {htf_name} FVG"
+                            break
                         
-        # 3. Check Rejection on LTF (M15) for setups on higher timeframes
-        if setup_tf != 'M15':
+        # Check Rejection on lower timeframes (M15, M5, M1) for the setup
+        rej_confirmed = False
+        rej_tf_source = "None"
+        
+        # 1. Check on M5 (lookback 30 candles)
+        m5_df = timeframes_data.get('M5')
+        if m5_df is not None and not m5_df.empty:
+            if detect_rejection_at_level(m5_df, setup['entry_price'], setup['direction'], lookback=30):
+                rej_confirmed = True
+                rej_tf_source = "M5"
+                
+        # 2. Check on M1 (lookback 90 candles) if not already confirmed on M5
+        if not rej_confirmed:
+            m1_df = timeframes_data.get('M1')
+            if m1_df is not None and not m1_df.empty:
+                if detect_rejection_at_level(m1_df, setup['entry_price'], setup['direction'], lookback=90):
+                    rej_confirmed = True
+                    rej_tf_source = "M1"
+                    
+        # 3. Fallback to M15 (lookback 15 candles) if not confirmed on M5/M1 and setup is on timeframe higher than M15
+        if not rej_confirmed and setup_tf != 'M15':
             m15_df = timeframes_data.get('M15')
             if m15_df is not None and not m15_df.empty:
-                rej_confirmed = detect_rejection_at_level(m15_df, setup['entry_price'], setup['direction'], lookback=15)
-                setup['rejection_confirmed'] = rej_confirmed
+                if detect_rejection_at_level(m15_df, setup['entry_price'], setup['direction'], lookback=15):
+                    rej_confirmed = True
+                    rej_tf_source = "M15"
+                    
+        setup['rejection_confirmed'] = rej_confirmed
+        setup['rejection_source'] = rej_tf_source
                             
+    # Pre-calculate KNN and Volume Profile data for each timeframe to use for setup features
+    print("Pre-calculating KNN and Volume Profile features for live signals...")
+    tf_knn_data = {}
+    tf_vp_data = {}
+    for tf_name, df_tf in timeframes_data.items():
+        # KNN
+        try:
+            pc1, pc2, pc3, pc4, target_clean = run_knn_classifier(
+                df_tf,
+                atr_period=10, factor=2.0,
+                k_neighbors=10, sampling_window_size=1000, momentum_window=10,
+                normalizing_window_size=1000,
+                lazy=True
+            )
+            # Evaluate at the very last bar (live candle)
+            t_last = len(df_tf) - 1
+            knn_up, knn_down = calculate_knn_probability_at_bar(
+                t_last, pc1.values, pc2.values, pc3.values, pc4.values, target_clean.values,
+                k=10, sampling_window=1000, stride=10
+            )
+            tf_knn_data[tf_name] = (knn_up, knn_down)
+        except Exception as e:
+            print(f"Error computing live KNN for TF {tf_name}: {e}")
+            tf_knn_data[tf_name] = (0.0, 0.0)
+            
+        # Volume profile
+        try:
+            clusters_data = calculate_volume_clusters(
+                df_tf, lookback=200, k=5, iterations=20, rows=20
+            )
+            tf_vp_data[tf_name] = clusters_data
+        except Exception as e:
+            print(f"Error computing live Volume Clusters for {tf_name}: {e}")
+            tf_vp_data[tf_name] = {}
+
     # Query model predictions for each setup
     filtered_setups_with_prob = []
     for setup in all_setups:
+        setup_tf = setup['timeframe']
+        knn_up, knn_down = tf_knn_data.get(setup_tf, (0.0, 0.0))
+        knn_prob_sig = knn_up if setup['direction'] == 1 else knn_down
+        knn_prob_opp = knn_down if setup['direction'] == 1 else knn_up
+        
+        clusters_data = tf_vp_data.get(setup_tf, {})
+        dist_entry_to_poc = 0.0
+        dist_entry_to_nearest_poc = 0.0
+        if clusters_data and 'current_poc' in clusters_data:
+            curr_poc = clusters_data['current_poc']
+            entry = setup['entry_price']
+            dist_entry_to_poc = (entry - curr_poc) / curr_poc if curr_poc > 0 else 0.0
+            
+            pocs = clusters_data.get('pocs', [])
+            if pocs:
+                dist_entry_to_nearest_poc = min(abs(entry - poc) for poc in pocs) / entry
+
         features = {
             'timeframe': tf_minutes_map[setup['timeframe']],
             'hour': setup['hour'],
@@ -984,7 +1394,18 @@ def main():
             'relative_risk': setup['relative_risk'],
             'killzone': setup['killzone'],
             'fvg_width': setup['fvg_width'],
-            'relative_fvg_width': setup['relative_fvg_width']
+            'relative_fvg_width': setup['relative_fvg_width'],
+            'near_psychological_level': setup['near_psychological_level'],
+            'knn_prob_sig': knn_prob_sig,
+            'knn_prob_opp': knn_prob_opp,
+            'dist_entry_to_poc': dist_entry_to_poc,
+            'dist_entry_to_nearest_poc': dist_entry_to_nearest_poc,
+            'dist_entry_to_pp': setup.get('dist_entry_to_pp', 0.0),
+            'dist_entry_to_nearest_pivot': setup.get('dist_entry_to_nearest_pivot', 0.0),
+            'floop_signal': setup['floop_signal'],
+            'floop_strength': setup['floop_strength'],
+            'floop_trend': setup.get('floop_trend', 0),
+            'floop_trend_aligned': 1 if setup.get('floop_trend', 0) == setup['direction'] else 0
         }
         try:
             prob = predict_setup_probability(features)

@@ -5,3 +5,8 @@ __pycache__/
 *.png
 brain/
 data/backtest_simulation_results.csv
+
+# Secrets / credentials
+.env
+.env.*
+!.env.example

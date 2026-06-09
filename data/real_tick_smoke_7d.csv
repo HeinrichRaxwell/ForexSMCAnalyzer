@@ -1,0 +1,2 @@
+symbol,requested_symbol,timeframe,strategy,sizing_config,capital,ml_threshold,max_concurrent,setup_count,total_resolved,wins,losses,missed,winrate,final_balance,max_dd_usd,max_dd_pct,blown,tick_days_requested,tick_days_required,tick_days_with_ticks,tick_days_missing,tick_missing_days,tick_missing_cache_files,tick_coverage_pct,is_real_tick_complete
+XAUUSDm,XAUUSD,H4,COMBINED,equal,50.0,0.5,3,16,4,2,2,12,50.0,71.62507799999912,42.782422000001134,85.56484400000227,False,8,6,6,0,,,100.0,True

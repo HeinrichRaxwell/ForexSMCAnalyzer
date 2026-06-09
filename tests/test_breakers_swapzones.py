@@ -77,3 +77,24 @@ def test_swapzones_detection():
     # Index 9 price is Low=101.0, High=103.0, which touches Swap_Level (103.0)
     # This should mark the swap zone at index 6 as mitigated
     assert df['Swap_Mitigated'].iloc[6] == True
+
+def test_supply_demand_zones_detection():
+    from src.smc_detector import detect_supply_demand_zones
+    # Construct a series of prices that forms a Rally-Base-Rally (RBR) -> Demand zone
+    df = pd.DataFrame({
+        'Open':  [100.0, 100.0, 110.0, 111.0, 115.0],
+        'High':  [101.0, 111.0, 112.0, 122.0, 118.0],
+        'Low':   [99.0,  99.0,  109.0, 110.0, 108.0],
+        'Close': [100.5, 110.0, 111.0, 121.0, 114.0]
+    })
+    
+    df = detect_supply_demand_zones(df, symbol="XAUUSD")
+    
+    # Index 3 is the expansion candle of Rally-Base-Rally.
+    # So index 3 should have SD_Type = 'DEMAND_RBR'
+    assert df['SD_Type'].iloc[3] == 'DEMAND_RBR'
+    assert df['SD_Top'].iloc[3] == 112.0
+    assert df['SD_Bottom'].iloc[3] == 109.0
+    # Check that it calculates SL and Fibo levels correctly
+    assert df['SD_SL'].iloc[3] == 109.0 - (20 * 0.1) # XAUUSD pip multiplier is 0.1, buffer is 2.0
+

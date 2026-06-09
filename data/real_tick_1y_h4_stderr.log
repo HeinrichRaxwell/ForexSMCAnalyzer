@@ -1,0 +1,35 @@
+Traceback (most recent call last):
+  File "C:\Users\WINDOWS 11 PRO\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "C:\Users\WINDOWS 11 PRO\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "C:\Users\WINDOWS 11 PRO\forex-smc-analyzer\src\real_tick_backtester.py", line 383, in <module>
+    raise SystemExit(main())
+  File "C:\Users\WINDOWS 11 PRO\forex-smc-analyzer\src\real_tick_backtester.py", line 357, in main
+    results = run_real_tick_backtest(
+  File "C:\Users\WINDOWS 11 PRO\forex-smc-analyzer\src\real_tick_backtester.py", line 256, in run_real_tick_backtest
+    ticks = download_ticks_range(
+  File "C:\Users\WINDOWS 11 PRO\forex-smc-analyzer\src\tick_data.py", line 146, in download_ticks_range
+    result = download_ticks_day(symbol, day, cache_dir=cache_dir, mt5_module=mt5_module, force=force)
+  File "C:\Users\WINDOWS 11 PRO\forex-smc-analyzer\src\tick_data.py", line 118, in download_ticks_day
+    cached = read_tick_cache(path)
+  File "C:\Users\WINDOWS 11 PRO\forex-smc-analyzer\src\tick_data.py", line 57, in read_tick_cache
+    frame = pd.read_csv(path, compression="gzip")
+  File "C:\Users\WINDOWS 11 PRO\forex-smc-analyzer\.venv\lib\site-packages\pandas\io\parsers\readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+  File "C:\Users\WINDOWS 11 PRO\forex-smc-analyzer\.venv\lib\site-packages\pandas\io\parsers\readers.py", line 626, in _read
+    return parser.read(nrows)
+  File "C:\Users\WINDOWS 11 PRO\forex-smc-analyzer\.venv\lib\site-packages\pandas\io\parsers\readers.py", line 1923, in read
+    ) = self._engine.read(  # type: ignore[attr-defined]
+  File "C:\Users\WINDOWS 11 PRO\forex-smc-analyzer\.venv\lib\site-packages\pandas\io\parsers\c_parser_wrapper.py", line 234, in read
+    chunks = self._reader.read_low_memory(nrows)
+  File "pandas/_libs/parsers.pyx", line 838, in pandas._libs.parsers.TextReader.read_low_memory
+  File "pandas/_libs/parsers.pyx", line 905, in pandas._libs.parsers.TextReader._read_rows
+  File "pandas/_libs/parsers.pyx", line 874, in pandas._libs.parsers.TextReader._tokenize_rows
+  File "pandas/_libs/parsers.pyx", line 891, in pandas._libs.parsers.TextReader._check_tokenize_status
+  File "pandas/_libs/parsers.pyx", line 2053, in pandas._libs.parsers.raise_parser_error
+  File "C:\Users\WINDOWS 11 PRO\AppData\Local\Programs\Python\Python310\lib\_compression.py", line 68, in readinto
+    data = self.read(len(byte_view))
+  File "C:\Users\WINDOWS 11 PRO\AppData\Local\Programs\Python\Python310\lib\gzip.py", line 507, in read
+    raise EOFError("Compressed file ended before the "
+EOFError: Compressed file ended before the end-of-stream marker was reached

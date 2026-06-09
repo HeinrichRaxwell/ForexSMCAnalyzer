@@ -46,7 +46,7 @@ def test_detect_ob_and_mitigation():
     data = {
         'Open':       [12, 11, 17, 18],
         'High':       [13, 18, 19, 18],
-        'Low':        [10, 11, 15, 12],
+        'Low':        [10, 11, 15, 11],
         'Close':      [11, 17, 18, 13],
         'Swing_High': [13, np.nan, np.nan, np.nan],
         'Swing_Low':  [np.nan, 10, np.nan, np.nan],
