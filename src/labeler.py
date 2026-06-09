@@ -16,6 +16,57 @@ from src.rejection_detector import is_near_psychological_level
 from src.indicators.knn_classifier import run_knn_classifier, calculate_knn_probability_at_bar
 from src.indicators.volume_clusters import calculate_volume_clusters
 
+def _read_float_env(name: str, default: float) -> float:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        return default
+
+
+def get_spread_usd() -> float:
+    return _read_float_env("ML_SPREAD_USD", 0.30)
+
+
+def get_slippage_usd() -> float:
+    return _read_float_env("ML_SLIPPAGE_USD", 0.0)
+
+
+def compute_cost_r(risk_pips: float, spread_usd: float = None, slippage_usd: float = None) -> float:
+    """Cost per trade dalam satuan R. cost_R = (spread + slippage) / risk_usd.
+
+    risk_pips di sini adalah |entry - sl| dalam USD (sesuai pemakaian di labeler).
+    Mengembalikan 0.0 bila risk tidak valid (hindari div-by-zero).
+    """
+    if spread_usd is None:
+        spread_usd = get_spread_usd()
+    if slippage_usd is None:
+        slippage_usd = get_slippage_usd()
+    risk = abs(float(risk_pips))
+    if risk <= 0.0:
+        return 0.0
+    return (float(spread_usd) + float(slippage_usd)) / risk
+
+
+def compute_pnl_relative(label: int, entry: float, sl: float, tp: float,
+                         spread_usd: float = None, slippage_usd: float = None) -> float:
+    """R aktual per trade, sudah dikurangi cost.
+
+    Win  -> +RR  - cost_R  (RR = |tp-entry| / |entry-sl|)
+    Loss -> -1.0 - cost_R
+    """
+    risk = abs(float(entry) - float(sl))
+    cost_r = compute_cost_r(risk, spread_usd=spread_usd, slippage_usd=slippage_usd)
+    if risk <= 0.0:
+        return 0.0
+    if int(label) == 1:
+        rr = abs(float(tp) - float(entry)) / risk
+        return rr - cost_r
+    return -1.0 - cost_r
+
+
 def get_killzone(hour: int) -> int:
     """
     Get session killzone code relative to MT5 server time:
