@@ -1,0 +1,423 @@
+AI-SuperTrend (KNN Machine Learning)
+
+▶️Overview
+The AI-SuperTrend (KNN Machine Learning) is a trend-following indicator that integrates a K-Nearest Neighbors (KNN) classification engine into the classic SuperTrend algorithm. Rather than attempting to "predict" the future in the traditionally volatile and noise-heavy financial markets, this tool treats the market as a multi-dimensional state to be estimated.
+
+By continuously sampling historical data, the engine identifies clusters of past conditions that mirror the present. It then analyzes the trend of those neighbors to deduce the "True State" of the current market, using this statistical consensus to validate SuperTrend signals and filter out deceptive market noise.
+
+▶️Why KNN for Financial Markets?
+In the noise-heavy environment of financial markets, complex parametric models like Support Vector Machines (SVM) or Deep Neural Networks often struggle with stability. These models frequently suffer from convergence issues during training, or they produce outputs that stagnate around the mean due to the low signal-to-noise ratio of financial data. Most critically, they are highly prone to overfitting, capturing random price fluctuations as if they were true alpha.
+
+KNN offers a distinct advantage through its Robustness and Adaptability:
+
+Non-parametric Nature:
+KNN makes no underlying assumptions about the distribution of data, allowing it to adapt to non-linear and evolving market regimes.
+
+Rolling Window Learning:
+The model utilizes a rolling "Learning Window" that naturally aligns with the bar-by-bar execution of Pine Script. This approach ensures that the engine is always synchronized with the most relevant, recent market structures while remaining computationally efficient within the platform's resource constraints.
+
+▶️Core Methodology: KNN and State Estimation
+1. The KNN Engine
+K-Nearest Neighbors is a non-parametric "Lazy Learning" algorithm. Instead of building a static model, it looks at the current market "Feature Vector" and searches the historical database for the K most similar instances.
+
+Distance Metric: Uses the Minkowski Distance. This is adjustable via the p-parameter, where p=1 represents Manhattan distance and p=2 represents Euclidean distance.
+
+Gaussian Weighting: Not all neighbors are equal. The script applies a Weighting kernel where neighbors closer to the current state carry significantly more weight in the final prediction than those further away.
+
+2. State Estimation (Bayesian-like Approach)
+The state estimation logic implemented in this script follows the methodology used by myself in the "KNN Machine Learning Momentum Indicator." By applying this approach to the SuperTrend framework, the indicator achieves a higher level of precision in trend validation.
+
+Probability Calculation: The probability of a Bullish state is calculated as (Sum of Weights of Bullish Neighbors) divided by (Total Weights of all K Neighbors).
+
+Synergistic Robustness: By combining the volatility-based boundaries of SuperTrend with the KNN state estimation, the system significantly improves robustness against market noise. A SuperTrend flip is only considered a "Major" signal if the AI confirms that the underlying market state has truly shifted, based on historical probability.
+
+Confirmation: A signal is only triggered if the estimated probability exceeds the user-defined Prediction Threshold (e.g., 0.9 or 90%).
+
+3. Sampling Stride (Efficiency and Diversity)
+To balance computational load and data diversity within Pine Script's limits, the engine utilizes a Stride mechanism:
+
+Computational Efficiency: Instead of checking every single bar in the lookback window, the script samples data at intervals defined by the Stride (e.g., every 15th bar).
+
+Pattern Diversity: By skipping adjacent, highly correlated bars, the "Learning Window" covers a broader range of market structures. This ensures the KNN engine sees various types of volatility and price action rather than redundant near-term data.
+
+▶️Key Features
+Multi-Dimensional Feature Engineering
+The AI analyzes a "Feature Space" consisting of:
+
+RSI Momentum Clusters: Captures momentum across three different time horizons (Short, Medium, Long) to detect lead/lag convergence.
+
+MA Deviations: Measures the "stretch" or distance from the mean using various Moving Average types (ZLSMA, HMA, etc.).
+
+PCA Compression: An optional Dimensionality Reduction toggle that merges correlated features into 3 Principal Components. This reduces the "Curse of Dimensionality" and focuses the AI on the most impactful data trends.
+
+▶️Parameter Guide
+🔲SuperTrend Settings
+ATR Length: The lookback period for volatility calculation.
+Factor: The multiplier that determines the distance of the SuperTrend line from price.
+
+🔲Machine Learning Engine
+K-Neighbors (K): The number of historical patterns to compare. A smaller K is more sensitive to recent changes, while a larger K is more robust but may lag.
+Learning Window Size: How far back in history the AI "remembers" or searches for neighbors.
+Stride: The sampling interval. A stride of 15 means the AI learns from every 15th bar, increasing the effective historical range without hitting script calculation limits.
+Prediction Threshold: The confidence level (0.1 to 1.0) required to trigger a signal. A value of 0.9 means the AI must be 90% certain based on historical weights.
+
+🔲Feature Engineering
+Feature MA Type: Choose the baseline for deviation (e.g., ZLSMA for zero-lag, HMA for speed).
+Normalizing Window: The lookback for Z-Score normalization, ensuring all features are on the same scale (mean=0, std=1).
+Minkowski Parameter (p): Controls the distance logic. p=1 is Manhattan, p=2 is Euclidean.
+Shape Parameter: Controls the sensitivity of the Gaussian weighting. Higher values make the weights drop off more aggressively as distance increases.
+
+▶️Visual Analytics
+Major Signals (▲/▼): High-confidence trend changes confirmed by the AI. These are plotted only when the SuperTrend direction aligns with the AI's predicted direction and its probability exceeds the defined threshold.
+
+Probability Labels: At every SuperTrend reversal point, the indicator displays a label showing the AI's estimated probability for that trend direction (e.g., "Pred 92%"). This allows for real-time visual assessment of the AI's confidence in the SuperTrend flip.
+
+Major Signals: High-confidence trend changes confirmed by the AI.
+ST Dots: Standard SuperTrend flips without full AI confirmation.
+
+Dynamic Bar Color: A gradient representing the real-time AI confidence score.
+　Blue/Cyan: High Bullish Confidence.
+　Red/Pink: High Bearish Confidence.
+　Gray: Neutral or Indecisive state.
+
+Disclaimer
+Past performance does not guarantee future results. This indicator is a tool for statistical analysis and should be used in conjunction with a complete risk management strategy.
+7 Mar
+Catatan Rilis
+improved flipping logic
+7 Mar
+Catatan Rilis
+To improve model robustness, I added the CHOP Index as a fourth feature.
+Skrip open-source
+
+Dengan semangat TradingView yang sesungguhnya, pembuat skrip ini telah menjadikannya sebagai sumber terbuka, sehingga para trader dapat meninjau dan memverifikasi fungsinya. Salut untuk penulisnya! Meskipun Anda dapat menggunakannya secara gratis, perlu diingat bahwa penerbitan ulang kode ini tunduk pada Tata Tertib kami.
+
+
+SatohK
+
+Ikuti
+Pernyataan Penyangkalan
+Informasi dan publikasi ini tidak dimaksudkan, dan bukan merupakan, saran atau rekomendasi keuangan, investasi, trading, atau jenis lainnya yang diberikan atau didukung oleh TradingView. Baca selengkapnya di Ketentuan Penggunaan.
+4 komentar
+
+
+Tinggalkan komentar yang membantu dan membangun. Mari kuasai pasar bersama.
+
+Posting
+
+ViboraTrader
+Mar 8
+Play with basic object physics concepts to predict future reversal points, like a ball's trajectory prediction. Test with 7 and 30 periods for fast and slow MAs 
+
+You will discover some Magic :)
+
+7
+
+Balas
+
+
+barryaparker1984
+Mei 3
+This indicator is amazingggggg.
+
+1
+
+Balas
+
+
+Overlay4112
+Mar 11
+this is interesting concept. just trying to understand the chart. does a blue colour "Pred 8%" means it's predicting 8% bullish? and vice versa for red for bearish?
+I don't exactly see the gray?
+
+1
+
+Balas
+
+
+SatohK
+Mar 11
+@thomasck, Thank you for your comment!
+
+Regarding the probability plots, your understanding is correct: the higher the displayed probability, the more likely a trend will develop in that direction. (For example, a 90% blue label represents the model's 90% confidence in an upward trend.)
+
+The reason you don’t see much gray is likely because the gradient calculation is set with a 0.5 (50%) lower limit, which makes the blue and red colors appear more prominently. While this was an intentional design choice to make trends easier to visualize, I’m considering adding a customization option for this in the next update!
+
+CODE:
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © SatohK
+
+//@version=5
+indicator("⚡AI-SuperTrend (KNN Machine Learning)", max_labels_count = 200, overlay=true, max_bars_back=2000)
+
+// ==========================================
+// --- CONSTANTS & STYLING ---
+// ==========================================
+color_bull     = color.new(#289eff, 0)
+color_bear     = color.new(#ce3f6c, 0)
+color_bull_dim = color.new(#00ffbb, 50)
+color_bear_dim = color.new(#ff3355, 50)
+color_neutral  = color.new(#64748b, 20)
+color_gold     = color.new(#ffd700, 0)
+
+// ==========================================
+// --- MA SELECTOR & HELPER FUNCTIONS ---
+// ==========================================
+f_zlsma(s, l) => 
+    lsma = ta.linreg(s, l, 0)
+    lsma + (lsma - ta.sma(s, l))
+
+f_dema(s, l) => 
+    e1 = ta.ema(s, l)
+    2 * e1 - ta.ema(e1, l)
+
+f_tema(s, l) =>
+    e1 = ta.ema(s, l)
+    e2 = ta.ema(e1, l)
+    3 * (e1 - e2) + ta.ema(e2, l)
+
+f_thma(s, l) =>  
+    l_3 = math.max(1, math.round(l / 3))
+    l_2 = math.max(1, math.round(l / 2))
+    ta.wma(ta.wma(s, l_3) * 3 - ta.wma(s, l_2) - ta.wma(s, l), l)
+
+calcMA(type, s, l) =>
+    len = math.max(1, l)
+    switch type
+        "SMA"   => ta.sma(s, len)
+        "EMA"   => ta.ema(s, len)
+        "DEMA"  => f_dema(s, len)
+        "TEMA"  => f_tema(s, len)
+        "LSMA"  => ta.linreg(s, len, 0)
+        "WMA"   => ta.wma(s, len)
+        "HMA"   => ta.hma(s, len)
+        "ZLSMA" => f_zlsma(s, len)
+        "SMMA"  => ta.rma(s, len)
+        "THMA"  => f_thma(s, len)
+        => ta.sma(s, len)
+
+// CHOP Calculation Function
+f_chop(len) =>
+    100 * math.log10(math.sum(ta.tr, len) / (math.max(ta.highest(high, len), close[1]) - math.min(ta.lowest(low, len), close[1]))) / math.log10(len)
+
+// ==========================================
+// --- INPUT PARAMETERS ---
+// ==========================================
+
+group_st = "SuperTrend"
+atrPeriod = input.int(10,    "ATR Length", minval = 1,group = group_st)
+factor =    input.float(2.0, "Factor",     minval = 0.01, step = 0.01,group = group_st)
+
+group_ml = "🧠 Machine Learning Engine"
+k_neighbors      = input.int(10, "K-Neighbors (K)", minval=1, group=group_ml, tooltip="Number of nearest neighbors to consider.")
+sampling_window_size      = input.int(1000, "Learning Window Size", minval=10, group=group_ml, tooltip="Historical data lookback for training.")
+momentum_window  = input.int(10, "Stride", minval=1, group=group_ml, tooltip="Stride period for Sampling Data")
+prob_threshold   = input.float(0.9, "Prediction Threshold", minval=0.1, maxval=1.0, step=0.01, group=group_ml, tooltip="Confidence level required for a signal.")
+
+group_feat = "📊 Feature Engineering"
+feat_ma_type     = input.string("SMA", "Feature MA Type", options=["SMA", "EMA", "DEMA", "TEMA", "LSMA", "WMA", "HMA", "ZLSMA", "SMMA", "THMA"], group=group_feat, tooltip="MA type used for feature calculation.")
+rsi_len    = input.int(20, "RSI Period", group=group_feat)
+ma_len     = input.int(20, "MA Period", group=group_feat)
+signal_len       = input.int(10, "Signal Line Period", group=group_feat)
+chop_len   = input.int(14, "CHOP Period", group=group_feat, tooltip="Choppiness Index period for the 4th feature.")
+window_size      = input.int(1000, "Normalizing Window Size", minval=10, group=group_feat, tooltip="Historical data lookback for normalizing.")
+p_param          = input.float(2.0, "Minkowski Parameter (p)", group=group_feat, tooltip="Distance metric exponent. 2=Euclidean, 1=Manhattan.")
+w_param          = input.float(2.0, "Shape Parameter", group=group_feat, tooltip="Gausian Weighting exponent.")
+
+group_pca = "⚡ Dimensionality Reduction"
+use_pca          = input.bool(true, "Enable PCA Compression", group=group_pca, tooltip="Compresses features into Principal Components to reduce noise.")
+
+group_vis = "🎨 Visual Analytics"
+use_bar_color    = input.bool(true, "Dynamic Bar Coloring", group=group_vis, tooltip="Colors bars based on KNN prediction confidence.")
+
+// ==========================================
+// --- LABELING (Supervised Learning) ---
+// ==========================================
+[supertrend, direction] = ta.supertrend(factor, atrPeriod)
+supertrend := barstate.isfirst ? na : supertrend
+target = direction*-1
+
+for i = 1 to 5
+    if direction[i] != direction
+        target := 0
+
+// ==========================================
+// --- FEATURE CALCULATION & NORMALIZATION ---
+// ==========================================
+normalize(src, len) =>
+    float _mean = ta.sma(src[1], len)
+    float _std  = ta.stdev(src[1], len)
+    (src - _mean) / math.max(_std, 0.00001)
+
+f_rsi_s = ta.rsi(close, rsi_len)
+f_rsi_m = ta.rsi(close[momentum_window], rsi_len)
+f_rsi_l = ta.rsi(close[momentum_window*2], rsi_len)
+
+f_ma_s_dev = (close - calcMA(feat_ma_type, close[1], ma_len)) / calcMA(feat_ma_type, close[1], ma_len)
+f_ma_m_dev = (close[momentum_window] - calcMA(feat_ma_type, close[momentum_window+1], ma_len)) / calcMA(feat_ma_type, close[momentum_window+1], ma_len)
+f_ma_l_dev = (close[momentum_window*2] - calcMA(feat_ma_type, close[momentum_window*2+1], ma_len)) / calcMA(feat_ma_type, close[momentum_window*2+1], ma_len)
+
+f_rsi_s_sig_dist = (f_rsi_s - ta.sma(f_rsi_s[1], signal_len)) /ta.sma(f_rsi_s[1], signal_len)
+f_rsi_m_sig_dist = (f_rsi_m - ta.sma(f_rsi_m[1], signal_len)) /ta.sma(f_rsi_m[1], signal_len)
+f_rsi_l_sig_dist = (f_rsi_l - ta.sma(f_rsi_l[1], signal_len)) /ta.sma(f_rsi_l[1], signal_len)
+
+// Add CHOP features
+f_chop_s = f_chop(chop_len)
+f_chop_m = f_chop(chop_len)[momentum_window]
+f_chop_l = f_chop(chop_len)[momentum_window*2]
+
+f_rsi_s_z    = normalize(f_rsi_s, window_size)
+f_rsi_m_z    = normalize(f_rsi_m, window_size)
+f_rsi_l_z    = normalize(f_rsi_l, window_size)
+f_ma_s_dev_z = normalize(f_ma_s_dev, window_size)
+f_ma_m_dev_z = normalize(f_ma_m_dev, window_size)
+f_ma_l_dev_z = normalize(f_ma_l_dev, window_size)
+f_rsi_s_sd_z = normalize(f_rsi_s_sig_dist, window_size)
+f_rsi_m_sd_z = normalize(f_rsi_m_sig_dist, window_size)
+f_rsi_l_sd_z = normalize(f_rsi_l_sig_dist, window_size)
+
+// Normalize CHOP
+f_chop_s_z   = normalize(f_chop_s, window_size)
+f_chop_m_z   = normalize(f_chop_m, window_size)
+f_chop_l_z   = normalize(f_chop_l, window_size)
+
+// ==========================================
+// --- DIMENSIONALITY REDUCTION ---
+// ==========================================
+float pc1 = 0.0, float pc2 = 0.0, float pc3 = 0.0, float pc4 = 0.0
+
+if use_pca
+    pc1 := normalize((f_rsi_s_z + f_ma_s_dev_z + f_rsi_s_sd_z*0.5), window_size) 
+    pc2 := normalize((f_rsi_m_z + f_ma_m_dev_z + f_rsi_m_sd_z*0.5), window_size) * 0.9
+    pc3 := normalize((f_rsi_l_z + f_ma_l_dev_z + f_rsi_l_sd_z*0.5), window_size) * 0.8
+    pc4 := normalize((f_chop_s_z + f_chop_m_z*0.9 + f_chop_l_z*0.8), window_size) *0.8
+else
+    pc1 := f_rsi_m_z
+    pc2 := f_ma_m_dev_z
+    pc3 := f_rsi_m_sd_z
+    pc4 := f_chop_m_z
+
+// ==========================================
+// --- KNN CORE ENGINE ---
+// ==========================================
+float prob_up = 0.0, float prob_down = 0.0
+var float[] distances = array.new_float(0)
+var float[] labels = array.new_float(0)
+
+stride = momentum_window
+
+if bar_index > window_size + momentum_window
+    array.clear(distances)
+    array.clear(labels)
+
+    for i = momentum_window to sampling_window_size + momentum_window by stride
+        if target[i] != 0
+            float d1 = math.abs(pc1 - pc1[i])
+            float d2 = math.abs(pc2 - pc2[i])
+            float d3 = math.abs(pc3 - pc3[i])
+            float d4 = math.abs(pc4 - pc4[i])
+            // Extended Minkowski distance to 4 dimensions
+            float dist_knn = math.pow(math.pow(d1, p_param) + math.pow(d2, p_param) + math.pow(d3, p_param) + math.pow(d4, p_param), 1/p_param) 
+            array.push(distances, dist_knn)
+            array.push(labels, target[i])
+
+    if array.size(distances) >= k_neighbors
+        int[] sorted_indices = array.sort_indices(distances, order.ascending)
+        float sum_weight_up = 0.0, float sum_weight_down = 0.0, float total_weight = 0.0
+        float[] dist_sorted = array.copy(distances)
+        array.sort(dist_sorted)
+        float sigma = array.get(dist_sorted, math.min(int(k_neighbors/2), array.size(dist_sorted)-1))
+        sigma := math.max(sigma, 0.0001)
+        
+        for j = 0 to k_neighbors - 1
+            int idx = array.get(sorted_indices, j)
+            float d = array.get(distances, idx)
+            float lbl = array.get(labels, idx)
+            float weight = math.exp(-math.pow(d, w_param) / (2 * math.pow(sigma, 2)))
+            if lbl == 1
+                sum_weight_up += weight
+            else if lbl == -1
+                sum_weight_down += weight
+            total_weight += weight
+        prob_up := total_weight > 0 ? sum_weight_up / total_weight : 0.0
+        prob_down := total_weight > 0 ? sum_weight_down / total_weight : 0.0
+
+// ==========================================
+// --- SIGNAL GENERATION ---
+// ==========================================
+bool raw_long_signal = ta.crossover(prob_up, prob_threshold) 
+bool raw_short_signal = ta.crossover(prob_down, prob_threshold)
+
+var int last_dir = 0
+bool long_signal = false
+bool short_signal = false
+
+if raw_long_signal and last_dir <= 0
+    long_signal := true
+    last_dir := 1
+
+if raw_short_signal and last_dir >= 0
+    short_signal := true
+    last_dir := -1
+
+var last_stdir = 0.
+if direction != nz(direction[1]) or (raw_long_signal) or (raw_short_signal)
+    if direction < 0 and last_dir==1 and prob_up > prob_threshold
+        last_stdir := direction*-1
+    if direction > 0 and last_dir==-1 and prob_down > prob_threshold
+        last_stdir := direction*-1
+
+// ==========================================
+// --- VISUALIZATION & PLOTTING ---
+// ==========================================
+color g_color = prob_up > prob_down ? color.from_gradient(prob_up, 0.5, 0.95, color_neutral, color_bull) : color.from_gradient(prob_down, 0.5, 0.95, color_neutral, color_bear)
+barcolor(use_bar_color ? g_color : na)
+
+plotshape(ta.crossover(last_stdir,0), "Major Long",shape.labelup,location.belowbar,color.new(color_bull,30), size=size.tiny, text="▲", textcolor=color.white)
+plotshape(ta.crossunder(last_stdir,0), "Major Short",shape.labeldown,location.abovebar,color.new(color_bear,30), size=size.tiny, text="▼", textcolor=color.white)
+
+plotshape(ta.crossunder(direction,0)?supertrend:na, "ST Long",shape.circle,location.absolute,last_stdir>0?color.new(color_bull,40):color.new(color_bear,40), size=size.tiny)
+plotshape(ta.crossover(direction,0)?supertrend:na, "ST Short",shape.circle,location.absolute,last_stdir>0?color.new(color_bull,40):color.new(color_bear,40), size=size.tiny)
+
+if ta.crossunder(direction,0)
+    label.new(
+         bar_index, 
+         low, 
+         text="Pred\n" + str.tostring(prob_up*100, "#.#") + "%", 
+         color=color.new(color_bull, 90), 
+         textcolor=color_bull, 
+         style=label.style_label_up, 
+         yloc=yloc.belowbar, 
+         size=size.small
+     )
+
+if ta.crossover(direction,0)
+    label.new(
+         bar_index, 
+         high, 
+         text="Pred\n" + str.tostring(prob_down*100, "#.#") + "%", 
+         color=color.new(color_bear, 90), 
+         textcolor=color_bear, 
+         style=label.style_label_down, 
+         yloc=yloc.abovebar, 
+         size=size.small
+     )
+
+upTrend =    plot(last_stdir==1? supertrend : na, "Up Trend",   color = color_bull, style = plot.style_linebr)
+downTrend =  plot(last_stdir==-1? supertrend : na, "Down Trend", color = color_bear,   style = plot.style_linebr)
+bodyMiddle = plot(barstate.isfirst ? na : (open + close) / 2, "Body Middle",display = display.none)
+low_p = plot(low,display = display.none)
+high_p = plot(high,display = display.none)
+fill(low_p, upTrend, (open + close) / 2, supertrend,direction<0?color_bull:na,na)
+fill(high_p, downTrend, supertrend, (open + close) / 2, na,direction>0?color_bear:na)
+
+// ==========================================
+// --- ALERTS ---
+// ==========================================
+alert_long  = ta.crossover(last_stdir,0)
+alert_short = ta.crossunder(last_stdir,0)
+alert_combo = alert_long or alert_short
+
+alertcondition(alert_long,  "Long",  "Bullish Signal with AI Confirmation")
+alertcondition(alert_short, "Short", "Bearish Signal with AI Confirmation")
+alertcondition(alert_combo, "Signal", "Siganl with AI Confirmation")

@@ -155,19 +155,12 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
                 df.at[df.index[i], 'FVG_Top'] = df['Low'].iloc[i]
                 df.at[df.index[i], 'FVG_Bottom'] = df['High'].iloc[i-2]
                 
-                # Check Candle 2 range in pips
+                # Always draw Fibo on Candle 2 wicks (middle candle)
                 pip_multiplier = get_pip_multiplier(symbol)
-                candle2_range_pips = (df['High'].iloc[i-1] - df['Low'].iloc[i-1]) / pip_multiplier
                 buffer = 20 * pip_multiplier
                 
-                if candle2_range_pips > 150:
-                    # Draw Fibo on FVG gap
-                    fibo_1_0 = df['High'].iloc[i-2]
-                    fibo_0_0 = df['Low'].iloc[i]
-                else:
-                    # Draw Fibo on Candle 2 wicks
-                    fibo_1_0 = df['Low'].iloc[i-1]
-                    fibo_0_0 = df['High'].iloc[i-1]
+                fibo_1_0 = df['Low'].iloc[i-1]
+                fibo_0_0 = df['High'].iloc[i-1]
                 
                 fibo_0_5 = fibo_0_0 - 0.5 * (fibo_0_0 - fibo_1_0)
                 fibo_0_618 = fibo_0_0 - 0.618 * (fibo_0_0 - fibo_1_0)
@@ -185,19 +178,12 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
                 df.at[df.index[i], 'FVG_Top'] = df['Low'].iloc[i-2]
                 df.at[df.index[i], 'FVG_Bottom'] = df['High'].iloc[i]
                 
-                # Check Candle 2 range in pips
+                # Always draw Fibo on Candle 2 wicks (middle candle)
                 pip_multiplier = get_pip_multiplier(symbol)
-                candle2_range_pips = (df['High'].iloc[i-1] - df['Low'].iloc[i-1]) / pip_multiplier
                 buffer = 20 * pip_multiplier
                 
-                if candle2_range_pips > 150:
-                    # Draw Fibo on FVG gap
-                    fibo_1_0 = df['Low'].iloc[i-2]
-                    fibo_0_0 = df['High'].iloc[i]
-                else:
-                    # Draw Fibo on Candle 2 wicks
-                    fibo_1_0 = df['High'].iloc[i-1]
-                    fibo_0_0 = df['Low'].iloc[i-1]
+                fibo_1_0 = df['High'].iloc[i-1]
+                fibo_0_0 = df['Low'].iloc[i-1]
                 
                 fibo_0_5 = fibo_0_0 + 0.5 * (fibo_1_0 - fibo_0_0)
                 fibo_0_618 = fibo_0_0 + 0.618 * (fibo_1_0 - fibo_0_0)
@@ -223,17 +209,19 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
                         ob_idx = j
                         break
                 if ob_idx is not None:
-                    fibo_1_0 = float(df['Low'].iloc[ob_idx])
-                    fibo_0_0 = float(df['High'].iloc[i])
+                    ob_top = float(df['High'].iloc[ob_idx])
+                    ob_bottom = float(df['Low'].iloc[ob_idx])
                     buffer = 20 * get_pip_multiplier(symbol)
                     
-                    fibo_0_5 = fibo_0_0 - 0.5 * (fibo_0_0 - fibo_1_0)
-                    fibo_0_618 = fibo_0_0 - 0.618 * (fibo_0_0 - fibo_1_0)
-                    ob_sl = fibo_1_0 - buffer
+                    fibo_0_0 = float(df['High'].iloc[i])
+                    fibo_1_0 = ob_bottom
+                    fibo_0_5 = ob_top - 0.5 * (ob_top - ob_bottom)
+                    fibo_0_618 = ob_top - 0.618 * (ob_top - ob_bottom)
+                    ob_sl = ob_bottom - buffer
                     
                     df.at[df.index[i], 'OB_Type'] = 'BULLISH'
-                    df.at[df.index[i], 'OB_Top'] = df['High'].iloc[ob_idx]
-                    df.at[df.index[i], 'OB_Bottom'] = df['Low'].iloc[ob_idx]
+                    df.at[df.index[i], 'OB_Top'] = ob_top
+                    df.at[df.index[i], 'OB_Bottom'] = ob_bottom
                     df.at[df.index[i], 'OB_Fibo_0.0'] = fibo_0_0
                     df.at[df.index[i], 'OB_Fibo_0.5'] = fibo_0_5
                     df.at[df.index[i], 'OB_Fibo_0.618'] = fibo_0_618
@@ -255,17 +243,19 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
                         ob_idx = j
                         break
                 if ob_idx is not None:
-                    fibo_1_0 = float(df['High'].iloc[ob_idx])
-                    fibo_0_0 = float(df['Low'].iloc[i])
+                    ob_top = float(df['High'].iloc[ob_idx])
+                    ob_bottom = float(df['Low'].iloc[ob_idx])
                     buffer = 20 * get_pip_multiplier(symbol)
                     
-                    fibo_0_5 = fibo_0_0 + 0.5 * (fibo_1_0 - fibo_0_0)
-                    fibo_0_618 = fibo_0_0 + 0.618 * (fibo_1_0 - fibo_0_0)
-                    ob_sl = fibo_1_0 + buffer
+                    fibo_0_0 = float(df['Low'].iloc[i])
+                    fibo_1_0 = ob_top
+                    fibo_0_5 = ob_bottom + 0.5 * (ob_top - ob_bottom)
+                    fibo_0_618 = ob_bottom + 0.618 * (ob_top - ob_bottom)
+                    ob_sl = ob_top + buffer
                     
                     df.at[df.index[i], 'OB_Type'] = 'BEARISH'
-                    df.at[df.index[i], 'OB_Top'] = df['High'].iloc[ob_idx]
-                    df.at[df.index[i], 'OB_Bottom'] = df['Low'].iloc[ob_idx]
+                    df.at[df.index[i], 'OB_Top'] = ob_top
+                    df.at[df.index[i], 'OB_Bottom'] = ob_bottom
                     df.at[df.index[i], 'OB_Fibo_0.0'] = fibo_0_0
                     df.at[df.index[i], 'OB_Fibo_0.5'] = fibo_0_5
                     df.at[df.index[i], 'OB_Fibo_0.618'] = fibo_0_618
@@ -290,12 +280,14 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
             mitigated = False
             broken = False
             if ob['type'] == 'BULLISH':
-                if df['Low'].iloc[i] <= ob['top']:
+                ob_fibo_0_382 = ob['top'] - 0.382 * (ob['top'] - ob['bottom'])
+                if df['Low'].iloc[i] <= ob_fibo_0_382:
                     mitigated = True
                 if df['Close'].iloc[i] < ob['bottom']:
                     broken = True
             else:  # BEARISH OB
-                if df['High'].iloc[i] >= ob['bottom']:
+                ob_fibo_0_382 = ob['bottom'] + 0.382 * (ob['top'] - ob['bottom'])
+                if df['High'].iloc[i] >= ob_fibo_0_382:
                     mitigated = True
                 if df['Close'].iloc[i] > ob['top']:
                     broken = True
@@ -355,61 +347,124 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
         
     return df
 
-def detect_snr_and_swapzones(df: pd.DataFrame) -> pd.DataFrame:
+def detect_snr_and_swapzones(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
     """
     Detect key Support and Resistance levels from Swing Highs and Swing Lows,
-    and track Support-Resistance Flips (Swapzones).
+    and track Support-Resistance Flips (Swapzones) with 1-candle Fibonacci levels.
     """
     df = df.copy()
     
     # Initialize columns
     df['Swap_Type'] = None
     df['Swap_Level'] = np.nan
+    df['Swap_Fibo_0.0'] = np.nan
+    df['Swap_Fibo_0.5'] = np.nan
+    df['Swap_Fibo_0.618'] = np.nan
+    df['Swap_Fibo_1.0'] = np.nan
+    df['Swap_SL'] = np.nan
     df['Swap_Mitigated'] = False
     
-    active_supports = [] # list of float levels
-    active_resistances = [] # list of float levels
+    active_supports = [] # list of dicts with 'level', 'high', 'low', 'index'
+    active_resistances = [] # list of dicts with 'level', 'high', 'low', 'index'
     active_swapzones = [] # list of dicts with 'index', 'type', 'level'
     
     for i in range(len(df)):
         # 1. Update active supports/resistances if new Swing Point detected on this candle
         if 'Swing_High' in df.columns and not pd.isna(df['Swing_High'].iloc[i]):
-            active_resistances.append(float(df['Swing_High'].iloc[i]))
+            active_resistances.append({
+                'level': float(df['Swing_High'].iloc[i]),
+                'high': float(df['High'].iloc[i]),
+                'low': float(df['Low'].iloc[i]),
+                'index': i
+            })
         if 'Swing_Low' in df.columns and not pd.isna(df['Swing_Low'].iloc[i]):
-            active_supports.append(float(df['Swing_Low'].iloc[i]))
+            active_supports.append({
+                'level': float(df['Swing_Low'].iloc[i]),
+                'high': float(df['High'].iloc[i]),
+                'low': float(df['Low'].iloc[i]),
+                'index': i
+            })
             
         # 2. Check if price closes beyond any support or resistance (Swapzone trigger)
         close_val = df['Close'].iloc[i]
         
         # Check broken Resistances (Resistance flips to Support)
         broken_resistances = []
-        for res in active_resistances:
+        for res_dict in active_resistances:
+            res = res_dict['level']
             if close_val > res:
                 df.at[df.index[i], 'Swap_Type'] = 'SUPPORT' # Swap Support
                 df.at[df.index[i], 'Swap_Level'] = res
+                
+                # Fibo calculation on the swing point candle!
+                swap_high = res_dict['high']
+                swap_low = res_dict['low']
+                buffer = 20 * get_pip_multiplier(symbol)
+                
+                # Bullish Swapzone Fibo (S/R flip)
+                fibo_1_0 = swap_low
+                fibo_0_0 = float(df['High'].iloc[i]) # Target TP (breakout candle high)
+                
+                # Entry levels on the 1-candle zone
+                fibo_0_5 = swap_high - 0.5 * (swap_high - swap_low)
+                fibo_0_618 = swap_high - 0.618 * (swap_high - swap_low)
+                swap_sl = swap_low - buffer
+                
+                df.at[df.index[i], 'Swap_Fibo_0.0'] = fibo_0_0
+                df.at[df.index[i], 'Swap_Fibo_0.5'] = fibo_0_5
+                df.at[df.index[i], 'Swap_Fibo_0.618'] = fibo_0_618
+                df.at[df.index[i], 'Swap_Fibo_1.0'] = fibo_1_0
+                df.at[df.index[i], 'Swap_SL'] = swap_sl
+                
                 active_swapzones.append({
                     'index': i,
                     'type': 'SUPPORT',
-                    'level': res
+                    'level': res,
+                    'high': swap_high,
+                    'low': swap_low
                 })
-                broken_resistances.append(res)
-        for res in broken_resistances:
-            active_resistances.remove(res)
+                broken_resistances.append(res_dict)
+        for res_dict in broken_resistances:
+            active_resistances.remove(res_dict)
             
         # Check broken Supports (Support flips to Resistance)
         broken_supports = []
-        for sup in active_supports:
+        for sup_dict in active_supports:
+            sup = sup_dict['level']
             if close_val < sup:
                 df.at[df.index[i], 'Swap_Type'] = 'RESISTANCE' # Swap Resistance
                 df.at[df.index[i], 'Swap_Level'] = sup
+                
+                # Fibo calculation on the swing point candle!
+                swap_high = sup_dict['high']
+                swap_low = sup_dict['low']
+                buffer = 20 * get_pip_multiplier(symbol)
+                
+                # Bearish Swapzone Fibo (S/R flip)
+                fibo_1_0 = swap_high
+                fibo_0_0 = float(df['Low'].iloc[i]) # Target TP (breakout candle low)
+                
+                # Entry levels on the 1-candle zone
+                fibo_0_5 = swap_low + 0.5 * (swap_high - swap_low)
+                fibo_0_618 = swap_low + 0.618 * (swap_high - swap_low)
+                swap_sl = swap_high + buffer
+                
+                df.at[df.index[i], 'Swap_Fibo_0.0'] = fibo_0_0
+                df.at[df.index[i], 'Swap_Fibo_0.5'] = fibo_0_5
+                df.at[df.index[i], 'Swap_Fibo_0.618'] = fibo_0_618
+                df.at[df.index[i], 'Swap_Fibo_1.0'] = fibo_1_0
+                df.at[df.index[i], 'Swap_SL'] = swap_sl
+                
                 active_swapzones.append({
                     'index': i,
                     'type': 'RESISTANCE',
-                    'level': sup
+                    'level': sup,
+                    'high': swap_high,
+                    'low': swap_low
                 })
-                broken_supports.append(sup)
-        for sup in broken_supports:
-            active_supports.remove(sup)
+                broken_supports.append(sup_dict)
+        for sup_dict in broken_supports:
+            active_supports.remove(sup_dict)
             
         # 3. Check mitigation of active swapzones
         still_active_swaps = []
@@ -420,10 +475,17 @@ def detect_snr_and_swapzones(df: pd.DataFrame) -> pd.DataFrame:
                 
             high_val = df['High'].iloc[i]
             low_val = df['Low'].iloc[i]
-            level = swap['level']
             
-            # Mitigated if touched by high/low
-            mitigated = (low_val <= level <= high_val)
+            # Mitigated if price touches Fibo 0.382 level of the swing zone
+            mitigated = False
+            if swap['type'] == 'SUPPORT':
+                swap_fibo_0_382 = swap['high'] - 0.382 * (swap['high'] - swap['low'])
+                if low_val <= swap_fibo_0_382:
+                    mitigated = True
+            else: # RESISTANCE
+                swap_fibo_0_382 = swap['low'] + 0.382 * (swap['high'] - swap['low'])
+                if high_val >= swap_fibo_0_382:
+                    mitigated = True
             
             if mitigated:
                 df.at[df.index[swap['index']], 'Swap_Mitigated'] = True
@@ -528,17 +590,11 @@ def detect_bpr(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
             
             mitigated = False
             if bpr['type'] == 'BULLISH':
-                # Mitigated if price touches support
-                if low_val <= bpr['top']:
-                    mitigated = True
-                # Invalidated if price closes below
+                # Mitigated ONLY if price closes below the BPR bottom (broken by body candle)
                 if close_val < bpr['bottom']:
                     mitigated = True
             else: # BEARISH
-                # Mitigated if price touches resistance
-                if high_val >= bpr['bottom']:
-                    mitigated = True
-                # Invalidated if price closes above
+                # Mitigated ONLY if price closes above the BPR top (broken by body candle)
                 if close_val > bpr['top']:
                     mitigated = True
                     
@@ -547,6 +603,272 @@ def detect_bpr(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
             else:
                 still_active_bprs.append(bpr)
         active_bprs = still_active_bprs
+        
+    return df
+
+
+def detect_indecision_candles(df: pd.DataFrame, body_ratio: float = 0.25, symbol: str = "XAUUSD") -> pd.DataFrame:
+    """
+    Detects Indecision Candles (Doji, Spinning Top) that are broken by subsequent price action,
+    and calculates their Fibonacci levels.
+    """
+    df = df.copy()
+    
+    df['IC_Type'] = None
+    df['IC_Top'] = np.nan
+    df['IC_Bottom'] = np.nan
+    df['IC_Fibo_0.0'] = np.nan
+    df['IC_Fibo_0.5'] = np.nan
+    df['IC_Fibo_0.618'] = np.nan
+    df['IC_Fibo_1.0'] = np.nan
+    df['IC_SL'] = np.nan
+    df['IC_Mitigated'] = False
+    
+    pip_multiplier = get_pip_multiplier(symbol)
+    buffer = 20 * pip_multiplier
+    
+    active_ics = [] # list of dicts: {'index', 'type', 'top', 'bottom'}
+    
+    for i in range(len(df)):
+        # Check if candle i triggers a breakout of a previous indecision candle k
+        close_i = df['Close'].iloc[i]
+        
+        # Search backward for an indecision candle k that hasn't been broken yet
+        for k in range(i - 1, max(-1, i - 6), -1):
+            body_k = abs(df['Close'].iloc[k] - df['Open'].iloc[k])
+            range_k = df['High'].iloc[k] - df['Low'].iloc[k]
+            if range_k <= 0 or (body_k / range_k) > body_ratio:
+                continue
+                
+            # Check if any candle between k and i closed outside k's range
+            already_broken = False
+            for m in range(k + 1, i):
+                if df['Close'].iloc[m] > df['High'].iloc[k] or df['Close'].iloc[m] < df['Low'].iloc[k]:
+                    already_broken = True
+                    break
+            if already_broken:
+                continue
+                
+            high_k = df['High'].iloc[k]
+            low_k = df['Low'].iloc[k]
+            
+            if close_i > high_k:
+                # Bullish Breakout!
+                df.at[df.index[i], 'IC_Type'] = 'BULLISH'
+                df.at[df.index[i], 'IC_Top'] = high_k
+                df.at[df.index[i], 'IC_Bottom'] = low_k
+                
+                fibo_1_0 = low_k
+                fibo_0_0 = float(df['High'].iloc[i])
+                fibo_0_5 = high_k - 0.5 * (high_k - low_k)
+                fibo_0_618 = high_k - 0.618 * (high_k - low_k)
+                ic_sl = low_k - buffer
+                
+                df.at[df.index[i], 'IC_Fibo_0.0'] = fibo_0_0
+                df.at[df.index[i], 'IC_Fibo_0.5'] = fibo_0_5
+                df.at[df.index[i], 'IC_Fibo_0.618'] = fibo_0_618
+                df.at[df.index[i], 'IC_Fibo_1.0'] = fibo_1_0
+                df.at[df.index[i], 'IC_SL'] = ic_sl
+                
+                active_ics.append({
+                    'index': i,
+                    'type': 'BULLISH',
+                    'top': high_k,
+                    'bottom': low_k
+                })
+                break
+                
+            elif close_i < low_k:
+                # Bearish Breakout!
+                df.at[df.index[i], 'IC_Type'] = 'BEARISH'
+                df.at[df.index[i], 'IC_Top'] = high_k
+                df.at[df.index[i], 'IC_Bottom'] = low_k
+                
+                fibo_1_0 = high_k
+                fibo_0_0 = float(df['Low'].iloc[i])
+                fibo_0_5 = low_k + 0.5 * (high_k - low_k)
+                fibo_0_618 = low_k + 0.618 * (high_k - low_k)
+                ic_sl = high_k + buffer
+                
+                df.at[df.index[i], 'IC_Fibo_0.0'] = fibo_0_0
+                df.at[df.index[i], 'IC_Fibo_0.5'] = fibo_0_5
+                df.at[df.index[i], 'IC_Fibo_0.618'] = fibo_0_618
+                df.at[df.index[i], 'IC_Fibo_1.0'] = fibo_1_0
+                df.at[df.index[i], 'IC_SL'] = ic_sl
+                
+                active_ics.append({
+                    'index': i,
+                    'type': 'BEARISH',
+                    'top': high_k,
+                    'bottom': low_k
+                })
+                break
+                
+        # Check mitigation of active IC zones
+        still_active = []
+        for ic in active_ics:
+            if i <= ic['index']:
+                still_active.append(ic)
+                continue
+                
+            low_val = df['Low'].iloc[i]
+            high_val = df['High'].iloc[i]
+            close_val = df['Close'].iloc[i]
+            
+            mitigated = False
+            if ic['type'] == 'BULLISH':
+                ic_fibo_0_382 = ic['top'] - 0.382 * (ic['top'] - ic['bottom'])
+                if low_val <= ic_fibo_0_382:
+                    mitigated = True
+                if close_val < ic['bottom']:
+                    mitigated = True # Invalidated
+            else: # BEARISH
+                ic_fibo_0_382 = ic['bottom'] + 0.382 * (ic['top'] - ic['bottom'])
+                if high_val >= ic_fibo_0_382:
+                    mitigated = True
+                if close_val > ic['top']:
+                    mitigated = True # Invalidated
+                    
+            if mitigated:
+                df.at[df.index[ic['index']], 'IC_Mitigated'] = True
+            else:
+                still_active.append(ic)
+        active_ics = still_active
+        
+    return df
+
+def detect_supply_demand_zones(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
+    """
+    Detect Supply and Demand zones based on classical Price Action patterns:
+    - RBR (Rally Base Rally) -> Demand Zone
+    - DBR (Drop Base Rally) -> Demand Zone
+    - DBD (Drop Base Drop) -> Supply Zone
+    - RBD (Rally Base Drop) -> Supply Zone
+    """
+    df = df.copy()
+    
+    # Initialize columns
+    df['SD_Type'] = None
+    df['SD_Top'] = np.nan
+    df['SD_Bottom'] = np.nan
+    df['SD_Fibo_0.0'] = np.nan
+    df['SD_Fibo_0.5'] = np.nan
+    df['SD_Fibo_0.618'] = np.nan
+    df['SD_Fibo_1.0'] = np.nan
+    df['SD_SL'] = np.nan
+    df['SD_Mitigated'] = False
+    
+    if len(df) < 5:
+        return df
+        
+    # Calculate body size and its average
+    body = (df['Close'] - df['Open']).abs()
+    avg_body = body.rolling(window=14, min_periods=1).mean()
+    
+    active_zones = [] # list of dicts
+    
+    for i in range(2, len(df)):
+        # Calculate recent candles state
+        body_i2 = abs(df['Close'].iloc[i-2] - df['Open'].iloc[i-2])
+        body_i1 = abs(df['Close'].iloc[i-1] - df['Open'].iloc[i-1])
+        body_i = abs(df['Close'].iloc[i] - df['Open'].iloc[i])
+        
+        avg_b_i = avg_body.iloc[i] if not pd.isna(avg_body.iloc[i]) else 1.0
+        
+        # Rally / Drop definition (strong moves)
+        is_rally_i2 = (df['Close'].iloc[i-2] > df['Open'].iloc[i-2]) and (body_i2 > 1.0 * avg_b_i)
+        is_drop_i2 = (df['Close'].iloc[i-2] < df['Open'].iloc[i-2]) and (body_i2 > 1.0 * avg_b_i)
+        
+        is_rally_i = (df['Close'].iloc[i] > df['Open'].iloc[i]) and (body_i > 1.0 * avg_b_i)
+        is_drop_i = (df['Close'].iloc[i] < df['Open'].iloc[i]) and (body_i > 1.0 * avg_b_i)
+        
+        # Base definition (consolidation/indecision)
+        is_base_i1 = (body_i1 < 0.8 * avg_b_i)
+        
+        sd_type = None
+        if is_base_i1:
+            if is_rally_i2 and is_rally_i:
+                sd_type = 'DEMAND_RBR'
+            elif is_drop_i2 and is_rally_i:
+                sd_type = 'DEMAND_DBR'
+            elif is_drop_i2 and is_drop_i:
+                sd_type = 'SUPPLY_DBD'
+            elif is_rally_i2 and is_drop_i:
+                sd_type = 'SUPPLY_RBD'
+                
+        if sd_type is not None:
+            top_val = float(df['High'].iloc[i-1])
+            bottom_val = float(df['Low'].iloc[i-1])
+            
+            buffer = 20 * get_pip_multiplier(symbol)
+            
+            if 'DEMAND' in sd_type:
+                # Demand Zone: Fibo calculation
+                fibo_1_0 = bottom_val
+                fibo_0_0 = float(df['High'].iloc[i]) # High of expansion candle
+                fibo_0_5 = top_val - 0.5 * (top_val - bottom_val)
+                fibo_0_618 = top_val - 0.618 * (top_val - bottom_val)
+                sl_val = bottom_val - buffer
+            else:
+                # Supply Zone: Fibo calculation
+                fibo_1_0 = top_val
+                fibo_0_0 = float(df['Low'].iloc[i]) # Low of expansion candle
+                fibo_0_5 = bottom_val + 0.5 * (top_val - bottom_val)
+                fibo_0_618 = bottom_val + 0.618 * (top_val - bottom_val)
+                sl_val = top_val + buffer
+                
+            df.at[df.index[i], 'SD_Type'] = sd_type
+            df.at[df.index[i], 'SD_Top'] = top_val
+            df.at[df.index[i], 'SD_Bottom'] = bottom_val
+            df.at[df.index[i], 'SD_Fibo_0.0'] = fibo_0_0
+            df.at[df.index[i], 'SD_Fibo_0.5'] = fibo_0_5
+            df.at[df.index[i], 'SD_Fibo_0.618'] = fibo_0_618
+            df.at[df.index[i], 'SD_Fibo_1.0'] = fibo_1_0
+            df.at[df.index[i], 'SD_SL'] = sl_val
+            
+            active_zones.append({
+                'index': i,
+                'type': sd_type,
+                'top': top_val,
+                'bottom': bottom_val,
+                'fibo_0.0': fibo_0_0,
+                'fibo_0.5': fibo_0_5,
+                'fibo_0.618': fibo_0_618,
+                'fibo_1.0': fibo_1_0,
+                'sl': sl_val
+            })
+            
+        # Update mitigation of active zones
+        high_val = float(df['High'].iloc[i])
+        low_val = float(df['Low'].iloc[i])
+        close_val = float(df['Close'].iloc[i])
+        
+        still_active = []
+        for zone in active_zones:
+            if zone['index'] == i:
+                still_active.append(zone)
+                continue
+                
+            mitigated = False
+            if 'DEMAND' in zone['type']:
+                fibo_0_382 = zone['top'] - 0.382 * (zone['top'] - zone['bottom'])
+                if low_val <= fibo_0_382:
+                    mitigated = True
+                if close_val < zone['bottom']:
+                    mitigated = True # Invalidated
+            else:
+                fibo_0_382 = zone['bottom'] + 0.382 * (zone['top'] - zone['bottom'])
+                if high_val >= fibo_0_382:
+                    mitigated = True
+                if close_val > zone['top']:
+                    mitigated = True # Invalidated
+                    
+            if mitigated:
+                df.at[df.index[zone['index']], 'SD_Mitigated'] = True
+            else:
+                still_active.append(zone)
+                
+        active_zones = still_active
         
     return df
 
