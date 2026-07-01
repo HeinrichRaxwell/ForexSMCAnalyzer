@@ -339,13 +339,9 @@ def test_above_threshold_not_shadow_tracked(tmp_path):
         shadow_signals_file=shadow_file,
     )
 
-    if os.path.exists(shadow_file):
-        with open(shadow_file) as f:
-            data = json.load(f)
-        assert data == {}, (
-            f"Above-threshold signal (conf=0.70, threshold=0.50) must not be "
-            f"shadow-tracked, but found: {list(data.keys())}"
-        )
+    assert not os.path.exists(shadow_file), (
+        "Above-threshold signal (conf=0.70, threshold=0.50) must not create shadow file"
+    )
 
 
 def test_below_threshold_is_shadow_tracked(tmp_path):
@@ -388,9 +384,6 @@ def test_at_threshold_not_shadow_tracked(tmp_path):
         shadow_signals_file=shadow_file,
     )
 
-    if os.path.exists(shadow_file):
-        with open(shadow_file) as f:
-            data = json.load(f)
-        assert data == {}, (
-            "Signal at exactly threshold=0.50 must not be shadow-tracked"
-        )
+    assert not os.path.exists(shadow_file), (
+        "Signal at exactly threshold=0.50 must not create shadow file"
+    )
