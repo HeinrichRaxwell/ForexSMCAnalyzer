@@ -41,7 +41,7 @@ from src.execution import (
     _last_closed_trend,
 )
 from src.entry_quality_gate import EntryGateDecision, build_oscillator_context, build_spread_context, evaluate_entry_quality
-from src.live_trade_policy import should_allow_live_strategy
+from src.live_trade_policy import confidence_tier, should_allow_live_strategy
 from src.rollout_status import evaluate_rollout_status, load_env_values, _load_json as load_rollout_json
 from src.realtime_reaction_watcher import (
     RealtimeReactionPassResult,
@@ -2227,6 +2227,7 @@ def run_scan(symbol: str, confidence_threshold: float):
                         'watch_last_execution_message_0.618': exec_msg_b if is_price_too_far_execution(exec_msg_b) else None,
                         'last_execution_attempt_0.5': datetime.now().strftime('%Y-%m-%d %H:%M:%S') if ticket_a is None else None,
                         'last_execution_attempt_0.618': datetime.now().strftime('%Y-%m-%d %H:%M:%S') if ticket_b is None else None,
+                        'confidence_tier': confidence_tier(lead['max_prob']),
                         **_price_watch_metadata(exec_msg_a, exec_msg_b),
                     }
                     signals_sent_this_cycle += 1
@@ -2330,11 +2331,12 @@ def run_scan(symbol: str, confidence_threshold: float):
                         'watch_last_execution_message_0.618': exec_msg_b if is_price_too_far_execution(exec_msg_b) else None,
                         'last_execution_attempt_0.5': datetime.now().strftime('%Y-%m-%d %H:%M:%S') if ticket_a is None else None,
                         'last_execution_attempt_0.618': datetime.now().strftime('%Y-%m-%d %H:%M:%S') if ticket_b is None else None,
+                        'confidence_tier': confidence_tier(lead['max_prob']),
                         **_price_watch_metadata(exec_msg_a, exec_msg_b),
                     }
                     signals_sent_this_cycle += 1
                     registry_changed = True
-                    
+
             else:
                 opt = lead['opt']
                 prob = lead['max_prob']
@@ -2588,6 +2590,7 @@ def run_scan(symbol: str, confidence_threshold: float):
                         'features': opt['features'],
                         'watch_last_execution_message': exec_msg if is_price_too_far_execution(exec_msg) else None,
                         'last_execution_attempt': datetime.now().strftime('%Y-%m-%d %H:%M:%S') if ticket_id is None else None,
+                        'confidence_tier': confidence_tier(prob),
                         **_price_watch_metadata(exec_msg),
                     }
                     signals_sent_this_cycle += 1
@@ -2658,6 +2661,7 @@ def run_scan(symbol: str, confidence_threshold: float):
                         'features': opt['features'],
                         'watch_last_execution_message': exec_msg if is_price_too_far_execution(exec_msg) else None,
                         'last_execution_attempt': datetime.now().strftime('%Y-%m-%d %H:%M:%S') if ticket_id is None else None,
+                        'confidence_tier': confidence_tier(prob),
                         **_price_watch_metadata(exec_msg),
                     }
                     signals_sent_this_cycle += 1
