@@ -106,6 +106,7 @@ def get_timeframe_delta(df: pd.DataFrame) -> pd.Timedelta:
     return pd.Timedelta(minutes=15) # Default fallback
 
 _TICK_RESOLUTION_CACHE = {}
+_MT5_INITIALIZED = False
 
 def resolve_ambiguity_with_ticks(symbol: str, start_time: pd.Timestamp, end_time: pd.Timestamp, direction: int, entry: float, sl: float, tp: float, is_filled: bool) -> tuple:
     """
@@ -114,7 +115,7 @@ def resolve_ambiguity_with_ticks(symbol: str, start_time: pd.Timestamp, end_time
     Returns: (is_filled_now, resolved_outcome)
     resolved_outcome is 1.0 (win), 0.0 (loss), or None (still open/no tick data).
     """
-    global _TICK_RESOLUTION_CACHE
+    global _TICK_RESOLUTION_CACHE, _MT5_INITIALIZED
     cache_key = (symbol, start_time, end_time, direction, entry, sl, tp, is_filled)
     if cache_key in _TICK_RESOLUTION_CACHE:
         return _TICK_RESOLUTION_CACHE[cache_key]
@@ -126,9 +127,11 @@ def resolve_ambiguity_with_ticks(symbol: str, start_time: pd.Timestamp, end_time
     if mt5 is None or "PYTEST_CURRENT_TEST" in os.environ:
         return is_filled, None # Fallback: let caller handle candle-level logic
         
-    # Make sure MT5 is initialized
-    if not mt5.initialize():
-        return is_filled, None
+    # Make sure MT5 is initialized only once
+    if not _MT5_INITIALIZED:
+        if not mt5.initialize():
+            return is_filled, None
+        _MT5_INITIALIZED = True
         
     # Try to resolve symbol suffix
     symbols_to_try = [symbol, symbol + "m", symbol + ".", "GOLD"]

@@ -818,9 +818,11 @@ def main():
     print(f"Full backtest matrix results saved to: {results_csv_path}")
     
     # Save the markdown report to the artifact directory
-    artifact_dir = os.path.join(os.environ.get('APPDATA', ''), 'gemini', 'antigravity-cli', 'brain', 'aade0c14-67d6-4b69-a8a6-5834a430a34c')
+    curr_conv_id = "47b9acea-1f4b-4c2c-8ad0-0ec9fd8added"
+    app_data_dir = os.path.join(os.path.expanduser("~"), ".gemini", "antigravity-cli")
+    artifact_dir = os.path.join(app_data_dir, 'brain', curr_conv_id)
     if not os.path.exists(artifact_dir):
-        artifact_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'brain', 'aade0c14-67d6-4b69-a8a6-5834a430a34c')
+        artifact_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'brain', curr_conv_id)
     os.makedirs(artifact_dir, exist_ok=True)
     report_file_path = os.path.join(artifact_dir, 'backtest_analysis_results.md')
     

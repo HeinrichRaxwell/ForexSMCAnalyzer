@@ -1,5 +1,5 @@
 {
-    "new_trades_since_last_train": 2,
+    "new_trades_since_last_train": 6,
     "last_train_time": "2026-07-10 08:48:12",
     "last_retrain_telegram_event_key": "60afdb910c47d1293fc0f430d16ca473cc1380cfe665f8296dadd28517776a30",
     "last_retrain_telegram_sent_at": "2026-07-10 08:48:12"
