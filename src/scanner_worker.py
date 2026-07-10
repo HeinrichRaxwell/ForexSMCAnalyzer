@@ -40,7 +40,18 @@ from src.execution import (
     should_emergency_exit_on_reversal,
     _last_closed_trend,
 )
-from src.entry_quality_gate import EntryGateDecision, build_oscillator_context, build_spread_context, evaluate_entry_quality
+from src.entry_quality_gate import (
+    EntryGateDecision,
+    MultiTFOscillatorContext,
+    OscillatorContext,
+    build_multi_tf_oscillator,
+    build_oscillator_context,
+    build_spread_context,
+    evaluate_entry_quality,
+    evaluate_multi_tf_osc_delta,
+    format_multi_tf_oscillator_block,
+    format_oscillator_line,
+)
 from src.live_trade_policy import confidence_tier, should_allow_live_strategy
 from src.rollout_status import evaluate_rollout_status, load_env_values, _load_json as load_rollout_json
 from src.realtime_reaction_watcher import (
@@ -53,6 +64,13 @@ from src.shadow_tracker import (
     process_shadow_signal_outcomes,
     should_shadow_signal,
     upsert_shadow_signals,
+)
+from src.price_watch_zones import (
+    WatchZoneHit,
+    check_price_in_watch_zones,
+    get_active_zone_count,
+    mark_zone_triggered,
+    save_watch_zones,
 )
 
 # Storage for sent signal signatures
@@ -338,16 +356,19 @@ def evaluate_live_entry_gate(
     symbol: str,
     timeframe: str,
     timeframes_data: dict,
+    oscillator=None,
 ):
     """Attach entry-quality diagnostics without blocking live execution."""
     tf_df = (timeframes_data or {}).get(timeframe)
+    # Use pre-computed oscillator if available; fall back to per-call computation
+    osc = oscillator if oscillator is not None else build_oscillator_context(tf_df)
     observed_decision = evaluate_entry_quality(
         setup,
         strategy=strategy,
         probability=probability,
         accept_threshold=accept_threshold,
         spread=get_live_spread_context(symbol),
-        oscillator=build_oscillator_context(tf_df),
+        oscillator=osc,
     )
 
     setup["entry_gate"] = _entry_gate_to_dict(observed_decision, enforced=False)
@@ -378,6 +399,11 @@ STRATEGY_DISPLAY_NAMES = {
 
 def _html_text(value) -> str:
     return escape(str(value), quote=False)
+
+
+def _html_text_multiline(value) -> str:
+    """Escape HTML but preserve newlines as Telegram-compatible line breaks."""
+    return escape(str(value), quote=False).replace("\n", "\n")
 
 
 def _format_price(value) -> str:
@@ -474,8 +500,36 @@ def format_dual_signal_message(
     rejection_status: str,
     confluences,
     htf_matches,
+    oscillator_line: str = "",
 ) -> str:
     """Build the Telegram body for a dual-fib trade signal."""
+    # Oscillator section — preserve multi-line formatting from format_multi_tf_oscillator_block
+    osc_section = f"<b>Oscillator (RSI8 + Stoch)</b>\n{_html_text_multiline(oscillator_line)}\n\n" if oscillator_line else ""
+
+    # Lot sizes — read from actual env / dynamic lot config (no hardcode)
+    from src.execution import resolve_lot_size
+    lot_a = resolve_lot_size("0.5", symbol)
+    lot_b = resolve_lot_size("0.618", symbol)
+    lot_a_str = f"{lot_a:.2f} lot" if lot_a else "lot n/a"
+    lot_b_str = f"{lot_b:.2f} lot" if lot_b else "lot n/a"
+
+    # TP levels — only show if actually computed (avoid misleading '-')
+    def _tp_line(label: str, key: str, opt: dict) -> str:
+        val = opt.get(key)
+        try:
+            fval = float(val)
+            if fval > 0:
+                return f"{label}: {_format_price(fval)}\n"
+        except (TypeError, ValueError):
+            pass
+        return ""
+
+    tp_lines_a = (
+        f"TP1: {_format_price(opt_a.get('tp_price'))}\n"
+        + _tp_line("TP2 dynamic", "tp2_price", opt_a)
+        + _tp_line("TP3 extension", "tp3_price", opt_a)
+    )
+
     return (
         f"<b>SMC Trade Signal - {_html_text(symbol)}</b>\n\n"
         f"<b>Signal</b>\n"
@@ -484,9 +538,10 @@ def format_dual_signal_message(
         f"Direction: <b>{format_direction_label(direction)}</b>\n"
         f"Setup: {_html_text(setup_desc)}\n\n"
         f"<b>Model Confidence</b>\n"
-        f"0.500 entry (0.01 lot): {_format_percent(probability_a)}\n"
-        f"0.618 entry (0.02 lot): {_format_percent(probability_b)}\n"
+        f"0.500 entry ({lot_a_str}): {_format_percent(probability_a)}\n"
+        f"0.618 entry ({lot_b_str}): {_format_percent(probability_b)}\n"
         f"Accept threshold: {_format_percent(confidence_threshold)}\n\n"
+        f"{osc_section}"
         f"<b>Execution</b>\n"
         f"Entry policy: {_html_text(format_entry_policy_status(timeframe))}\n"
         f"HTF priority: {_html_text(htf_priority_status)}\n"
@@ -494,12 +549,10 @@ def format_dual_signal_message(
         f"Order 0.500: {execution_status_a}\n"
         f"Order 0.618: {execution_status_b}\n\n"
         f"<b>Levels</b>\n"
-        f"Entry 0.500 (0.01 lot): {_format_price(opt_a.get('entry_price'))}\n"
-        f"Entry 0.618 (0.02 lot): {_format_price(opt_b.get('entry_price'))}\n"
+        f"Entry 0.500 ({lot_a_str}): {_format_price(opt_a.get('entry_price'))}\n"
+        f"Entry 0.618 ({lot_b_str}): {_format_price(opt_b.get('entry_price'))}\n"
         f"Stop Loss: {_format_price(opt_a.get('sl_price'))}\n"
-        f"TP1: {_format_price(opt_a.get('tp_price'))}\n"
-        f"TP2 dynamic: {_format_price(opt_a.get('tp2_price'))}\n"
-        f"TP3 extension: {_format_price(opt_a.get('tp3_price'))}\n\n"
+        f"{tp_lines_a}\n"
         f"<b>Confluence</b>\n"
         f"{_format_confluence_lines(confluences)}"
         f"{_format_htf_match_lines(htf_matches)}\n\n"
@@ -521,8 +574,34 @@ def format_single_signal_message(
     rejection_status: str,
     confluences,
     htf_matches,
+    oscillator_line: str = "",
 ) -> str:
     """Build the Telegram body for a single-entry trade signal."""
+    # Oscillator section — preserve multi-line formatting from format_multi_tf_oscillator_block
+    osc_section = f"<b>Oscillator (RSI8 + Stoch)</b>\n{_html_text_multiline(oscillator_line)}\n\n" if oscillator_line else ""
+
+    # Lot size — read from actual env / dynamic lot config
+    from src.execution import resolve_lot_size
+    lot = resolve_lot_size(setup.get('option_name', ''), symbol)
+    lot_str = f"{lot:.2f} lot" if lot else "lot n/a"
+
+    # TP levels — only show if actually computed
+    def _tp_line(label: str, key: str) -> str:
+        val = setup.get(key)
+        try:
+            fval = float(val)
+            if fval > 0:
+                return f"{label}: {_format_price(fval)}\n"
+        except (TypeError, ValueError):
+            pass
+        return ""
+
+    tp_lines = (
+        f"TP1: {_format_price(setup.get('tp_price'))}\n"
+        + _tp_line("TP2 dynamic", "tp2_price")
+        + _tp_line("TP3 extension", "tp3_price")
+    )
+
     return (
         f"<b>SMC Trade Signal - {_html_text(symbol)}</b>\n\n"
         f"<b>Signal</b>\n"
@@ -531,19 +610,18 @@ def format_single_signal_message(
         f"Direction: <b>{format_direction_label(direction)}</b>\n"
         f"Setup: {_html_text(setup_desc)}\n\n"
         f"<b>Model Confidence</b>\n"
-        f"Entry confidence: {_format_percent(probability)}\n"
+        f"Entry confidence ({lot_str}): {_format_percent(probability)}\n"
         f"Accept threshold: {_format_percent(confidence_threshold)}\n\n"
+        f"{osc_section}"
         f"<b>Execution</b>\n"
         f"Entry policy: {_html_text(format_entry_policy_status(timeframe))}\n"
         f"HTF priority: {_html_text(htf_priority_status)}\n"
         f"LTF rejection: {_html_text(rejection_status)}\n"
         f"Order status: {execution_status}\n\n"
         f"<b>Levels</b>\n"
-        f"Entry: {_format_price(setup.get('entry_price'))}\n"
+        f"Entry ({lot_str}): {_format_price(setup.get('entry_price'))}\n"
         f"Stop Loss: {_format_price(setup.get('sl_price'))}\n"
-        f"TP1: {_format_price(setup.get('tp_price'))}\n"
-        f"TP2 dynamic: {_format_price(setup.get('tp2_price'))}\n"
-        f"TP3 extension: {_format_price(setup.get('tp3_price'))}\n\n"
+        f"{tp_lines}\n"
         f"<b>Confluence</b>\n"
         f"{_format_confluence_lines(confluences)}"
         f"{_format_htf_match_lines(htf_matches)}\n\n"
@@ -1388,10 +1466,11 @@ def run_scan(symbol: str, confidence_threshold: float):
             print(f"Error calculating RF trend for TF {tf_name}: {e}")
             tf_trends[tf_name] = None
             
-    # Pre-calculate KNN and Volume Profile data for each timeframe to use for setup features
-    print("Pre-calculating KNN and Volume Profile features for live scanner...")
+    # Pre-calculate KNN, Volume Profile, and Oscillator (RSI8+Stoch) data per timeframe
+    print("Pre-calculating KNN, Volume Profile, and Oscillator features for live scanner...")
     tf_knn_data = {}
     tf_vp_data = {}
+    tf_osc_data = {}   # OscillatorContext per timeframe
     for tf_name, df_tf in timeframes_data.items():
         # KNN
         try:
@@ -1411,7 +1490,7 @@ def run_scan(symbol: str, confidence_threshold: float):
         except Exception as e:
             print(f"Error computing live KNN for TF {tf_name}: {e}")
             tf_knn_data[tf_name] = (0.0, 0.0)
-            
+
         # Volume profile
         try:
             clusters_data = calculate_volume_clusters(
@@ -1421,6 +1500,13 @@ def run_scan(symbol: str, confidence_threshold: float):
         except Exception as e:
             print(f"Error computing live Volume Clusters for {tf_name}: {e}")
             tf_vp_data[tf_name] = {}
+
+        # Oscillator (RSI8 + Stochastic — compute per-TF for multi-TF lookup table)
+        try:
+            tf_osc_data[tf_name] = build_oscillator_context(df_tf)
+        except Exception as e:
+            print(f"Error computing Oscillator for TF {tf_name}: {e}")
+            tf_osc_data[tf_name] = OscillatorContext()
             
     # 3. Extract active HTF FVGs for hierarchy prioritization
     active_fvgs_by_tf = {}
@@ -1574,6 +1660,10 @@ def run_scan(symbol: str, confidence_threshold: float):
             'floop_trend': setup.get('floop_trend', 0),
             'floop_trend_aligned': 1 if setup.get('floop_trend', 0) == setup['direction'] else 0
         }
+
+        # Attach 3-layer (HTF / Signal TF / LTF) oscillator context to the setup.
+        # NOT fed into ML model (avoids feature mismatch); used for confidence gate + Telegram display.
+        setup['oscillator'] = build_multi_tf_oscillator(tf, tf_osc_data)
         
         try:
             prob = predict_setup_probability(features)
@@ -1726,22 +1816,90 @@ def run_scan(symbol: str, confidence_threshold: float):
                 if rej_src != 'None':
                     reasons.append(f"Wick Rejection touch confirmed on {rej_src}")
                     
-        # 2. HTF Priority, Psych levels, FLOOP, and Volume POC (from Lead candidate)
+        # 2. HTF Priority, Psych levels, FLOOP, Volume POC, and Oscillator (from Lead candidate)
         lead_opt = lead['opt_a'] if lead['is_dual'] else lead['opt']
-        
+
         if lead_opt.get('htf_prioritized', False):
             reasons.append("Aligned inside active Higher Timeframe (HTF) structure")
-            
+
         if lead_opt.get('near_psychological_level', 0) == 1:
             reasons.append("Entry zone near Psychological Round Level (ends in 0 or 5)")
-            
-        if lead_opt.get('floop_trend', 0) == lead_opt['direction']:
-            reasons.append("Supported by FLOOP Pro Trend Filter")
-            
-        # Volume profile check
+
+        # FLOOP Pro — trend alignment
+        floop_trend = lead_opt.get('floop_trend', 0)
+        floop_signal = lead_opt.get('floop_signal', 0)
+        floop_strength = lead_opt.get('floop_strength', 0)
+        if floop_trend == lead_opt['direction']:
+            strength_desc = "strong" if floop_strength >= 10 else ("moderate" if floop_strength >= 6 else "mild")
+            reasons.append(f"Supported by FLOOP Pro Trend Filter ({strength_desc} strength={int(floop_strength)})")
+        elif floop_signal == lead_opt['direction']:
+            reasons.append("FLOOP Pro fired a directional signal this bar")
+
+        # Volume Profile — POC proximity
         dist_poc = lead_opt.get('dist_entry_to_poc', 0.0)
+        dist_nearest_poc = lead_opt.get('dist_entry_to_nearest_poc', 0.0)
         if abs(dist_poc) <= 0.005 and dist_poc != 0.0:
-            reasons.append("Zone overlaps with high-volume POC cluster")
+            reasons.append("Zone overlaps with high-volume POC cluster (current cluster)")
+        elif abs(dist_nearest_poc) <= 0.003 and dist_nearest_poc != 0.0:
+            reasons.append("Entry zone near high-volume POC cluster (cross-cluster)")
+
+        # KNN Classifier signal alignment
+        knn_sig = lead_opt.get('features', {}).get('knn_prob_sig', 0.0)
+        knn_opp = lead_opt.get('features', {}).get('knn_prob_opp', 0.0)
+        if knn_sig >= 0.60:
+            reasons.append(f"KNN Classifier bullish alignment: {knn_sig:.1%} directional probability")
+        elif knn_sig >= 0.50:
+            reasons.append(f"KNN Classifier mild directional bias: {knn_sig:.1%}")
+        if knn_opp >= 0.60:
+            reasons.append(f"KNN Classifier opposite-direction signal detected ({knn_opp:.1%}) — contra caution")
+
+        # Oscillator Zone — multi-TF RSI8 + Stoch (HTF / Signal TF / LTF)
+        # Patokan reference only — NOT hard entry rule. Used to boost/penalise confidence.
+        mtf_osc = lead_opt.get('oscillator')
+        if isinstance(mtf_osc, MultiTFOscillatorContext):
+            direction = lead_opt['direction']
+            confluent_delta, conf_score = evaluate_multi_tf_osc_delta(mtf_osc, direction)
+            layers_total = sum(1 for x in [mtf_osc.htf, mtf_osc.signal, mtf_osc.ltf] if x is not None)
+
+            def _layer_desc(osc, tf_name):
+                if osc is None:
+                    return None
+                label = osc.signal_label or "WAIT"
+                rsi_s = f"{osc.rsi_8:.1f}" if osc.rsi_8 is not None else "n/a"
+                stk_s = f"{osc.stoch_k:.1f}" if osc.stoch_k is not None else "n/a"
+                aligns = (direction == 1 and label in ("BUY", "REBUY")) or (direction == -1 and label in ("SELL", "RESELL"))
+                tag = " [ALIGN]" if aligns else (" [OPPOSE]" if label not in ("WAIT",) else "")
+                return f"{tf_name}: RSI8={rsi_s} %K={stk_s} [{label}]{tag}"
+
+            parts = [p for p in [
+                _layer_desc(mtf_osc.htf,    f"HTF({mtf_osc.htf_tf})"),
+                _layer_desc(mtf_osc.signal, f"Sig({mtf_osc.signal_tf})"),
+                _layer_desc(mtf_osc.ltf,    f"LTF({mtf_osc.ltf_tf})"),
+            ] if p is not None]
+
+            pct = int(round(confluent_delta * 100))
+            sign = "+" if pct > 0 else ""
+            score_str = f"{conf_score}/{layers_total} layers align, net {sign}{pct}% conf"
+
+            if confluent_delta > 0:
+                reasons.append(f"Oscillator MTF ({score_str}) — {' | '.join(parts)}")
+            elif confluent_delta < 0:
+                reasons.append(f"Oscillator MTF caution ({score_str}) — {' | '.join(parts)}")
+            else:
+                reasons.append(f"Oscillator MTF neutral ({score_str}) — {' | '.join(parts)}")
+        elif mtf_osc is not None and hasattr(mtf_osc, 'signal_label'):
+            # Fallback: single-TF OscillatorContext
+            label = mtf_osc.signal_label
+            direction = lead_opt['direction']
+            rsi_str = f"{mtf_osc.rsi_8:.1f}" if mtf_osc.rsi_8 is not None else "n/a"
+            stk_str = f"{mtf_osc.stoch_k:.1f}" if mtf_osc.stoch_k is not None else "n/a"
+            osc_base = f"Oscillator RSI8={rsi_str} Stoch%K={stk_str} [{label}]"
+            if (direction == 1 and label in ("BUY", "REBUY")) or (direction == -1 and label in ("SELL", "RESELL")):
+                reasons.append(f"{osc_base} — zone ALIGNS with trade direction (confidence +)")
+            elif label == "WAIT":
+                reasons.append(f"{osc_base} — oscillator in neutral zone")
+            else:
+                reasons.append(f"{osc_base} — zone OPPOSES trade direction (confidence -)") 
             
         # Filter duplicates
         unique_reasons = []
@@ -1810,7 +1968,7 @@ def run_scan(symbol: str, confidence_threshold: float):
                     sig_data = sent_signals[sig_key]
                     reentries_count = sig_data.get('reentries_count', 0)
                     
-                    execute_enabled = os.getenv("MT5_EXECUTE_TRADES", "False").lower() == "true"
+                    execute_enabled = os.getenv("MT5_EXECUTE_TRADES", "False").strip().lower() == "true"
                     if execute_enabled:
                         magic = int(os.getenv("MT5_MAGIC_NUMBER", "202606"))
                         from src.execution import get_active_broker_symbol
@@ -2095,6 +2253,7 @@ def run_scan(symbol: str, confidence_threshold: float):
                     symbol=symbol,
                     timeframe=tf,
                     timeframes_data=timeframes_data,
+                    oscillator=opt_a.get('oscillator'),
                 )
                 gate_b = evaluate_live_entry_gate(
                     opt_b,
@@ -2104,6 +2263,7 @@ def run_scan(symbol: str, confidence_threshold: float):
                     symbol=symbol,
                     timeframe=tf,
                     timeframes_data=timeframes_data,
+                    oscillator=opt_b.get('oscillator'),
                 )
                 opt_a['filtered_reason'] = gate_a.filtered_reason
                 opt_b['filtered_reason'] = gate_b.filtered_reason
@@ -2282,6 +2442,8 @@ def run_scan(symbol: str, confidence_threshold: float):
                         unique_matching.append(f)
                 
                 setup_desc = f"{get_strategy_display_name(strat)} (Dual Fibonacci Entry)"
+                # Reuse pre-computed oscillator from lead setup (opt_a) for Telegram display
+                _osc_ctx = opt_a.get('oscillator') or build_oscillator_context(timeframes_data.get(tf))
                 msg = format_dual_signal_message(
                     symbol=symbol,
                     timeframe=tf,
@@ -2298,6 +2460,12 @@ def run_scan(symbol: str, confidence_threshold: float):
                     rejection_status=rej_status,
                     confluences=unique_reasons,
                     htf_matches=unique_matching,
+                    oscillator_line=format_multi_tf_oscillator_block(
+                        _osc_ctx if isinstance(_osc_ctx, MultiTFOscillatorContext) else None,
+                        direction=opt_a.get('direction', 0),
+                    ) if isinstance(_osc_ctx, MultiTFOscillatorContext) else format_oscillator_line(
+                        _osc_ctx.primary if isinstance(_osc_ctx, MultiTFOscillatorContext) else _osc_ctx
+                    ),
                 )
 
                 success = send_telegram_alert(msg, image_filename)
@@ -2361,7 +2529,7 @@ def run_scan(symbol: str, confidence_threshold: float):
                     sig_data = sent_signals[sig_key]
                     reentries_count = sig_data.get('reentries_count', 0)
                     
-                    execute_enabled = os.getenv("MT5_EXECUTE_TRADES", "False").lower() == "true"
+                    execute_enabled = os.getenv("MT5_EXECUTE_TRADES", "False").strip().lower() == "true"
                     if execute_enabled:
                         from src.execution import get_active_broker_symbol
                         broker_symbol = get_active_broker_symbol(symbol)
@@ -2519,6 +2687,7 @@ def run_scan(symbol: str, confidence_threshold: float):
                     symbol=symbol,
                     timeframe=tf,
                     timeframes_data=timeframes_data,
+                    oscillator=opt.get('oscillator'),
                 )
                 opt['filtered_reason'] = gate.filtered_reason
                 if not gate.allowed:
@@ -2624,6 +2793,8 @@ def run_scan(symbol: str, confidence_threshold: float):
 
                 matching_fvgs = opt['matching_htf_fvgs']
                 setup_desc = opt.get('option_name') or get_strategy_display_name(strat)
+                # Reuse pre-computed oscillator from setup dict for Telegram display
+                _osc_ctx = opt.get('oscillator') or build_oscillator_context(timeframes_data.get(tf))
                 msg = format_single_signal_message(
                     symbol=symbol,
                     timeframe=tf,
@@ -2637,6 +2808,12 @@ def run_scan(symbol: str, confidence_threshold: float):
                     rejection_status=rej_status,
                     confluences=unique_reasons,
                     htf_matches=matching_fvgs,
+                    oscillator_line=format_multi_tf_oscillator_block(
+                        _osc_ctx if isinstance(_osc_ctx, MultiTFOscillatorContext) else None,
+                        direction=opt.get('direction', 0),
+                    ) if isinstance(_osc_ctx, MultiTFOscillatorContext) else format_oscillator_line(
+                        _osc_ctx.primary if isinstance(_osc_ctx, MultiTFOscillatorContext) else _osc_ctx
+                    ),
                 )
                 
                 success = send_telegram_alert(msg, image_filename)
@@ -2740,7 +2917,7 @@ def run_scan(symbol: str, confidence_threshold: float):
         print("No new high confidence trade signals triggered this cycle.")
         
     # 8. Clean up invalid/old pending orders from MT5 and manage active positions
-    execute_enabled = os.getenv("MT5_EXECUTE_TRADES", "False").lower() == "true"
+    execute_enabled = os.getenv("MT5_EXECUTE_TRADES", "False").strip().lower() == "true"
     if execute_enabled:
         try:
             magic = int(os.getenv("MT5_MAGIC_NUMBER", "202606"))
@@ -2749,6 +2926,22 @@ def run_scan(symbol: str, confidence_threshold: float):
         except Exception as e:
             print(f"[Scanner Error] Error during pending orders pruning / active trade management: {e}")
             
+    # 9. Save all detected candidates as Price Watch Zones so the tick loop can react
+    #    immediately when price enters any zone — even ones below confidence threshold.
+    #    This eliminates the "late entry" problem caused by waiting for the next full scan.
+    try:
+        zone_candidates = []
+        for c in clusters:
+            zone_candidates.append(c["lead"])
+        # Also include any non-clustered setups from other_setups (LTF reference zones)
+        for s in other_setups:
+            if not s.get("suppressed", False):
+                zone_candidates.append(s)
+        n_zones = save_watch_zones(symbol, zone_candidates, confidence_threshold)
+        print(f"[WatchZones] Registered {n_zones} active price watch zones for {symbol}.")
+    except Exception as e:
+        print(f"[WatchZones] Failed to save watch zones: {e}")
+
     # Free MT5 connection at the very end of the cycle
     import MetaTrader5 as mt5
     mt5.shutdown()
@@ -2845,12 +3038,70 @@ def main():
                                     current_tick = get_realtime_tick(sym, ensure_connection=False)
                                     prev_tick = previous_ticks.get(sym)
                                     if prev_tick is not None and current_tick is not None:
+                                        # --- Existing: react to setups already in sent_signals ---
                                         run_realtime_reaction_cycle(
                                             sym,
                                             previous_tick=prev_tick,
                                             current_tick=current_tick,
                                             min_reaction_move=args.min_reaction_move,
                                         )
+
+                                        # --- NEW: check all pre-registered price watch zones ---
+                                        try:
+                                            zone_hits = check_price_in_watch_zones(
+                                                sym, current_tick, confidence_threshold
+                                            )
+                                            for hit in zone_hits:
+                                                if not hit.entry_triggered:
+                                                    # Price is near zone but confidence not yet at threshold
+                                                    # Just log at debug level (don't spam)
+                                                    continue
+                                                zone = hit.zone
+                                                # Build a minimal setup dict for execution
+                                                setup_dict = {
+                                                    "timeframe": zone.timeframe,
+                                                    "strategy": zone.strategy,
+                                                    "direction": zone.direction,
+                                                    "entry_price": zone.entry_price,
+                                                    "sl_price": zone.sl_price,
+                                                    "tp_price": zone.tp_price,
+                                                    "option_name": "WatchZone 0.5",
+                                                    "probability": zone.probability,
+                                                    "rejection_confirmed": zone.rejection_confirmed,
+                                                    "htf_prioritized": zone.htf_prioritized,
+                                                }
+                                                # Immediately attempt market order at current price
+                                                ticket_id, exec_msg = execute_market_order_for_setup(setup_dict, sym)
+                                                if ticket_id is not None:
+                                                    mark_zone_triggered(sym, zone.zone_id)
+                                                    print(
+                                                        f"[WatchZones] ✅ ZONE HIT → Market order #{ticket_id} placed! "
+                                                        f"{zone.timeframe} {zone.strategy} {hit.reason}"
+                                                    )
+                                                    try:
+                                                        from src.telegram_bot import send_telegram_alert
+                                                        wz_msg = (
+                                                            f"⚡ <b>[WatchZone Hit] Immediate Entry!</b>\n\n"
+                                                            f"Harga masuk ke zona yang dipantau sebelum scan berikutnya.\n"
+                                                            f"• <b>Zone:</b> <code>{zone.timeframe} {zone.strategy}</code>\n"
+                                                            f"• <b>Harga masuk:</b> <code>{hit.current_price:.3f}</code>\n"
+                                                            f"• <b>Entry:</b> <code>{zone.entry_price:.3f}</code> | "
+                                                            f"SL: <code>{zone.sl_price:.3f}</code> | "
+                                                            f"TP: <code>{zone.tp_price:.3f}</code>\n"
+                                                            f"• <b>Confidence:</b> <code>{zone.probability:.1%}</code>\n"
+                                                            f"• <b>Ticket:</b> #{ticket_id}"
+                                                        )
+                                                        send_telegram_alert(wz_msg)
+                                                    except Exception:
+                                                        pass
+                                                elif "duplicate" not in exec_msg.lower() and "disabled" not in exec_msg.lower():
+                                                    print(
+                                                        f"[WatchZones] ⚠ Zone hit but order not placed: {exec_msg} "
+                                                        f"({zone.timeframe} {zone.strategy})"
+                                                    )
+                                        except Exception as wz_exc:
+                                            print(f"[WatchZones - {sym}] Zone check error: {wz_exc}")
+
                                     previous_ticks[sym] = current_tick
                                 except Exception as exc:
                                     print(f"[Realtime Reaction - {sym}] Tick cycle error: {exc}")

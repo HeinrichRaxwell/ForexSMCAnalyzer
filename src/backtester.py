@@ -14,6 +14,15 @@ DEFAULT_BACKTEST_THRESHOLDS = [0.0, 0.50, 0.70, 0.80, 0.85]
 DEFAULT_BACKTEST_CONCURRENCIES = [1, 3, 5, 100]
 
 
+def has_post_confirmation_candle(df: pd.DataFrame, setup_idx: int) -> bool:
+    """FVG/BPR setup is tradable only after one closed candle exists after formation."""
+    try:
+        idx = int(setup_idx)
+    except (TypeError, ValueError):
+        return False
+    return idx + 1 < len(df)
+
+
 def build_model_feature_frame(features_list: list, expected_features: list) -> pd.DataFrame:
     """Build a model input frame, filling unavailable historical features with neutral zeroes."""
     df_feat = pd.DataFrame(features_list)
@@ -43,13 +52,13 @@ def run_simulation(df: pd.DataFrame, setups: list, starting_capital: float,
     missed = 0
     blown = False
     
-    # Sort setups by detection time
-    setups = sorted(setups, key=lambda x: x['index'])
+    # Sort setups by tradable time; FVG/BPR may need an extra closed-candle confirmation.
+    setups = sorted(setups, key=lambda x: x.get('active_from_index', x['index']))
     
     # Pre-group setups by candle index for O(1) lookup
     setups_by_index = {}
     for s in setups:
-        idx = s['index']
+        idx = s.get('active_from_index', s['index'])
         if idx not in setups_by_index:
             setups_by_index[idx] = []
         setups_by_index[idx].append(s)
@@ -297,6 +306,9 @@ def generate_all_setups(df: pd.DataFrame, symbol: str = "XAUUSD", lot_size_05: f
         # --- 1. FVG Setups (Layered: Midpoint 0.5 and Golden Pocket 0.618) ---
         fvg_type = df['FVG_Type'].iloc[i] if 'FVG_Type' in df.columns else None
         if pd.notna(fvg_type) and fvg_type is not None:
+            if not has_post_confirmation_candle(df, i):
+                continue
+
             t_val = times[i]
             hour_val = int(t_val.hour)
             day_of_week_val = int(t_val.dayofweek)
@@ -340,6 +352,7 @@ def generate_all_setups(df: pd.DataFrame, symbol: str = "XAUUSD", lot_size_05: f
             
             setups.append({
                 'index': i, 'time': t_val, 'direction': direction, 'strategy': 'FVG',
+                'active_from_index': i + 2,
                 'option_name': 'FVG Midpoint 0.5 Layer', 'entry_price': fibo_0_5,
                 'sl_price': fvg_sl, 'tp_price': fibo_0_0,
                 'risk_pips_val': risk_a / pip_multiplier, 'tp_pips_val': abs(fibo_0_0 - fibo_0_5) / pip_multiplier,
@@ -348,6 +361,7 @@ def generate_all_setups(df: pd.DataFrame, symbol: str = "XAUUSD", lot_size_05: f
             
             setups.append({
                 'index': i, 'time': t_val, 'direction': direction, 'strategy': 'FVG',
+                'active_from_index': i + 2,
                 'option_name': 'FVG GoldenPocket 0.618 Layer', 'entry_price': fibo_0_618,
                 'sl_price': fvg_sl, 'tp_price': fibo_0_0,
                 'risk_pips_val': risk_b / pip_multiplier, 'tp_pips_val': abs(fibo_0_0 - fibo_0_618) / pip_multiplier,
@@ -505,6 +519,9 @@ def generate_all_setups(df: pd.DataFrame, symbol: str = "XAUUSD", lot_size_05: f
         if 'BPR_Type' in df.columns:
             bpr_type = df['BPR_Type'].iloc[i]
             if pd.notna(bpr_type) and bpr_type is not None:
+                if not has_post_confirmation_candle(df, i):
+                    continue
+
                 t_val = times[i]
                 hour_val = int(t_val.hour)
                 day_of_week_val = int(t_val.dayofweek)
@@ -546,6 +563,7 @@ def generate_all_setups(df: pd.DataFrame, symbol: str = "XAUUSD", lot_size_05: f
                 
                 setups.append({
                     'index': i, 'time': t_val, 'direction': direction, 'strategy': 'BPR',
+                    'active_from_index': i + 2,
                     'option_name': 'BPR Midpoint 0.5 Layer', 'entry_price': fibo_0_5,
                     'sl_price': bpr_sl, 'tp_price': fibo_0_0,
                     'risk_pips_val': risk_a / pip_multiplier, 'tp_pips_val': abs(fibo_0_0 - fibo_0_5) / pip_multiplier,
@@ -554,6 +572,7 @@ def generate_all_setups(df: pd.DataFrame, symbol: str = "XAUUSD", lot_size_05: f
                 
                 setups.append({
                     'index': i, 'time': t_val, 'direction': direction, 'strategy': 'BPR',
+                    'active_from_index': i + 2,
                     'option_name': 'BPR GoldenPocket 0.618 Layer', 'entry_price': fibo_0_618,
                     'sl_price': bpr_sl, 'tp_price': fibo_0_0,
                     'risk_pips_val': risk_b / pip_multiplier, 'tp_pips_val': abs(fibo_0_0 - fibo_0_618) / pip_multiplier,

@@ -1,283 +1,355 @@
-# 🤖 Forex SMC Analyzer & Machine Learning Filter (XAUUSDm)
+# Forex SMC Analyzer — XAUUSD Trading Bot
 
-Sistem asisten trading algoritmik berbasis **Smart Money Concepts (SMC)**, **Pinescript Volume Momentum (FLoOP Pro)**, dan **Machine Learning Ensemble (XGBoost & LightGBM)** untuk menyaring, mengeksekusi, dan mempelajari transaksi secara otomatis pada instrumen **Gold (XAUUSD)** melalui integrasi **MetaTrader 5 (MT5)**.
-
----
-
-## 📌 Pendahuluan & Visi Bot
-Pasar emas (XAUUSD) terkenal dengan likuiditas tinggi, manipulasi harga (*liquidity sweeps*), dan pergeseran tren yang cepat. Menggunakan sistem rule-based SMC saja seringkali menghasilkan *false breakout* karena noise volatilitas. 
-
-Bot ini diciptakan untuk memecahkan masalah tersebut dengan menggabungkan **analisis struktural presisi (SMC)**, **konfirmasi volume institusional (FLoOP Pro)**, dan **kecerdasan buatan (Machine Learning)** sebagai filter probabilitas. Bot ini tidak hanya mengeksekusi order, tetapi juga **belajar dari kesalahannya sendiri secara real-time** melalui Feedback Loop MLOps langsung dari akun MetaTrader 5 Anda.
+Bot trading otomatis untuk **Gold (XAUUSD)** berbasis Smart Money Concepts (SMC), multi-timeframe analysis, dan Machine Learning (XGBoost + LightGBM). Bot ini mendeteksi Fair Value Gap, Order Block, dan Balanced Price Range, lalu mengeksekusi order langsung ke MetaTrader 5 secara real-time.
 
 ---
 
-## 🛠️ Arsitektur Utama Bot (Core Engine)
-
-Sistem ini terbagi menjadi 4 lapisan utama yang bekerja secara sinergis:
+## Cara Kerja Singkat
 
 ```
-[ PASAR LIVE XAUUSD (MT5) ]
-            │
-            ▼ (1. Multi-Timeframe SMC Engine)
- [Swing, BOS/CHoCH, OB, FVG, Rejections]
-            │
-            ▼ (2. Volume & Momentum Filter - FLoOP Pro)
-  [Pinescript Volume, KNN, POC Volume Profile]
-            │
-            ▼ (3. Machine Learning Filter Layer)
-[Ensemble XGBoost + LightGBM (Probabilitas >= 70%)]
-            │
-  ┌─────────┴─────────┐
-  ▼ (Sinyal Lolos)    ▼ (Sinyal Lemah)
-[Eksekusi MT5 Live]   [FILTERED (Diabaikan)]
-  │
-  └─────────┬─────────┘
-            ▼ (4. MLOps Self-Learning Loop)
-[Database Latih (Windowing 1000)] <──> [Champion vs Challenger Gate (Accuracy)]
+Market Live XAUUSD
+        |
+        v  -- Scan tiap 1-5 menit (M30, H1, H4, D1)
+  SMC Detector  (FVG, OB, BPR, Swing High/Low, BOS/CHoCH)
+        |
+        v  -- Filter volume & momentum
+  FLoOP Pro + KNN + Volume Profile POC
+        |
+        v  -- Filter probabilitas
+  ML Ensemble  (XGBoost + LightGBM, threshold >= 50%)
+        |
+   Lolos?  ---Tidak---> Shadow Tracker (dipantau offline)
+        |
+       Ya
+        |
+        v  -- Eksekusi langsung
+  MetaTrader 5  (Pending limit order, SL/TP otomatis)
+        |
+        v  -- Setelah trade close
+  Feedback Loop  (bot pelajari hasilnya, retrain model sendiri)
 ```
 
----
-
-## 📂 Struktur Direktori & Fungsionalitas File
-
-Berikut adalah pemetaan detail fungsi seluruh berkas yang ada di dalam proyek:
-
-### 📁 1. Folder `src/` (Core Logic)
-*   [`src/smc_detector.py`](file:///C:/Users/WINDOWS%2011%20PRO/forex-smc-analyzer/src/smc_detector.py):  
-    Mengimplementasikan seluruh logika pendeteksian pola SMC. Berisi fungsi `detect_swing_points` untuk melacak titik fractal tinggi/rendah, `detect_structures` untuk BOS dan CHoCH, serta `detect_fvg_and_ob` untuk menemukan Order Block, Fair Value Gap (FVG), dan menghitung koordinat Fibonacci pada area tersebut.
-*   [`src/rejection_detector.py`](file:///C:/Users/WINDOWS%2011%20PRO/forex-smc-analyzer/src/rejection_detector.py):  
-    Berisi fungsi `detect_rejection_at_level` untuk memverifikasi apakah harga telah melakukan sentuhan (*touch*) dan meninggalkan ekor (*wick*) penolakan sebesar $\ge 50\%$ di area entry setup sebelum pending order diisi.
-*   [`src/model_trainer.py`](file:///C:/Users/WINDOWS%2011%20PRO/forex-smc-analyzer/src/model_trainer.py):  
-    Melatih model ensemble XGBoost dan LightGBM. Bertanggung jawab atas pembagian data latih/uji (80/20), perhitungan berat sampel (*Sample Weighting*), data windowing 6 bulan, pemotongan dataset ke 1000 setups terbaru, serta gerbang validasi Champion vs Challenger.
-*   [`src/inference.py`](file:///C:/Users/WINDOWS%2011%20PRO/forex-smc-analyzer/src/inference.py):  
-    Menggunakan model `.joblib` untuk memprediksi probabilitas sinyal live. Skrip ini juga melacak transaksi closed dari MT5 history, memproses perhitungan `pnl_relative` aktual, menyinkronkan database latih, dan menyusun teks penjelasan teknis untuk notifikasi Telegram.
-*   [`src/execution.py`](file:///C:/Users/WINDOWS%2011%20PRO/forex-smc-analyzer/src/execution.py):  
-    Mengendalikan interaksi langsung dengan MetaTrader 5 API. Mengatur pengiriman pending order limit, market order instan, penentuan lot dinamis berdasarkan resiko akun, modifikasi trailing Stop Loss, serta pembatalan pending order yang tidak lagi valid (*mitigated/invalidated*).
-*   [`src/scanner_worker.py`](file:///C:/Users/WINDOWS%2011%20PRO/forex-smc-analyzer/src/scanner_worker.py):  
-    Loop utama background worker yang berjalan tanpa henti. Setiap menit, ia menghubungkan MT5, mensinkronisasikan riwayat transaksi (feedback loop), memicu retraining, melakukan pemindaian multi-timeframe, menyaring sinyal lewat ML, dan mengeksekusi order.
-*   [`src/labeler.py`](file:///C:/Users/WINDOWS%2011%20PRO/forex-smc-analyzer/src/labeler.py):  
-    Melakukan pelabelan transaksi pada data historis CSV. Menghasilkan target `label` (Win=1, Loss=0) dan mengukur 26 fitur entry pasar secara simulasi (termasuk ATR, killzone, data volume, dll.) untuk disimpan ke `data/labeled_setups.csv`.
-*   [`src/data_loader.py`](file:///C:/Users/WINDOWS%2011%20PRO/forex-smc-analyzer/src/data_loader.py):  
-    Mengatur inisialisasi koneksi MetaTrader 5 dan mengunduh data lilin (OHLCV) historis broker untuk setiap timeframe.
-*   [`src/data_collector.py`](file:///C:/Users/WINDOWS%2011%20PRO/forex-smc-analyzer/src/data_collector.py):  
-    Alat CLI (argparse) untuk mengunduh lilin historis dalam skala besar (misal 50.000 bar) dari MT5 untuk keperluan inisialisasi database latih awal.
-*   [`src/backtester.py`](file:///C:/Users/WINDOWS%2011%20PRO/forex-smc-analyzer/src/backtester.py):  
-    Melakukan pengujian simulasi trading historis (backtest) secara offline menggunakan data CSV untuk mengevaluasi winrate kasar vs winrate terfilter ML.
-*   [`src/main.py`](file:///C:/Users/WINDOWS%2011%20PRO/forex-smc-analyzer/src/main.py):  
-    Skrip konsol visualisasi terpadu. Memetakan grafik candlestick lengkap dengan penanda level BOS/CHoCH, FVG Fibo levels, Order Blocks, dan menyimpan grafiknya sebagai file gambar PNG.
-*   [`src/telegram_bot.py`](file:///C:/Users/WINDOWS%2011%20PRO/forex-smc-analyzer/src/telegram_bot.py):  
-    Wrapper API Telegram untuk mengirim pesan teks HTML dan visualisasi grafik PNG ke Telegram.
-
-### 📁 2. Folder `src/indicators/` (Indikator Kustom FLoOP Pro)
-*   [`src/indicators/floop.py`](file:///C:/Users/WINDOWS%2011%20PRO/forex-smc-analyzer/src/indicators/floop.py):  
-    Diterjemahkan dari TradingView Pinescript. Menghitung tren volume institusional (Bullish/Bearish) dan mengukur kekuatan momentum volume breakout.
-*   [`src/indicators/knn_classifier.py`](file:///C:/Users/WINDOWS%2011%20PRO/forex-smc-analyzer/src/indicators/knn_classifier.py):  
-    Melakukan klasifikasi terdekat (KNN) secara offline pada harga untuk memprediksi arah pergerakan pasar jangka pendek.
-*   [`src/indicators/pivots.py`](file:///C:/Users/WINDOWS%2011%20PRO/forex-smc-analyzer/src/indicators/pivots.py):  
-    Menghitung level Pivot Point harian (Standard, Fibonacci, Classic, Woodie) sebagai support/resistance dinamis institusi.
-*   [`src/indicators/volume_clusters.py`](file:///C:/Users/WINDOWS%2011%20PRO/forex-smc-analyzer/src/indicators/volume_clusters.py):  
-    Mengelompokkan data harga-volume menggunakan K-Means Clustering untuk memetakan level Point of Control (POC) volume profil pasar.
-
-### 📁 3. Folder `tests/` (Test Suite Komprehensif)
-*   [`tests/test_fibo_detector.py`](file:///C:/Users/WINDOWS%2011%20PRO/forex-smc-analyzer/tests/test_fibo_detector.py): Menguji kalkulasi level Fibonacci pada FVG.
-*   [`tests/test_rejection.py`](file:///C:/Users/WINDOWS%2011%20PRO/forex-smc-analyzer/tests/test_rejection.py): Memverifikasi deteksi candle wick rejection 50% di key level.
-*   [`tests/test_model_trainer.py`](file:///C:/Users/WINDOWS%2011%20PRO/forex-smc-analyzer/tests/test_model_trainer.py): Menguji retraining, Data Windowing, dan Champion vs Challenger.
-*   [`tests/test_inference.py`](file:///C:/Users/WINDOWS%2011%20PRO/forex-smc-analyzer/tests/test_inference.py): Menguji kesesuaian prediksi probabilitas ensemble.
-*   [`tests/test_active_trade_management.py`](file:///C:/Users/WINDOWS%2011%20PRO/forex-smc-analyzer/tests/test_active_trade_management.py): Memverifikasi penutupan dan trailing proteksi order.
-*   *Dan 15 file test unit lainnya untuk menjamin keandalan sistem.*
+Bot juga punya sistem **Price Watch Zone** — setelah scan, semua zona yang terdeteksi disimpan. Antara scan berikutnya, bot tetap cek harga tiap sepersekian detik. Kalau harga masuk ke zona, langsung eksekusi tanpa nunggu scan ulang.
 
 ---
 
-## 📐 2. Detail Strategi Deteksi SMC & Level Fibonacci FVG
+## Sebelum Mulai
 
-Deteksi Fair Value Gap (FVG) didasarkan pada ketidakseimbangan harga dalam pola 3 lilin berturut-turut (Candle 1, Candle 2, Candle 3):
+Yang kamu butuhkan:
 
-```
-BULLISH FVG (BUY SETUP)                  BEARISH FVG (SELL SETUP)
-
-   Candle 3 (High)  ───┬───                 Candle 1 (Low)   ───┬───
-                       │ [GAP]                                  │ [GAP]
-   Candle 1 (Low)   ───┴───                 Candle 3 (High)  ───┴───
-```
-
-### A. Formula Batas FVG & Fibonacci Candle 2
-Fibonacci digambar di sepanjang tubuh Candle 2 (middle candle) sebagai penentu area diskon entri:
-*   **Untuk Bullish FVG:**
-    *   $\text{FVG\_Bottom (Candle 1 High)} = \text{High}_{i-2}$
-    *   $\text{FVG\_Top (Candle 3 Low)} = \text{Low}_{i}$
-    *   $\text{Fibo}_{1.0} = \text{Low}_{i-1}$ (Low Candle 2)
-    *   $\text{Fibo}_{0.0} = \text{High}_{i-1}$ (High Candle 2)
-    *   $\text{Fibo}_{0.5} \text{ (Midpoint Entry)} = \text{Fibo}_{0.0} - 0.5 \times (\text{Fibo}_{0.0} - \text{Fibo}_{1.0})$
-    *   $\text{Fibo}_{0.618} \text{ (Golden Pocket Entry)} = \text{Fibo}_{0.0} - 0.618 \times (\text{Fibo}_{0.0} - \text{Fibo}_{1.0})$
-    *   $\text{Stop Loss (SL)} = \text{FVG\_Bottom} - \text{Buffer}$
-*   **Untuk Bearish FVG:**
-    *   $\text{FVG\_Top (Candle 1 Low)} = \text{Low}_{i-2}$
-    *   $\text{FVG\_Bottom (Candle 3 High)} = \text{High}_{i}$
-    *   $\text{Fibo}_{1.0} = \text{High}_{i-1}$ (High Candle 2)
-    *   $\text{Fibo}_{0.0} = \text{Low}_{i-1}$ (Low Candle 2)
-    *   $\text{Fibo}_{0.5} \text{ (Midpoint Entry)} = \text{Fibo}_{0.0} + 0.5 \times (\text{Fibo}_{1.0} - \text{Fibo}_{0.0})$
-    *   $\text{Fibo}_{0.618} \text{ (Golden Pocket Entry)} = \text{Fibo}_{0.0} + 0.618 \times (\text{Fibo}_{1.0} - \text{Fibo}_{0.0})$
-    *   $\text{Stop Loss (SL)} = \text{FVG\_Top} + \text{Buffer}$
-
-### B. Nilai Buffer Dinamis
-Buffer ditentukan berdasarkan ukuran pip simbol instrumen:
-$$\text{Buffer} = 20 \text{ pips} \times \text{PipMultiplier}$$
-*   Untuk **XAUUSD / Gold**: $\text{PipMultiplier} = 0.1 \implies \text{Buffer} = 2.0 \text{ USD}$.
-*   Untuk JPY Pairs: $\text{PipMultiplier} = 0.01 \implies \text{Buffer} = 0.20 \text{ USD}$.
-*   Untuk Forex Major: $\text{PipMultiplier} = 0.0001 \implies \text{Buffer} = 0.0020 \text{ USD}$.
-
-### C. Opsi Eksekusi Order (Limit Setup)
-Bot mengirimkan dua opsi order limit ke pasar untuk memaksimalkan peluang *risk-to-reward* (R:R):
-1.  **Option A (Midpoint):**
-    *   **Entry:** $\text{Fibo}_{0.5}$
-    *   **Take Profit (TP 1):** $\text{Fibo}_{0.0}$ (Invalidation level)
-    *   **Stop Loss (SL):** $\text{FVG\_SL}$
-2.  **Option B (Golden Pocket):**
-    *   **Entry:** $\text{Fibo}_{0.618}$
-    *   **Take Profit (TP 1):** $\text{Fibo}_{0.0}$
-    *   **Stop Loss (SL):** $\text{FVG\_SL}$
-    *   *Catatan:* Opsi B memberikan R:R yang jauh lebih sempit sehingga profitabilitas relatif per R-multiple sangat tinggi.
+- Windows 10 atau 11
+- Python 3.10 ke atas
+- MetaTrader 5 — sudah terhubung ke akun broker (Exness, XM, atau broker lain yang support MT5)
+- Akun Telegram (untuk notifikasi bot)
 
 ---
 
-## ⚡ 3. Strategi Konfirmasi Rejection & Multi-Timeframe (MTF)
+## 1. Setup Telegram Bot
 
-### A. Logika Rejection di Key Level
-Sebelum eksekusi pending order disentuh, harga harus menunjukkan penolakan (*wick rejection*) pada area level entri pada 5 bar terakhir.
-*   **Bullish Rejection (Touch & Wick Upward):**
-    *   Syarat Sentuh: $\text{Low} \le \text{Entry Level} \le \max(\text{Open}, \text{Close})$
-    *   Shadow Bawah: $\text{LowerShadow} = \min(\text{Open}, \text{Close}) - \text{Low}$
-    *   Range Total: $\text{TotalRange} = \text{High} - \text{Low}$
-    *   Logika Penolakan: $\frac{\text{LowerShadow}}{\text{TotalRange}} \ge 0.5 \quad (50\% \text{ Rejection Wick})$
-*   **Bearish Rejection (Touch & Wick Downward):**
-    *   Syarat Sentuh: $\min(\text{Open}, \text{Close}) \le \text{Entry Level} \le \text{High}$
-    *   Shadow Atas: $\text{UpperShadow} = \text{High} - \max(\text{Open}, \text{Close})$
-    *   Range Total: $\text{TotalRange} = \text{High} - \text{Low}$
-    *   Logika Penolakan: $\frac{\text{UpperShadow}}{\text{TotalRange}} \ge 0.5 \quad (50\% \text{ Rejection Wick})$
+Bot ini mengirim notifikasi ke Telegram setiap kali ada sinyal, order dieksekusi, atau trade selesai.
 
-### B. Prioritas Multi-Timeframe (MTF Alignment)
-1.  Bot memantau timeframe **H1, H4, dan D1** untuk mencari area FVG unmitigated yang aktif.
-2.  Saat setup terdeteksi pada timeframe eksekusi (**M15 / M30**):
-    *   Bot mengecek apakah $\text{Entry Price}$ setup M15/M30 berada di dalam koordinat $\text{FVG\_Bottom}$ hingga $\text{FVG\_Top}$ dari FVG timeframe besar (H1/H4/D1) dengan arah tren yang sama.
-    *   Jika **Ya**, setup dilabeli sebagai **`htf_prioritized = True`** (Sinyal prioritas institusi super).
+**Langkah membuat bot Telegram:**
 
----
+1. Buka Telegram, cari **@BotFather**
+2. Kirim pesan `/newbot`
+3. BotFather akan tanya nama bot — isi terserah, misal `SMC Gold Bot`
+4. Setelah itu tanya username bot — harus diakhiri `bot`, misal `smc_gold_xauusd_bot`
+5. BotFather akan kasih **token** seperti ini:
+   ```
+   1234567890:AAFbkUXJdVSf0Xp4H_8ZtaOncZYmJMpI_Yo
+   ```
+   Simpan token ini, nanti dimasukkan ke `.env`
 
-## 📊 4. Integrasi Volume Momentum (FLoOP Pro & POC)
+**Cari Chat ID kamu:**
 
-Diadopsi dari TradingView Pinescript ke Python:
+1. Cari **@userinfobot** di Telegram
+2. Kirim `/start`
+3. Bot akan balas dengan info akun kamu, termasuk `Id: 1234567890`
+4. Itu Chat ID kamu — simpan juga
 
-### A. Tren & Sinyal FLoOP
-*   Bot menghitung momentum volume saat entry. Jika $\text{FLoOP Trend} \neq \text{Direction}$, setup ditolak oleh filter kualitas dasar karena melawan arah aliran dana institusi besar.
-*   `floop_strength` mewakili volume breakout. Nilai $> 5.0$ menandakan momentum breakout yang solid.
+**Aktifkan bot kamu:**
 
-### B. K-Means Volume Profile (POC)
-*   200 candle terakhir dipisah ke dalam $k=5$ cluster harga terbobot volume transaksi.
-*   Cluster harga dengan volume terbesar dideklarasikan sebagai **Point of Control (POC)**.
-*   Jarak entri terhadap POC dihitung:
-    $$\text{dist\_entry\_to\_poc} = \frac{|\text{Entry} - \text{POC}|}{\text{POC}}$$
-*   Semakin dekat jarak entri ke POC ($\text{dist\_entry\_to\_poc} \le 0.002$), semakin tinggi kualitas setup karena didukung oleh konsentrasi transaksi institusi.
+Sebelum bot bisa kirim pesan ke kamu, kamu harus mulai percakapan dulu:
+1. Cari username bot yang baru dibuat tadi di Telegram
+2. Tekan **Start**
 
 ---
 
-## 🤖 5. Filter Machine Learning & Probabilitas
+## 2. Setup MetaTrader 5
 
-### Ensemble Classifier
-Model terdiri dari gabungan **XGBoost** dan **LightGBM**.
-*   **Input Fitur:** 26 fitur entry pasar (Jam trading, volatilitas ATR, data FLoOP, rasio risiko ATR, kedekatan Pivot & POC).
-*   **Anti Data Leakage:** Kolom `pnl_relative` dan target `label` dikeluarkan secara ketat dari fitur latihan untuk mencegah **Data Leakage**.
-*   **Ambang Batas Kelulusan:** Sinyal disaring dengan ambang batas probabilitas optimal (misal $\ge 70\%$) sebagai sinyal High Confidence.
+**Izinkan trading otomatis di MT5:**
 
----
+1. Buka MetaTrader 5
+2. Menu **Tools** > **Options** > tab **Expert Advisors**
+3. Centang:
+   - `Allow automated trading`
+   - `Allow DLL imports`
+4. Klik OK
 
-## 🧠 6. Siklus MLOps & Self-Learning (Feedback Loop)
+**Aktifkan Auto Trading di toolbar:**
 
-### A. Aturan Umpan Balik & Pembobotan Sampel (Sample Weighting)
-Saat posisi close di MT5, profit/loss bersih dihitung dan diubah menjadi `pnl_relative` aktual:
-$$\text{pnl\_relative} = \frac{\text{Harga Close} - \text{Harga Entry}}{\text{Harga Entry} - \text{Harga SL}} \quad (\text{Skala R-Multiple})$$
-Setiap trade dimasukkan ke `labeled_setups.csv` dengan bobot latih berikut:
-1.  **🏆 WIN / Profit Besar (Label 1):** Bobot = **`2.00`** (Memaksa AI meniru pola sukses).
-2.  **🛡️ Mitigated / Early Cut-Loss (Label 0, PnL > -0.5):** Bobot = **`0.50`** (Reward atas tindakan meminimalkan risiko saat arah tren berbalik).
-3.  **💀 Full Loss / Loss Konyol (Label 0, PnL <= -0.5):** Bobot = **`1.50`** (Hukuman agar AI mempelajari pola kegagalan).
+Di toolbar atas MT5, pastikan tombol **Auto Trading** (ikon robot) berwarna hijau/aktif.
 
-### B. Champion vs Challenger Validation Gate & Dynamic Retraining
-*   **Data Split:** 80% Training Data, 20% Testing Data.
-*   **Kriteria Promosi:** Challenger (model baru) menggantikan Champion (model lama) **hanya jika** Akurasi Ujian Challenger $\ge$ Akurasi Ujian Champion. Jika tidak, challenger dibuang.
-*   **Data Windowing:** Data berusia $> 6$ bulan otomatis dihapus, dan dataset latih dibatasi maksimal **1000 setups terbaru** agar bot selalu sensitif pada kondisi volatilitas market paling segar (*current market regime*).
-*   **Konfigurasi Retraining Dinamis (via `.env`):**
-    *   `ML_RETRAIN_THRESHOLD`: Menentukan jumlah trade terakumulasi sebelum retraining dipicu. 
-        *   Set ke `1` untuk mode agresif: setiap 1 trade close di MT5 langsung dipelajari dan model di-retrain instan.
-        *   Set ke `5` (atau lebih) untuk mode konservatif: menunda retraining hingga terkumpul minimal 5 transaksi baru.
-    *   `ML_RETRAIN_ON_WEEKEND`: Jika diset ke `true`, bot akan otomatis melakukan retraining pada hari Sabtu/Minggu (saat market libur) tanpa memperdulikan apakah threshold jumlah trade sudah terpenuhi. Ini memastikan otak AI selalu disegarkan secara matang sebelum sesi perdagangan hari Senin dimulai.
+**Cari nama server broker kamu:**
+
+1. Di MT5, klik **File** > **Open an account**
+2. Atau lihat di pojok kanan bawah MT5 — ada tulisan nama server, misal `Exness-MT5Real8`
+3. Nama ini nanti diisi di `.env` (field `MT5_SERVER`)
+
+**Cari login dan password:**
+
+- Login number biasanya dikirim email saat daftar broker
+- Password adalah password trading kamu (bukan password login website broker)
 
 ---
 
-## 📱 7. Notifikasi Telegram & Explainability
+## 3. Instalasi Bot
 
-Setiap kali posisi ditutup di MT5, AI akan menganalisis parameter entry dan mengidentifikasi penyebab hasil transaksi (Win, Loss, atau Cut-loss) berdasarkan logika Pinescript & SMC:
+**Clone repository:**
 
-```
-🏆 [SMC Trade Closed] Option A (0.50) Selesai 🏆
-
-• Ticket: #82713098
-• Timeframe: M15
-• Setup: BULL (Fair Value Gap)
-• Entry Price: 2385.120
-• SL | TP: 2383.620 | 2388.120
-• Hasil Posisi: 🟢 WIN (PROFIT)
-• Net PnL Riil: +300,000 IDR
-• PnL Relative: +2.00 R
-
-🏆 Penyebab Profit: Trade berhasil mencapai TP karena didukung oleh keselarasan struktur SMC dan momentum volume FLoOP dan rebound harga pada level POC/Pivot broker.
-
-🧠 Pelajaran AI (Bobot Latih = 2.00):
-AI memperkuat memori kesuksesan setup ini. Model mempelajari bahwa kombinasi fitur teknis ini (terutama keselarasan volume FLoOP & SMC) adalah pola pemenang. AI akan memprioritaskan setup serupa dalam scanning pasar berikutnya.
+```bash
+git clone https://github.com/HeinrichRaxwell/ForexSMCAnalyzer.git
+cd ForexSMCAnalyzer
 ```
 
----
+**Install dependencies:**
 
-## 🚀 8. Instalasi & Konfigurasi Operasional
-
-### A. Prasyarat Sistem
-*   Windows OS (disarankan Windows 10/11)
-*   Python 3.10+
-*   Terminal MetaTrader 5 (Terhubung ke akun broker aktif, misal: Exness/XM)
-*   Aktifkan menu *Allow Algo Trading* dan *Allow WebRequest* pada MetaTrader 5.
-
-### B. Instalasi Dependensi
-Clone repository ini dan jalankan perintah instalasi berikut:
 ```bash
 pip install -r requirements.txt
 ```
 
-### C. Konfigurasi Environment (`.env`)
-Buat berkas `.env` pada root direktori proyek Anda:
-```env
-TELEGRAM_BOT_TOKEN=YOUR_TELEGRAM_BOT_TOKEN
-TELEGRAM_CHAT_ID=YOUR_TELEGRAM_CHAT_ID
-MT5_LOGIN=YOUR_MT5_LOGIN_ID
-MT5_PASSWORD=YOUR_MT5_PASSWORD
-MT5_SERVER=YOUR_MT5_SERVER_NAME
+**Setup konfigurasi:**
+
+Copy file template dan isi dengan data kamu:
+
+```bash
+copy .env.example .env
 ```
 
-### D. Menjalankan Unit Test
-Pastikan seluruh sistem berjalan dengan benar (100% Passed):
+Buka file `.env` dengan text editor (Notepad, VS Code, dll), lalu isi:
+
+```env
+# Telegram
+TELEGRAM_BOT_TOKEN=1234567890:AAFbkUXJdVSf0Xp4H_8ZtaOncZYmJMpI_Yo
+TELEGRAM_CHAT_ID=1234567890
+
+# MT5 — isi sesuai akun broker kamu
+MT5_LOGIN=12345678
+MT5_PASSWORD=password_trading_kamu
+MT5_SERVER=Exness-MT5Real8
+
+# Aktifkan trading otomatis (set True kalau sudah siap live)
+MT5_EXECUTE_TRADES=False
+
+# Magic number — angka unik buat bot kamu, ganti kalau mau
+MT5_MAGIC_NUMBER=202610
+```
+
+> Untuk konfigurasi lain seperti lot size, max trades, trailing stop, dll — sudah ada defaultnya di `.env.example` dengan penjelasan tiap baris.
+
+---
+
+## 4. Jalankan Bot
+
+**Test dulu tanpa eksekusi order (mode monitor):**
+
+```bash
+python -m src.scanner_worker --symbol XAUUSD --loop --interval 5 --threshold 0.50
+```
+
+Bot akan scan pasar dan kirim notifikasi sinyal ke Telegram kamu, tapi tidak eksekusi order. Pastikan notifikasi masuk dulu sebelum aktifkan trading.
+
+**Aktifkan trading otomatis:**
+
+Setelah yakin sinyal masuk, ubah di `.env`:
+```env
+MT5_EXECUTE_TRADES=True
+```
+
+Lalu jalankan dengan realtime reaction (deteksi entry lebih cepat):
+
+```bash
+python -m src.scanner_worker --symbol XAUUSD --loop --interval 5 --threshold 0.50 --realtime-reaction --tick-interval 0.1 --min-reaction-move 0.10
+```
+
+Parameter yang bisa diatur:
+
+| Parameter | Default | Keterangan |
+|---|---|---|
+| `--symbol` | `XAUUSD` | Simbol di MT5. Cek nama persis di Market Watch (bisa `XAUUSDm`, dll) |
+| `--interval` | `5` | Interval full scan dalam menit |
+| `--threshold` | `0.50` | Confidence minimum ML untuk eksekusi (0.50 = 50%) |
+| `--realtime-reaction` | off | Aktifkan pemantauan zona real-time antara scan |
+| `--tick-interval` | `1.0` | Seberapa sering cek harga (detik). `0.1` = tiap 100ms |
+| `--min-reaction-move` | `0.10` | Minimum pergerakan harga untuk trigger market order ($) |
+
+---
+
+## 5. Cara Bot Trading
+
+Bot memakai strategi **dual entry Fibonacci** di setiap zona yang terdeteksi:
+
+**Option A — Midpoint (Fib 0.5):**
+- Entry di titik tengah candle 2 FVG
+- Lot lebih kecil
+- Stop Loss di bawah/atas zona FVG
+
+**Option B — Golden Pocket (Fib 0.618):**
+- Entry lebih dalam ke zona
+- Lot lebih besar (karena lebih dekat SL, RR lebih bagus)
+- Stop Loss sama dengan Option A
+
+**Take Profit:**
+- Default ke Fib 0 (awal swing candle 2) — ini sekitar 100-250 pips untuk setup M30/H1
+
+**Trailing Stop (khusus XAUUSD):**
+
+| Profit | Aksi SL |
+|---|---|
+| < 80 pips | Tidak ada perubahan, biarkan trade jalan |
+| 80 – 149 pips | SL digeser ke BEP + spread buffer (trade jadi risk-free) |
+| >= 150 pips | Trailing ladder tiap 50 pip. 150 pips = lock 50 pip, 200 pips = lock 100 pip, dst |
+
+**Confidence Swap:**
+
+Kalau slot order sudah penuh tapi ada sinyal baru dengan confidence lebih tinggi, bot otomatis cancel order lama (yang confidence lebih rendah) dan ganti dengan sinyal baru. Order yang dicancel masuk ke Shadow Tracker untuk dipantau hasilnya.
+
+---
+
+## 6. Notifikasi Telegram yang Dikirim Bot
+
+Bot mengirim beberapa jenis pesan:
+
+- **Sinyal baru terdeteksi** — lengkap dengan entry, SL, TP, confidence, dan info confluence
+- **Order dieksekusi** — konfirmasi order berhasil masuk ke MT5
+- **Trade close** — hasil trade, PnL, dan pelajaran yang dipetik AI
+- **Retraining** — pemberitahuan kalau bot baru belajar dari trade terbaru
+- **WatchZone Hit** — kalau harga masuk zona yang dipantau antara scan (entry lebih cepat)
+- **Order Eviction** — kalau slot penuh dan order lama diganti yang confidence lebih tinggi
+
+---
+
+## 7. Konfigurasi Penting di `.env`
+
+Beberapa setting yang paling sering perlu diubah:
+
+**Lot size:**
+```env
+MT5_LOT_SIZE_OPTION_A=0.01   # Lot untuk Fib 0.5 entry
+MT5_LOT_SIZE_OPTION_B=0.01   # Lot untuk Fib 0.618 entry
+```
+
+Atau aktifkan dynamic lot (otomatis sesuai balance):
+```env
+MT5_DYNAMIC_LOT_ENABLED=True
+MT5_DYNAMIC_LOT_BASE_BALANCE_USD=100    # Balance awal
+MT5_DYNAMIC_LOT_BALANCE_STEP_USD=50    # Setiap naik $50, lot naik 1 step
+MT5_DYNAMIC_LOT_BASE_LOT=0.01
+MT5_DYNAMIC_LOT_STEP_LOT=0.01
+MT5_DYNAMIC_LOT_MAX=0.10               # Maksimal lot
+```
+
+**Risk management:**
+```env
+MT5_MAX_CONCURRENT_TRADES=6    # Maksimal trade aktif bersamaan
+MT5_MAX_PENDING_ORDERS=8       # Maksimal pending order
+MT5_ALLOWED_TIMEFRAMES=M30,H1,H4,D1   # Timeframe yang diizinkan eksekusi
+```
+
+**ML confidence:**
+```env
+ML_ACCEPT_THRESHOLD=0.50       # Minimum confidence untuk kirim sinyal/eksekusi
+ML_RETRAIN_THRESHOLD=10        # Retrain setelah berapa trade close
+```
+
+---
+
+## 8. Struktur File
+
+```
+ForexSMCAnalyzer/
+├── src/
+│   ├── scanner_worker.py        # Main loop — jalankan ini
+│   ├── execution.py             # Kirim order ke MT5, trailing stop
+│   ├── smc_detector.py          # Deteksi FVG, OB, BPR, Swing
+│   ├── inference.py             # Prediksi ML, feedback loop
+│   ├── model_trainer.py         # Retrain XGBoost & LightGBM
+│   ├── entry_quality_gate.py    # Filter RSI8, Stochastic, spread
+│   ├── realtime_reaction_watcher.py   # Deteksi entry cepat antar scan
+│   ├── price_watch_zones.py     # Pre-register zona, cek tiap tick
+│   ├── shadow_tracker.py        # Monitor sinyal yang tidak dieksekusi
+│   ├── telegram_bot.py          # Kirim notifikasi ke Telegram
+│   ├── data_loader.py           # Ambil data OHLCV dari MT5
+│   └── indicators/
+│       ├── floop.py             # FLoOP Pro volume momentum
+│       ├── knn_classifier.py    # KNN directional classifier
+│       ├── pivots.py            # Daily pivot points
+│       └── volume_clusters.py  # K-Means volume profile (POC)
+├── models/
+│   ├── smc_lgb_classifier.joblib    # Model LightGBM terlatih
+│   ├── smc_xgb_classifier.joblib    # Model XGBoost terlatih
+│   └── confidence_calibrator.joblib # Kalibrasi probabilitas
+├── data/
+│   ├── labeled_setups.csv       # Database training AI
+│   ├── sent_signals.json        # State sinyal yang sudah dikirim
+│   └── shadow_signals.json      # Pantauan sinyal yang tidak dieksekusi
+├── tests/                       # Unit tests
+├── .env.example                 # Template konfigurasi
+├── requirements.txt
+└── README.md
+```
+
+---
+
+## 9. Perintah Tambahan
+
+**Retrain model manual:**
+```bash
+python -m src.model_trainer
+```
+
+**Lihat grafik analisis:**
+```bash
+python -m src.main --symbol XAUUSD --timeframe M30
+```
+
+**Jalankan unit test:**
 ```bash
 pytest
 ```
 
-### E. Retraining Manual Otak AI
-Untuk melatih ulang model XGBoost & LightGBM menggunakan database latih Anda saat ini:
+**Backtest menggunakan data historis:**
 ```bash
-python src/model_trainer.py
+python -m src.backtester
 ```
 
-### F. Menjalankan Bot Live (Scanner Worker)
-Jalankan perintah berikut untuk mengaktifkan bot pemantau pasar live:
-```bash
-python src/scanner_worker.py --symbol XAUUSD --loop --interval 1 --threshold 0.50
-```
-*   `--symbol`: Simbol target broker (misal: `XAUUSD` or `XAUUSDm`).
-*   `--loop`: Berjalan secara terus-menerus.
-*   `--interval`: Interval pemindaian pasar (dalam menit).
-*   `--threshold`: Batas probabilitas ML minimal untuk memicu alert/order (misal: `0.50` sampai `0.70`).
+---
+
+## 10. Troubleshooting
+
+**Bot tidak connect ke MT5:**
+- Pastikan MetaTrader 5 sudah dibuka dan login
+- Cek apakah Auto Trading aktif (tombol robot di toolbar)
+- Kalau pakai VPS, pastikan MT5 berjalan di user session yang sama dengan bot
+
+**Sinyal tidak masuk Telegram:**
+- Cek token dan chat ID di `.env`
+- Pastikan kamu sudah `/start` bot Telegram kamu
+- Coba jalankan `python -m src.telegram_bot` untuk test kirim pesan
+
+**Bot error saat start:**
+- Jalankan `pip install -r requirements.txt` ulang
+- Pastikan Python versi 3.10 ke atas
+
+**Order tidak masuk padahal ada sinyal:**
+- Cek apakah `MT5_EXECUTE_TRADES=True` di `.env`
+- Cek log di console — biasanya ada pesan alasan kenapa tidak dieksekusi (spread terlalu lebar, terlalu banyak order aktif, dll)
+- Cek apakah simbol di `--symbol` sama persis dengan yang ada di Market Watch MT5
+
+---
+
+## Catatan
+
+- Bot ini dibuat untuk XAUUSD (Gold). Bisa dipakai untuk pair lain tapi parameter pip multiplier dan trailing stop belum dioptimalkan untuk pair lain.
+- Model ML yang disertakan sudah dilatih dengan data nyata. Makin banyak trade yang masuk, makin pintar modelnya (self-learning otomatis).
+- Jangan lupa set `MT5_EXECUTE_TRADES=False` dulu saat pertama coba, pantau sinyal dulu beberapa hari sebelum aktifkan trading.

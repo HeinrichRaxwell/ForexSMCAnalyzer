@@ -1,7 +1,7 @@
 import pytest
 import pandas as pd
 import numpy as np
-from src.smc_detector import detect_fvg_and_ob, detect_snr_and_swapzones, detect_indecision_candles
+from src.smc_detector import detect_fvg_and_ob, detect_snr_and_swapzones, detect_indecision_candles, detect_bpr
 
 def test_bullish_fvg_fibo_xauusd():
     """Test Fibonacci calculations for a Bullish FVG using XAUUSD (pip size 0.1)."""
@@ -123,6 +123,24 @@ def test_bullish_fvg_fibo_large_candle2():
     assert np.isclose(result['FVG_SL'].iloc[2], expected_sl)
 
 
+def test_bullish_bpr_fibo_uses_current_fvg_displacement_candle():
+    df = pd.DataFrame({
+        'Open':  [102.0, 99.0, 96.0, 96.0, 98.0, 101.0],
+        'High':  [105.0, 100.0, 98.0, 99.0, 102.0, 103.0],
+        'Low':   [100.0, 95.0, 94.0, 94.0, 97.0, 101.0],
+        'Close': [103.0, 96.0, 95.0, 98.0, 101.0, 102.0],
+    })
+
+    result = detect_bpr(detect_fvg_and_ob(df, symbol="XAUUSD"), symbol="XAUUSD")
+
+    assert result['BPR_Type'].iloc[5] == 'BULLISH'
+    # Current FVG is formed by candles 3-4-5, so BPR fibs must be pulled on candle 4.
+    assert np.isclose(result['BPR_Fibo_1.0'].iloc[5], 97.0)
+    assert np.isclose(result['BPR_Fibo_0.0'].iloc[5], 102.0)
+    assert np.isclose(result['BPR_Fibo_0.5'].iloc[5], 99.5)
+    assert np.isclose(result['BPR_Fibo_0.618'].iloc[5], 98.91)
+
+
 def test_ob_fibo_1candle():
     """Test 1-candle Fibonacci calculations for a Bullish OB."""
     df = pd.DataFrame({
@@ -219,12 +237,40 @@ def test_indecision_candle_fibo():
     # 0.50 of IC candle = 100.0 + 0.5 * (104.0 - 100.0) = 102.0
     # 0.618 of IC candle = 100.0 + 0.618 * (104.0 - 100.0) = 102.472
     # SL = High + buffer (104.0 + 2.0 = 106.0)
-    # TP (Fibo 0.0) = Low of breakout candle (98.0)
+    # TP (Fibo 0.0) = Low of IC candle (100.0)
     
     assert np.isclose(result['IC_Fibo_0.5'].iloc[3], 102.0)
     assert np.isclose(result['IC_Fibo_0.618'].iloc[3], 102.472)
     assert np.isclose(result['IC_SL'].iloc[3], 106.0)
-    assert np.isclose(result['IC_Fibo_0.0'].iloc[3], 98.0)
+    assert np.isclose(result['IC_Fibo_0.0'].iloc[3], 100.0)
 
 
+def test_indecision_candle_retest_does_not_mark_setup_mitigated():
+    """A wick/body retest into the IC zone is an entry event, not mitigation."""
+    df = pd.DataFrame({
+        'Open':  [100.0, 102.0, 102.1, 101.0, 99.0],
+        'High':  [101.0, 104.0, 102.5, 99.5, 102.6],
+        'Low':   [99.0,  100.0, 101.0, 98.0, 98.6],
+        'Close': [100.5, 102.1, 101.5, 98.5, 101.2],
+    })
+
+    result = detect_indecision_candles(df, body_ratio=0.25, symbol="XAUUSD")
+
+    assert result['IC_Type'].iloc[3] == 'BEARISH'
+    assert bool(result['IC_Mitigated'].iloc[3]) is False
+
+
+def test_indecision_candle_close_beyond_zone_marks_setup_mitigated():
+    """Only a closed candle beyond the opposite side invalidates an IC setup."""
+    df = pd.DataFrame({
+        'Open':  [100.0, 102.0, 102.1, 101.0, 99.0, 102.8],
+        'High':  [101.0, 104.0, 102.5, 99.5, 102.6, 105.0],
+        'Low':   [99.0,  100.0, 101.0, 98.0, 98.6, 102.4],
+        'Close': [100.5, 102.1, 101.5, 98.5, 101.2, 104.5],
+    })
+
+    result = detect_indecision_candles(df, body_ratio=0.25, symbol="XAUUSD")
+
+    assert result['IC_Type'].iloc[3] == 'BEARISH'
+    assert bool(result['IC_Mitigated'].iloc[3]) is True
 

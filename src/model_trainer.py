@@ -22,6 +22,13 @@ NON_FEATURE_COLUMNS = [
     'signal_id',
     'confidence',
     'accept_threshold',
+    'close_price',
+    'close_reason',
+    'net_profit',
+    'manager_exit_trigger',
+    'manager_exit_timeframe',
+    'manager_exit_detail',
+    'manager_exit_recorded_at',
     'resolved_at',
     'result',
     'source',
@@ -121,6 +128,35 @@ def prepare_training_features(df):
     X = X.dropna(axis=1, how='all').fillna(0.0)
     y = df['label'].astype(int)
     return X, y
+
+
+def _feature_names_for_model(model, fallback_columns):
+    """Return the feature schema a saved model expects, if the estimator exposes it."""
+    for attr in ('feature_names_in_', 'feature_name_'):
+        feature_names = getattr(model, attr, None)
+        if feature_names is not None:
+            return list(feature_names)
+
+    get_booster = getattr(model, 'get_booster', None)
+    if callable(get_booster):
+        try:
+            feature_names = getattr(get_booster(), 'feature_names', None)
+            if feature_names is not None:
+                return list(feature_names)
+        except Exception:
+            pass
+
+    return list(fallback_columns)
+
+
+def _build_model_matrix(X, model):
+    """Align a DataFrame to a saved model's feature schema for champion gating."""
+    expected_features = _feature_names_for_model(model, X.columns)
+    aligned = X.copy()
+    for feature in expected_features:
+        if feature not in aligned.columns:
+            aligned[feature] = 0.0
+    return aligned[expected_features].apply(pd.to_numeric, errors='coerce').fillna(0.0)
 
 
 def calculate_sample_weights(df, row_indexes=None, shadow_sample_weight=None):
@@ -367,8 +403,8 @@ def train_xgboost_filter(labeled_data_path="data/labeled_setups.csv", model_dir=
             old_lgb = joblib.load(lgb_model_path)
             
             # Evaluate old models on the new test set
-            old_xgb_prob = old_xgb.predict_proba(X_test)[:, 1]
-            old_lgb_prob = old_lgb.predict_proba(X_test)[:, 1]
+            old_xgb_prob = old_xgb.predict_proba(_build_model_matrix(X_test, old_xgb))[:, 1]
+            old_lgb_prob = old_lgb.predict_proba(_build_model_matrix(X_test, old_lgb))[:, 1]
             old_prob = (old_xgb_prob + old_lgb_prob) / 2
             
             old_passed_idx = old_prob >= 0.5

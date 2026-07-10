@@ -40,6 +40,7 @@ def test_format_single_signal_message_uses_professional_sections():
     assert "<b>Signal</b>" in msg
     assert "<b>Model Confidence</b>" in msg
     assert "<b>Execution</b>" in msg
+    assert "Entry policy: Monitoring-only timeframe (no live order)" in msg
     assert "<b>Levels</b>" in msg
     assert "<b>Confluence</b>" in msg
     assert "<b>HTF Match</b>" in msg
@@ -47,6 +48,8 @@ def test_format_single_signal_message_uses_professional_sections():
     assert "AI Success Score" not in msg
     assert "HIGH CONFIDENCE" not in msg
     assert "Market order active (ticket #12345)" in msg
+    assert "Source: closed-candle scanner data and MT5 execution response." in msg
+    assert "Automated alert from Forex SMC AI Analyzer" not in msg
 
 
 def test_format_dual_signal_message_keeps_fib_lot_plan_clear():
@@ -73,6 +76,7 @@ def test_format_dual_signal_message_keeps_fib_lot_plan_clear():
 
     assert "0.500 entry (0.01 lot): <code>61.23%</code>" in msg
     assert "0.618 entry (0.02 lot): <code>77.89%</code>" in msg
+    assert "Entry policy: Live-entry timeframe" in msg
     assert "Entry 0.500 (0.01 lot): <code>2300.500</code>" in msg
     assert "Entry 0.618 (0.02 lot): <code>2298.618</code>" in msg
     assert "AI Success Score" not in msg

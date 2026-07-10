@@ -65,3 +65,12 @@ def test_labeled_setups_have_new_features():
                 "dist_to_recent_swing", "htf_trend_aligned", "confluence_score"]:
         assert col in out.columns, f"missing feature {col}"
         assert out[col].notna().all(), f"NaN leaked in {col}"
+
+
+def test_labeled_setups_have_order_routing_features():
+    df = _real_slice()
+    out = label_smc_setups(df, symbol="XAUUSD")
+    assert not out.empty, "real data slice must produce setups"
+    for col in ["order_type", "reaction_strength"]:
+        assert col in out.columns, f"missing feature {col}"
+        assert out[col].notna().all(), f"NaN leaked in {col}"

@@ -47,7 +47,7 @@ def test_score_outcome_dataset_uses_active_model_probabilities(tmp_path):
     }).to_csv(data_path, index=False)
     joblib.dump(ConfidenceByHourModel(), model_dir / "smc_xgb_classifier.joblib")
 
-    scored = score_outcome_dataset(str(data_path), model_dir=str(model_dir))
+    scored = score_outcome_dataset(str(data_path), model_dir=str(model_dir), mode="active_model")
 
     assert scored["confidence"].round(2).tolist() == [0.35, 0.75]
     assert scored["confidence_bucket"].tolist() == ["0.30-0.40", "0.70-0.80"]
@@ -81,6 +81,7 @@ def test_score_outcome_dataset_falls_back_to_stored_shadow_confidence_when_no_mo
         str(data_path),
         shadow_labeled_data_path=str(shadow_path),
         model_dir=str(tmp_path / "missing_models"),
+        mode="active_model",
     )
 
     assert scored.loc[scored["sample_source"] == "real", "confidence"].isna().all()
@@ -128,6 +129,36 @@ def test_build_calibration_report_groups_by_threshold_bucket_timeframe_and_sourc
     assert output_path.exists()
 
 
+def test_build_calibration_report_adds_live_policy_filtered_metrics():
+    scored = pd.DataFrame({
+        "confidence": [0.80, 0.80, 0.60, 0.70],
+        "confidence_bucket": ["0.80-0.90", "0.80-0.90", "0.60-0.70", "0.70-0.80"],
+        "timeframe": [15, 30, 60, 60],
+        "setup_type": [0, 1, 0, 2],
+        "strategy": ["FVG", "SND", "FVG", "PIVOT_REJECTION"],
+        "sample_source": ["real", "real", "real", "real"],
+        "pnl_relative": [2.0, 2.0, -1.0, 2.0],
+        "label": [1, 1, 0, 1],
+    })
+
+    report = build_calibration_report(
+        scored,
+        output_path=None,
+        live_policy_env={
+            "MT5_ALLOWED_TIMEFRAMES": "M30,H1",
+            "MT5_LIVE_STRATEGY_BLOCKLIST": "Pivot,SND,Swapzone",
+        },
+    )
+
+    live_policy = report["live_policy"]
+    assert live_policy["allowed_timeframes"] == ["M30", "H1"]
+    assert live_policy["thresholds"]["0.50"]["sample_count"] == 1
+    assert live_policy["thresholds"]["0.50"]["loss_count"] == 1
+    assert live_policy["thresholds"]["0.50"]["expectancy_r"] == -1.0
+    assert live_policy["excluded_counts"]["timeframe"] == 1
+    assert live_policy["excluded_counts"]["strategy"] == 2
+
+
 def test_build_calibration_report_uses_setup_type_strategy_fallback_when_strategy_missing():
     scored = pd.DataFrame({
         "confidence": [0.55, 0.65, 0.75],
@@ -143,6 +174,23 @@ def test_build_calibration_report_uses_setup_type_strategy_fallback_when_strateg
     assert report["strategies"]["FVG_OR_BPR"]["sample_count"] == 1
     assert report["strategies"]["OB_OR_SWAPZONE_IC_SND"]["loss_count"] == 1
     assert report["strategies"]["PIVOT_REJECTION"]["winrate_pct"] == 100.0
+
+
+def test_build_calibration_report_normalizes_pivot_rejection_strategy_name():
+    scored = pd.DataFrame({
+        "confidence": [0.75, 0.65],
+        "confidence_bucket": ["0.70-0.80", "0.60-0.70"],
+        "setup_type": [2, 1],
+        "strategy": ["Pivot", "Pivot"],
+        "sample_source": ["real", "real"],
+        "pnl_relative": [2.0, -1.0],
+        "label": [1, 0],
+    })
+
+    report = build_calibration_report(scored, output_path=None)
+
+    assert report["strategies"]["PIVOT_REJECTION"]["winrate_pct"] == 100.0
+    assert report["strategies"]["Pivot"]["loss_count"] == 1
 
 
 def test_build_calibration_report_calculates_drawdown_in_time_order():

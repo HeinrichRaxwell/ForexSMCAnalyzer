@@ -96,6 +96,7 @@ def _build_one_record(
     probability: float,
     now: str,
     leg: str = "single",
+    filtered_reason: str = "below_accept_threshold",
 ) -> dict:
     return _to_json_safe({
         "signal_id": signal_id,
@@ -117,7 +118,7 @@ def _build_one_record(
         "tp_price": opt.get("tp_price"),
         "confidence": float(probability),
         "accept_threshold": float(accept_threshold),
-        "filtered_reason": "below_accept_threshold",
+        "filtered_reason": opt.get("filtered_reason", filtered_reason),
         "created_at": now,
         "latest_seen_at": now,
         "resolved_at": None,
@@ -140,6 +141,7 @@ def build_shadow_signal_records(
     opt_b: dict = None,
     probability_b: float = None,
     now: str = None,
+    filtered_reason: str = "below_accept_threshold",
 ) -> list:
     """Build normalized shadow records for single or dual-entry candidate signals."""
     now = now or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -156,6 +158,7 @@ def build_shadow_signal_records(
                 opt=opt,
                 probability=probability,
                 now=now,
+                filtered_reason=filtered_reason,
             )
         ]
 
@@ -173,6 +176,7 @@ def build_shadow_signal_records(
                 probability=probability_a,
                 now=now,
                 leg="0.5",
+                filtered_reason=filtered_reason,
             )
         )
     if opt_b is not None:
@@ -188,6 +192,7 @@ def build_shadow_signal_records(
                 probability=probability_b,
                 now=now,
                 leg="0.618",
+                filtered_reason=filtered_reason,
             )
         )
     return records
@@ -369,6 +374,23 @@ def resolve_shadow_record(record: dict, candles: pd.DataFrame, max_bars: int = N
 
 def _shadow_label_row(record: dict) -> dict:
     features = record.get("features") or {}
+    entry = record.get("entry_price")
+    sl = record.get("sl_price")
+    tp = record.get("tp_price")
+    try:
+        risk = abs(float(entry) - float(sl))
+        reward = abs(float(tp) - float(entry))
+        derived_rr = reward / risk if risk > 0.0 else 0.0
+    except (TypeError, ValueError):
+        derived_rr = 0.0
+
+    direction = features.get("direction", record.get("direction"))
+    floop_trend = features.get("floop_trend", 0)
+    try:
+        htf_aligned = 1 if int(direction) == int(floop_trend) and int(floop_trend) != 0 else 0
+    except (TypeError, ValueError):
+        htf_aligned = 0
+
     row = {
         "signal_id": record.get("signal_id"),
         "sample_source": "shadow",
@@ -400,8 +422,17 @@ def _shadow_label_row(record: dict) -> dict:
         "floop_strength": features.get("floop_strength"),
         "floop_trend": features.get("floop_trend"),
         "floop_trend_aligned": features.get("floop_trend_aligned"),
+        "rr_ratio": features.get("rr_ratio", derived_rr),
+        "atr_percentile": features.get("atr_percentile", 0.0),
+        "body_to_range_ratio": features.get("body_to_range_ratio", 0.0),
+        "dist_to_recent_swing": features.get("dist_to_recent_swing", 0.0),
+        "htf_trend_aligned": features.get("htf_trend_aligned", htf_aligned),
+        "confluence_score": features.get("confluence_score", 0),
+        "order_type": features.get("order_type", 0),
+        "reaction_strength": features.get("reaction_strength", 0.0),
         "confidence": record.get("confidence"),
         "accept_threshold": record.get("accept_threshold"),
+        "filtered_reason": record.get("filtered_reason"),
         "resolved_at": record.get("resolved_at"),
         "result": record.get("result"),
         "pnl_relative": record.get("pnl_relative"),

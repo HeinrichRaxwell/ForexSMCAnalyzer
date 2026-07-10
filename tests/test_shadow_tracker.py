@@ -342,3 +342,12 @@ def test_process_shadow_signal_outcomes_updates_json_and_appends_labeled_csv_onc
     assert labeled_df.iloc[0]["strategy"] == "FVG"
     assert labeled_df.iloc[0]["label"] == 1
     assert labeled_df.iloc[0]["pnl_relative"] == 2.0
+    for column in [
+        "rr_ratio", "atr_percentile", "body_to_range_ratio",
+        "dist_to_recent_swing", "htf_trend_aligned", "confluence_score",
+        "order_type", "reaction_strength",
+    ]:
+        assert column in labeled_df.columns
+        assert pd.notna(labeled_df.iloc[0][column])
+    assert labeled_df.iloc[0]["rr_ratio"] == 2.0
+    assert labeled_df.iloc[0]["order_type"] == 0

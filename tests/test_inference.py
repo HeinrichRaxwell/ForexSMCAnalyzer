@@ -121,6 +121,58 @@ def test_update_feedback_data(tmp_path):
     assert len(df_updated) == 3
 
 
+def test_update_feedback_data_preserves_real_exit_audit_columns_for_existing_csv(tmp_path):
+    labeled_data_path = tmp_path / "test_feedback.csv"
+    pd.DataFrame([{
+        'time': '2026-06-04 12:00:00',
+        'timeframe': 15,
+        'hour': 12,
+        'day_of_week': 3,
+        'setup_type': 0,
+        'direction': -1,
+        'entry_price': 4098.247,
+        'sl_price': 4105.851,
+        'tp_price': 4089.181,
+        'pnl_relative': -0.03,
+        'label': 0,
+    }]).to_csv(labeled_data_path, index=False)
+
+    update_feedback_data({
+        'time': '2026-06-11 14:17:29',
+        'timeframe': 15,
+        'hour': 14,
+        'day_of_week': 3,
+        'setup_type': 0,
+        'direction': -1,
+        'entry_price': 4098.247,
+        'sl_price': 4105.851,
+        'tp_price': 4089.181,
+        'pnl_relative': -0.03510548478820622,
+        'label': 0,
+        'close_price': 4098.514,
+        'close_reason': 'EXPERT',
+        'net_profit': -19110.84,
+        'manager_exit_trigger': 'emergency_reversal',
+        'manager_exit_timeframe': 'M15',
+        'manager_exit_detail': 'opposite CHoCH confirmed on closed candles',
+    }, labeled_data_path=str(labeled_data_path))
+
+    df = pd.read_csv(labeled_data_path)
+    assert len(df) == 2
+    for column in [
+        'close_price',
+        'close_reason',
+        'net_profit',
+        'manager_exit_trigger',
+        'manager_exit_timeframe',
+        'manager_exit_detail',
+    ]:
+        assert column in df.columns
+    assert df.iloc[-1]['close_price'] == pytest.approx(4098.514)
+    assert df.iloc[-1]['close_reason'] == 'EXPERT'
+    assert df.iloc[-1]['manager_exit_trigger'] == 'emergency_reversal'
+
+
 def test_update_feedback_data_aligns_to_existing_csv_column_order(tmp_path):
     labeled_data_path = tmp_path / "existing_feedback.csv"
     existing_columns = [
@@ -203,6 +255,104 @@ def test_update_feedback_data_aligns_to_existing_csv_column_order(tmp_path):
     assert df.iloc[-1]['near_psychological_level'] == 1
     assert df.iloc[-1]['dist_entry_to_nearest_poc'] == 0.0
 
+
+def test_update_feedback_data_fills_new_feature_columns_for_legacy_payload(tmp_path):
+    labeled_data_path = tmp_path / "existing_new_schema.csv"
+    feature_columns = [
+        'rr_ratio', 'atr_percentile', 'body_to_range_ratio',
+        'dist_to_recent_swing', 'htf_trend_aligned', 'confluence_score',
+        'order_type', 'reaction_strength',
+    ]
+    existing_columns = [
+        'time', 'timeframe', 'hour', 'day_of_week', 'setup_type', 'direction',
+        'entry_price', 'sl_price', 'tp_price', 'risk_pips', 'atr_14',
+        'trend', 'relative_risk', 'killzone', 'fvg_width', 'relative_fvg_width',
+        'near_psychological_level', 'knn_prob_sig', 'knn_prob_opp',
+        'dist_entry_to_poc', 'dist_entry_to_nearest_poc',
+        'dist_entry_to_pp', 'dist_entry_to_nearest_pivot',
+        'floop_signal', 'floop_strength', 'floop_trend', 'floop_trend_aligned',
+        'pnl_relative',
+    ] + feature_columns + ['label']
+    pd.DataFrame([{
+        'time': '2026-06-01 00:00:00',
+        'timeframe': 15,
+        'hour': 0,
+        'day_of_week': 0,
+        'setup_type': 0,
+        'direction': 1,
+        'entry_price': 2300.0,
+        'sl_price': 2295.0,
+        'tp_price': 2310.0,
+        'risk_pips': 5.0,
+        'atr_14': 8.0,
+        'trend': 1,
+        'relative_risk': 0.625,
+        'killzone': 0,
+        'fvg_width': 1.0,
+        'relative_fvg_width': 0.125,
+        'near_psychological_level': 1,
+        'knn_prob_sig': 0.7,
+        'knn_prob_opp': 0.3,
+        'dist_entry_to_poc': 0.0,
+        'dist_entry_to_nearest_poc': 0.0,
+        'dist_entry_to_pp': 0.0,
+        'dist_entry_to_nearest_pivot': 0.0,
+        'floop_signal': 0,
+        'floop_strength': 5.0,
+        'floop_trend': 1,
+        'floop_trend_aligned': 1,
+        'pnl_relative': 2.0,
+        'rr_ratio': 2.0,
+        'atr_percentile': 0.0,
+        'body_to_range_ratio': 0.0,
+        'dist_to_recent_swing': 0.0,
+        'htf_trend_aligned': 1,
+        'confluence_score': 0,
+        'order_type': 0,
+        'reaction_strength': 0.0,
+        'label': 1,
+    }], columns=existing_columns).to_csv(labeled_data_path, index=False)
+
+    update_feedback_data({
+        'time': '2026-06-10 02:45:42',
+        'timeframe': 15,
+        'hour': 2,
+        'day_of_week': 2,
+        'setup_type': 1,
+        'direction': 1,
+        'entry_price': 2300.0,
+        'sl_price': 2295.0,
+        'tp_price': 2310.0,
+        'risk_pips': 5.0,
+        'atr_14': 8.0,
+        'trend': 1,
+        'relative_risk': 0.625,
+        'killzone': 0,
+        'fvg_width': 1.0,
+        'relative_fvg_width': 0.125,
+        'near_psychological_level': 1,
+        'knn_prob_sig': 0.7,
+        'knn_prob_opp': 0.3,
+        'dist_entry_to_poc': 0.0,
+        'dist_entry_to_nearest_poc': 0.0,
+        'dist_entry_to_pp': 0.0,
+        'dist_entry_to_nearest_pivot': 0.0,
+        'floop_signal': 0,
+        'floop_strength': 5.0,
+        'floop_trend': 1,
+        'floop_trend_aligned': 1,
+        'pnl_relative': -1.0,
+        'label': 0,
+    }, labeled_data_path=str(labeled_data_path))
+
+    df = pd.read_csv(labeled_data_path)
+    row = df.iloc[-1]
+    assert row[feature_columns].notna().all()
+    assert row['rr_ratio'] == pytest.approx(2.0)
+    assert row['htf_trend_aligned'] == 1
+    assert row['order_type'] == 0
+    assert row['reaction_strength'] == 0.0
+
 def test_trigger_auto_retrain():
     with patch('src.model_trainer.train_xgboost_filter') as mock_train:
         trigger_auto_retrain()
@@ -250,6 +400,37 @@ def test_check_and_trigger_retraining_alert_describes_holdout_metrics(tmp_path, 
     assert "Champion Test Winrate @ 0.50" in message
     assert "(128/244 lolos)" in message
     assert "bukan jaminan winrate live berikutnya" in message
+
+
+def test_check_and_trigger_retraining_suppresses_duplicate_mlops_alert(tmp_path, monkeypatch):
+    status_file = tmp_path / "learning_status.json"
+    monkeypatch.setenv("ML_RETRAIN_THRESHOLD", "1")
+    stats = {
+        "status": "REJECTED",
+        "dataset_size": 1219,
+        "test_size": 244,
+        "eval_threshold": 0.50,
+        "old_accuracy": 81.56,
+        "new_accuracy": 74.59,
+        "old_winrate": 92.19,
+        "new_winrate": 68.69,
+        "old_passed_count": 128,
+        "new_passed_count": 99,
+    }
+
+    with patch("src.inference.trigger_auto_retrain", return_value=(object(), stats)) as mock_train, \
+         patch("src.model_trainer.get_training_max_setups", return_value=5000), \
+         patch("src.telegram_bot.send_telegram_alert") as mock_alert:
+        first = check_and_trigger_retraining(1, status_file=str(status_file))
+        second = check_and_trigger_retraining(1, status_file=str(status_file))
+
+    assert first["retrained"] is True
+    assert second["retrained"] is True
+    assert mock_train.call_count == 2
+    mock_alert.assert_called_once()
+    status = json.loads(status_file.read_text())
+    assert status["last_retrain_telegram_event_key"]
+    assert status["last_retrain_telegram_suppressed_at"]
 
 
 def test_check_and_trigger_retraining_can_wait_for_five_trades(tmp_path, monkeypatch):
@@ -640,3 +821,28 @@ def test_process_mt5_history_feedback_reports_sl_protected_profit_not_tp_win(tmp
     assert "SL" in message
     assert "Trade berhasil mencapai TP" not in message
     assert "WIN (PROFIT)" not in message
+
+
+def test_analyze_trade_outcome_reason_includes_manager_exit_trigger():
+    features = {
+        "direction": -1,
+        "entry_price": 4098.247,
+        "sl_price": 4105.851,
+        "tp_price": 4089.181,
+        "atr_14": 6.0,
+        "floop_signal": 0,
+        "floop_strength": 8.0,
+        "floop_trend": -1,
+        "floop_trend_aligned": 1,
+        "close_price": 4098.514,
+        "close_reason": "EXPERT",
+        "net_profit": -19110.84,
+        "manager_exit_trigger": "emergency_reversal",
+        "manager_exit_timeframe": "M15",
+        "manager_exit_detail": "opposite CHoCH confirmed on closed M15 candles",
+    }
+
+    analysis = analyze_trade_outcome_reason(features, label=0, pnl_relative=-0.035)
+
+    assert "emergency_reversal" in analysis
+    assert "opposite CHoCH confirmed on closed M15 candles" in analysis

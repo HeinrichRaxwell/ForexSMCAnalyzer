@@ -1,6 +1,8 @@
 import os
 import sys
 from datetime import datetime
+import hashlib
+import json
 
 import pandas as pd
 import numpy as np
@@ -10,9 +12,47 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Add project root to python path if not present
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(BASE_DIR)
 
-def predict_setup_probability(features_dict, model_path="models/smc_xgb_classifier.joblib"):
+from src.calibrator import apply_calibrator, load_calibrator
+
+
+_CALIBRATOR_CACHE = {}
+
+
+def _resolve_project_path(path):
+    if path is None:
+        return None
+    if os.path.isabs(path):
+        return path
+    return os.path.join(BASE_DIR, path)
+
+
+def apply_confidence_calibration(raw_prob, calibrator_path="models/confidence_calibrator.joblib"):
+    """Map raw ensemble probability to calibrated confidence, with identity fallback."""
+    calibrator_path = _resolve_project_path(calibrator_path)
+    if calibrator_path not in _CALIBRATOR_CACHE:
+        _CALIBRATOR_CACHE[calibrator_path] = load_calibrator(calibrator_path)
+    calibrated = apply_calibrator(_CALIBRATOR_CACHE[calibrator_path], np.array([float(raw_prob)]))
+    return float(calibrated[0])
+
+
+def _build_inference_matrix(features, expected_features):
+    """Build numeric inference matrix matching trained model feature order.
+
+    Missing model features are filled with zero so older live signal payloads remain
+    inferable after new feature columns are added during retraining.
+    """
+    df = pd.DataFrame(features)
+    for feature in expected_features:
+        if feature not in df.columns:
+            df[feature] = 0.0
+    X = df[list(expected_features)].apply(pd.to_numeric, errors='coerce').fillna(0.0)
+    return X
+
+
+def predict_setup_probability(features_dict, model_path="models/smc_xgb_classifier.joblib", calibrator_path=None):
     """
     Load the trained models (XGBoost & LightGBM) and predict the ensemble probability of success.
     
@@ -23,9 +63,10 @@ def predict_setup_probability(features_dict, model_path="models/smc_xgb_classifi
     Returns:
         float or list of floats: Probability of success (label = 1).
     """
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if not os.path.isabs(model_path):
-        model_path = os.path.join(base_dir, model_path)
+        model_path = os.path.join(BASE_DIR, model_path)
+    if calibrator_path is None:
+        calibrator_path = os.path.join(os.path.dirname(model_path), "confidence_calibrator.joblib")
         
     lgb_model_path = os.path.join(os.path.dirname(model_path), "smc_lgb_classifier.joblib")
     
@@ -45,16 +86,8 @@ def predict_setup_probability(features_dict, model_path="models/smc_xgb_classifi
     if not is_list:
         features_dict = [features_dict]
         
-    df = pd.DataFrame(features_dict)
-    
-    # Ensure correct feature names and order
     expected_features = list(model_xgb.feature_names_in_)
-    missing_features = [f for f in expected_features if f not in df.columns]
-    if missing_features:
-        raise ValueError(f"Missing expected features: {missing_features}")
-        
-    # Reorder columns to match feature_names_in_
-    X = df[expected_features]
+    X = _build_inference_matrix(features_dict, expected_features)
     
     # Predict probabilities
     probs_xgb = model_xgb.predict_proba(X)[:, 1]
@@ -68,6 +101,8 @@ def predict_setup_probability(features_dict, model_path="models/smc_xgb_classifi
             probs = probs_xgb
     else:
         probs = probs_xgb
+
+    probs = np.array([apply_confidence_calibration(prob, calibrator_path=calibrator_path) for prob in probs])
         
     if is_list:
         return probs.tolist()
@@ -90,6 +125,16 @@ def update_feedback_data(new_trades_list, labeled_data_path="data/labeled_setups
         new_trades_list = [new_trades_list]
         
     df_new = pd.DataFrame(new_trades_list)
+    _fill_legacy_feedback_features(df_new)
+    audit_columns = [
+        'close_price',
+        'close_reason',
+        'net_profit',
+        'manager_exit_trigger',
+        'manager_exit_timeframe',
+        'manager_exit_detail',
+        'manager_exit_recorded_at',
+    ]
     
     # Standard columns order for labeled_setups.csv
     columns_order = [
@@ -107,8 +152,24 @@ def update_feedback_data(new_trades_list, labeled_data_path="data/labeled_setups
             existing_columns = list(pd.read_csv(labeled_data_path, nrows=0).columns)
             if existing_columns:
                 columns_order = existing_columns
+                missing_audit_columns = [
+                    column for column in audit_columns
+                    if column in df_new.columns and column not in columns_order
+                ]
+                if missing_audit_columns:
+                    existing_df = pd.read_csv(labeled_data_path)
+                    for column in missing_audit_columns:
+                        existing_df[column] = np.nan
+                    columns_order = columns_order + missing_audit_columns
+                    existing_df = existing_df[columns_order]
+                    existing_df.to_csv(labeled_data_path, index=False)
         except Exception as e:
             print(f"[Feedback Loop] Warning: failed to read existing feedback CSV header: {e}")
+    else:
+        columns_order = columns_order + [
+            column for column in audit_columns
+            if column in df_new.columns and column not in columns_order
+        ]
 
     # Ensure all columns exist
     for col in columns_order:
@@ -122,6 +183,44 @@ def update_feedback_data(new_trades_list, labeled_data_path="data/labeled_setups
     
     df_new.to_csv(labeled_data_path, mode='a', header=header, index=False)
     print(f"Appended {len(df_new)} new trades to {labeled_data_path}")
+
+
+def _safe_series_number(df, column, default=0.0):
+    if column not in df.columns:
+        return pd.Series(default, index=df.index, dtype=float)
+    return pd.to_numeric(df[column], errors='coerce').fillna(default)
+
+
+def _fill_legacy_feedback_features(df):
+    """Populate new model feature columns for older live-feedback payloads."""
+    entry = _safe_series_number(df, 'entry_price')
+    sl = _safe_series_number(df, 'sl_price')
+    tp = _safe_series_number(df, 'tp_price')
+    risk = (entry - sl).abs()
+    reward = (tp - entry).abs()
+    rr = pd.Series(np.where(risk > 0.0, reward / risk, 0.0), index=df.index, dtype=float)
+    floop_trend = _safe_series_number(df, 'floop_trend').astype(int)
+
+    defaults = {
+        'rr_ratio': rr,
+        'atr_percentile': 0.0,
+        'body_to_range_ratio': 0.0,
+        'dist_to_recent_swing': 0.0,
+        'htf_trend_aligned': (
+            (_safe_series_number(df, 'direction').astype(int) == floop_trend)
+            & (floop_trend != 0)
+        ).astype(int),
+        'confluence_score': 0,
+        'order_type': 0,
+        'reaction_strength': 0.0,
+    }
+    for column, default in defaults.items():
+        if column not in df.columns:
+            df[column] = default
+        elif isinstance(default, pd.Series):
+            df[column] = df[column].where(df[column].notna(), default)
+        else:
+            df[column] = df[column].fillna(default)
 
 
 def _feedback_key_text(value) -> str:
@@ -226,13 +325,55 @@ def _is_weekend_retrain_enabled(default: bool = True) -> bool:
     return raw_value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _retrain_alert_event_key(stats: dict, max_setups: int) -> str:
+    """Build a stable key so the same MLOps result is not announced repeatedly."""
+    def metric(value):
+        try:
+            return round(float(value), 2)
+        except (TypeError, ValueError):
+            return value
+
+    payload = {
+        "status": stats.get("status"),
+        "dataset_size": stats.get("dataset_size"),
+        "real_dataset_size": stats.get("real_dataset_size"),
+        "shadow_dataset_size": stats.get("shadow_dataset_size"),
+        "test_size": stats.get("test_size"),
+        "eval_threshold": metric(stats.get("eval_threshold")),
+        "old_accuracy": metric(stats.get("old_accuracy")),
+        "new_accuracy": metric(stats.get("new_accuracy")),
+        "old_winrate": metric(stats.get("old_winrate")),
+        "new_winrate": metric(stats.get("new_winrate")),
+        "old_passed_count": stats.get("old_passed_count"),
+        "new_passed_count": stats.get("new_passed_count"),
+        "max_setups": max_setups,
+    }
+    encoded = json.dumps(payload, sort_keys=True, default=str)
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _should_send_retrain_alert(status: dict, stats: dict, max_setups: int, now: datetime = None) -> tuple:
+    """Return whether this retrain alert should be sent and metadata to persist."""
+    now = now or datetime.now()
+    event_key = _retrain_alert_event_key(stats, max_setups)
+    last_key = status.get("last_retrain_telegram_event_key")
+    if last_key == event_key:
+        return False, {
+            "last_retrain_telegram_event_key": event_key,
+            "last_retrain_telegram_suppressed_at": now.strftime('%Y-%m-%d %H:%M:%S'),
+        }
+    return True, {
+        "last_retrain_telegram_event_key": event_key,
+        "last_retrain_telegram_sent_at": now.strftime('%Y-%m-%d %H:%M:%S'),
+    }
+
+
 def check_and_trigger_retraining(new_trades_count: int, status_file: str = None):
     """
     Check if we should retrain the model.
     Retrain when accumulated trades reach ML_RETRAIN_THRESHOLD (default: 1)
     or when it is the weekend.
     """
-    import json
     from datetime import datetime
     
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -306,10 +447,15 @@ def check_and_trigger_retraining(new_trades_count: int, status_file: str = None)
                     f"<i>Metric ini dihitung dari labeled/shadow dataset, bukan jaminan winrate live berikutnya. "
                     f"AI menggunakan sample weighting untuk membedakan TP kuat, BEP/proteksi, dan loss.</i>"
                 )
-                try:
-                    send_telegram_alert(msg)
-                except Exception as te:
-                    print(f"Failed to send retraining alert: {te}")
+                should_send_alert, alert_status = _should_send_retrain_alert(status, stats, max_setups)
+                status.update(alert_status)
+                if should_send_alert:
+                    try:
+                        send_telegram_alert(msg)
+                    except Exception as te:
+                        print(f"Failed to send retraining alert: {te}")
+                else:
+                    print("[Feedback Loop] Retrain Telegram alert suppressed; same MLOps result already announced.")
         except Exception as e:
             result["status"] = "ERROR"
             result["error"] = str(e)
@@ -528,6 +674,9 @@ def analyze_trade_outcome_reason(features: dict, label: int, pnl_relative: float
     outcome_category = close_outcome.get("category")
     outcome_weight = close_outcome.get("weight", 1.0)
     close_reason = close_outcome.get("close_reason", "UNKNOWN")
+    manager_exit_trigger = features.get("manager_exit_trigger")
+    manager_exit_timeframe = features.get("manager_exit_timeframe")
+    manager_exit_detail = features.get("manager_exit_detail")
 
     # 2. Match with Outcome to form analysis text
     analysis_text = ""
@@ -634,7 +783,15 @@ def analyze_trade_outcome_reason(features: dict, label: int, pnl_relative: float
                 f"pada setup sejenis di masa depan untuk meminimalkan loss konyol."
             )
             
-    return f"{analysis_text}\n\n{lesson_text}"
+    manager_exit_text = ""
+    if manager_exit_trigger:
+        manager_exit_text = f"\n\n📌 <b>Trigger Exit Manager:</b> {manager_exit_trigger}"
+        if manager_exit_timeframe:
+            manager_exit_text += f" ({manager_exit_timeframe})"
+        if manager_exit_detail:
+            manager_exit_text += f" - {manager_exit_detail}"
+
+    return f"{analysis_text}{manager_exit_text}\n\n{lesson_text}"
 
 
 def process_mt5_history_feedback(sent_signals_file="data/sent_signals.json", labeled_data_path="data/labeled_setups.csv", return_details=False):
@@ -814,6 +971,17 @@ def process_mt5_history_feedback(sent_signals_file="data/sent_signals.json", lab
                             pnl_relative = (close_price - entry_price) / risk_price
                         else: # Sell
                             pnl_relative = (entry_price - close_price) / risk_price
+
+                suffix = _outcome_field_suffix(out_field)
+                for field_name in (
+                    "manager_exit_trigger",
+                    "manager_exit_timeframe",
+                    "manager_exit_detail",
+                    "manager_exit_recorded_at",
+                ):
+                    registry_value = sig_data.get(f"{field_name}{suffix}")
+                    if registry_value is not None:
+                        features_dict[field_name] = registry_value
                             
                 features_dict['pnl_relative'] = pnl_relative
                 features_dict['close_price'] = close_price
@@ -861,6 +1029,10 @@ def process_mt5_history_feedback(sent_signals_file="data/sent_signals.json", lab
             
             manual_tag = " (Manual Entry)" if is_manual else ""
             
+            account_info_fn = getattr(mt5, "account_info", None)
+            account_info = account_info_fn() if account_info_fn is not None else None
+            currency = getattr(account_info, "currency", "USD") or "USD"
+            
             # Generate detailed technical analysis explanation
             analysis_details = ""
             if features_dict:
@@ -883,7 +1055,7 @@ def process_mt5_history_feedback(sent_signals_file="data/sent_signals.json", lab
                 f"• <b>SL | TP:</b> <code>{features_dict.get('sl_price', 0.0) if features_dict else 0.0:.3f} | {features_dict.get('tp_price', 0.0) if features_dict else 0.0:.3f}</code>\n"
                 f"• <b>Close Price:</b> <code>{features_dict.get('close_price', 0.0) if features_dict else 0.0:.3f}</code> ({features_dict.get('close_reason', 'UNKNOWN') if features_dict else 'UNKNOWN'})\n"
                 f"• <b>Hasil Posisi:</b> {color_str} <b>{outcome_str}</b>\n"
-                f"• <b>Net PnL Riil:</b> <code>{net_profit:+,.2f} IDR</code>\n"
+                f"• <b>Net PnL Riil:</b> <code>{net_profit:+,.2f} {currency}</code>\n"
                 f"• <b>PnL Relative:</b> <code>{pnl_relative:+.2f} R</code>\n\n"
                 f"{analysis_details}\n\n"
                 f"<i>Database latih diperbarui & retraining otomatis dipicu.</i>"

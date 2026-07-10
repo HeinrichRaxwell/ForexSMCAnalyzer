@@ -1387,3 +1387,1433 @@ Pre-calculating KNN and Volume Profile features for live scanner...
 No new high confidence trade signals triggered this cycle.
 --- Scan Cycle Finished ---
 Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 15:29:45 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 258 skipped: price is too far from market (106.12 USD > 60.0 USD limit) / price is too far from market (114.51 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 151 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 189 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 15:31:00 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 258 skipped: price is too far from market (106.20 USD > 60.0 USD limit) / price is too far from market (114.58 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 151 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] M15 FVG at index 498 rejected: Weak displacement candle (body/range 0.31 < 0.5)
+[Quality Filter] H1 FVG at index 189 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+[Scanner Registry] Registering low confidence dual M15 BPR at 2026-06-09 08:15:00 for manual tracking.
+No new high confidence trade signals triggered this cycle.
+[Risk Management] Cancelling zombie/invalid pending order #3246430642 (structure mitigated/invalid).
+[Risk Management] Order #3246430642 successfully cancelled.
+[Risk Management] Cancelling zombie/invalid pending order #3246430659 (structure mitigated/invalid).
+[Risk Management] Order #3246430659 successfully cancelled.
+[Telegram Bot] Alert text message sent successfully.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 15:32:25 ---
+[Feedback Loop] Signal M15_BPR_DUAL_BULL_4333.130_4332.558_2026-06-09_08:15:00 (Option A (0.50) Ticket #3246430642) was cancelled/expired.
+[Telegram Bot] Alert text message sent successfully.
+[Feedback Loop] Signal M15_BPR_DUAL_BULL_4333.130_4332.558_2026-06-09_08:15:00 (Option B (0.618) Ticket #3246430659) was cancelled/expired.
+[Telegram Bot] Alert text message sent successfully.
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 258 skipped: price is too far from market (106.47 USD > 60.0 USD limit) / price is too far from market (114.85 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 151 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] M15 FVG at index 498 rejected: Weak displacement candle (body/range 0.31 < 0.5)
+[Quality Filter] H1 FVG at index 189 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 15:33:47 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 258 skipped: price is too far from market (106.26 USD > 60.0 USD limit) / price is too far from market (114.64 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 151 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] M15 FVG at index 498 rejected: Weak displacement candle (body/range 0.31 < 0.5)
+[Quality Filter] H1 FVG at index 189 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 15:35:06 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Feedback Loop] Accumulated 2 new trades since last retrain. (Weekend: False)
+[Feedback Loop] Retraining conditions met (Accumulated >= 1 or Weekend). Running retrain...
+Triggering automatic model retraining...
+Loading labeled data from C:\Users\WINDOWS 11 PRO\forex-smc-analyzer\data/labeled_setups.csv...
+Loaded 965 real setups.
+Pruned dataset written back to: C:\Users\WINDOWS 11 PRO\forex-smc-analyzer\data/labeled_setups.csv
+[Source-Aware Training] Loaded 311 resolved shadow setups from C:\Users\WINDOWS 11 PRO\forex-smc-analyzer\data\shadow_labeled_setups.csv.
+[Source-Aware Training] Combined dataset: 965 real + 311 shadow setups.
+Features: ['timeframe', 'hour', 'day_of_week', 'setup_type', 'direction', 'entry_price', 'sl_price', 'tp_price', 'risk_pips', 'atr_14', 'trend', 'relative_risk', 'killzone', 'fvg_width', 'relative_fvg_width', 'floop_signal', 'floop_strength', 'dist_entry_to_pp', 'dist_entry_to_nearest_pivot', 'near_psychological_level', 'floop_trend', 'floop_trend_aligned', 'knn_prob_sig', 'knn_prob_opp', 'dist_entry_to_poc', 'dist_entry_to_nearest_poc']
+Target: label
+Training set size: 1020, Test set size: 256
+Training XGBoost Classifier with sample weights...
+Training LightGBM Classifier with sample weights...
+
+========================================
+        CLASSIFICATION REPORT (XGB)       
+========================================
+              precision    recall  f1-score   support
+
+           0       0.84      0.77      0.81       145
+           1       0.73      0.81      0.77       111
+
+    accuracy                           0.79       256
+   macro avg       0.79      0.79      0.79       256
+weighted avg       0.79      0.79      0.79       256
+
+
+========================================
+        CLASSIFICATION REPORT (LGBM)      
+========================================
+              precision    recall  f1-score   support
+
+           0       0.80      0.77      0.78       145
+           1       0.71      0.76      0.73       111
+
+    accuracy                           0.76       256
+   macro avg       0.76      0.76      0.76       256
+weighted avg       0.76      0.76      0.76       256
+
+
+========================================
+        CLASSIFICATION REPORT (Ensemble)   
+========================================
+              precision    recall  f1-score   support
+
+           0       0.84      0.77      0.80       145
+           1       0.73      0.80      0.76       111
+
+    accuracy                           0.79       256
+   macro avg       0.78      0.79      0.78       256
+weighted avg       0.79      0.79      0.79       256
+
+
+============================================================
+     WINRATE AT DIFFERENT CONFIDENCE THRESHOLDS (Ensemble)     
+============================================================
+Threshold: 0.50 | Winrate:  72.95% | Passed:  122/256 | Filtered:  134
+Threshold: 0.60 | Winrate:  84.15% | Passed:   82/256 | Filtered:  174
+Threshold: 0.70 | Winrate:  91.30% | Passed:   46/256 | Filtered:  210
+Threshold: 0.75 | Winrate:  91.18% | Passed:   34/256 | Filtered:  222
+Threshold: 0.80 | Winrate: 100.00% | Passed:   17/256 | Filtered:  239
+Threshold: 0.85 | Winrate: 100.00% | Passed:    5/256 | Filtered:  251
+============================================================
+
+
+[MLOps] Comparing Challenger (new) vs Champion (old) model...
+[MLOps] Champion (Old) Test Accuracy: 79.30% | Winrate Lolos Filter: 95.31%
+[MLOps] Challenger (New) Test Accuracy: 78.52% | Winrate Lolos Filter: 72.95%
+[MLOps] Challenger REJECTED: New model accuracy is lower than old model. Keeping Champion.
+[MLOps] Model files were NOT overwritten. Champion remains active.
+[Feedback Loop] Model retrained successfully. Accumulator reset.
+[Telegram Bot] Alert text message sent successfully.
+[Shadow Tracker] Resolved 2 shadow signals, expired 0, appended 2 labeled rows.
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 258 skipped: price is too far from market (108.62 USD > 60.0 USD limit) / price is too far from market (117.00 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 151 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] M15 FVG at index 498 rejected: Weak displacement candle (body/range 0.31 < 0.5)
+[Quality Filter] H1 FVG at index 189 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 15:36:39 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 258 skipped: price is too far from market (107.80 USD > 60.0 USD limit) / price is too far from market (116.19 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 151 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] M15 FVG at index 498 rejected: Weak displacement candle (body/range 0.31 < 0.5)
+[Quality Filter] H1 FVG at index 189 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 15:38:11 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 258 skipped: price is too far from market (107.92 USD > 60.0 USD limit) / price is too far from market (116.31 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 151 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] M15 FVG at index 498 rejected: Weak displacement candle (body/range 0.31 < 0.5)
+[Quality Filter] H1 FVG at index 189 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 15:39:44 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 258 skipped: price is too far from market (106.80 USD > 60.0 USD limit) / price is too far from market (115.19 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 151 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] M15 FVG at index 498 rejected: Weak displacement candle (body/range 0.31 < 0.5)
+[Quality Filter] H1 FVG at index 189 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 15:41:27 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 258 skipped: price is too far from market (106.76 USD > 60.0 USD limit) / price is too far from market (115.15 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 151 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] M15 FVG at index 498 rejected: Weak displacement candle (body/range 0.31 < 0.5)
+[Quality Filter] H1 FVG at index 189 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 15:42:58 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 258 skipped: price is too far from market (104.48 USD > 60.0 USD limit) / price is too far from market (112.86 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 151 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] M15 FVG at index 498 rejected: Weak displacement candle (body/range 0.31 < 0.5)
+[Quality Filter] H1 FVG at index 189 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 15:44:30 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 258 skipped: price is too far from market (105.51 USD > 60.0 USD limit) / price is too far from market (113.90 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 151 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] M15 FVG at index 498 rejected: Weak displacement candle (body/range 0.31 < 0.5)
+[Quality Filter] H1 FVG at index 189 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 15:46:01 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 258 skipped: price is too far from market (107.72 USD > 60.0 USD limit) / price is too far from market (116.10 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] M15 FVG at index 497 rejected: Weak displacement candle (body/range 0.31 < 0.5)
+[Quality Filter] H1 FVG at index 151 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 189 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 15:47:34 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Shadow Tracker] Resolved 1 shadow signals, expired 0, appended 0 labeled rows.
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 258 skipped: price is too far from market (110.03 USD > 60.0 USD limit) / price is too far from market (118.41 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] M15 FVG at index 497 rejected: Weak displacement candle (body/range 0.31 < 0.5)
+[Quality Filter] H1 FVG at index 151 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 189 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 15:49:05 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 258 skipped: price is too far from market (112.62 USD > 60.0 USD limit) / price is too far from market (121.01 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] M15 FVG at index 497 rejected: Weak displacement candle (body/range 0.31 < 0.5)
+[Quality Filter] H1 FVG at index 151 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 189 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 15:50:36 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 258 skipped: price is too far from market (112.73 USD > 60.0 USD limit) / price is too far from market (121.11 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] M15 FVG at index 497 rejected: Weak displacement candle (body/range 0.31 < 0.5)
+[Quality Filter] H1 FVG at index 151 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 189 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 15:52:08 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 258 skipped: price is too far from market (111.70 USD > 60.0 USD limit) / price is too far from market (120.08 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] M15 FVG at index 497 rejected: Weak displacement candle (body/range 0.31 < 0.5)
+[Quality Filter] H1 FVG at index 151 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 189 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 15:53:43 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 258 skipped: price is too far from market (111.22 USD > 60.0 USD limit) / price is too far from market (119.60 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] M15 FVG at index 497 rejected: Weak displacement candle (body/range 0.31 < 0.5)
+[Quality Filter] H1 FVG at index 151 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 189 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 15:55:16 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 258 skipped: price is too far from market (111.43 USD > 60.0 USD limit) / price is too far from market (119.81 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] M15 FVG at index 497 rejected: Weak displacement candle (body/range 0.31 < 0.5)
+[Quality Filter] H1 FVG at index 151 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 189 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 15:56:31 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 258 skipped: price is too far from market (110.48 USD > 60.0 USD limit) / price is too far from market (118.87 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] M15 FVG at index 497 rejected: Weak displacement candle (body/range 0.31 < 0.5)
+[Quality Filter] H1 FVG at index 151 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 189 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 15:58:03 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 258 skipped: price is too far from market (112.78 USD > 60.0 USD limit) / price is too far from market (121.17 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] M15 FVG at index 497 rejected: Weak displacement candle (body/range 0.31 < 0.5)
+[Quality Filter] H1 FVG at index 151 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 189 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 15:59:33 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 258 skipped: price is too far from market (113.71 USD > 60.0 USD limit) / price is too far from market (122.09 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] M15 FVG at index 497 rejected: Weak displacement candle (body/range 0.31 < 0.5)
+[Quality Filter] H1 FVG at index 151 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 189 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:01:06 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Shadow Tracker] Resolved 3 shadow signals, expired 0, appended 0 labeled rows.
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (113.23 USD > 60.0 USD limit) / price is too far from market (121.62 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+[Quality Filter] M15 FVG at index 468 rejected: Weak displacement candle (body/range 0.47 < 0.5)
+No new high confidence trade signals triggered this cycle.
+[Risk Management] Cancelling zombie/invalid pending order #3246562258 (structure mitigated/invalid).
+[Risk Management] Order #3246562258 successfully cancelled.
+[Risk Management] Cancelling zombie/invalid pending order #3246562261 (structure mitigated/invalid).
+[Risk Management] Order #3246562261 successfully cancelled.
+[Telegram Bot] Alert text message sent successfully.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:02:39 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (111.73 USD > 60.0 USD limit) / price is too far from market (120.12 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+[Quality Filter] M15 FVG at index 468 rejected: Weak displacement candle (body/range 0.47 < 0.5)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:04:11 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (112.34 USD > 60.0 USD limit) / price is too far from market (120.72 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+[Quality Filter] M15 FVG at index 468 rejected: Weak displacement candle (body/range 0.47 < 0.5)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:05:33 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (111.40 USD > 60.0 USD limit) / price is too far from market (119.79 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+[Quality Filter] M15 FVG at index 468 rejected: Weak displacement candle (body/range 0.47 < 0.5)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:06:49 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (112.15 USD > 60.0 USD limit) / price is too far from market (120.53 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+[Quality Filter] M15 FVG at index 468 rejected: Weak displacement candle (body/range 0.47 < 0.5)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:08:04 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Shadow Tracker] Resolved 11 shadow signals, expired 0, appended 0 labeled rows.
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (112.34 USD > 60.0 USD limit) / price is too far from market (120.73 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+[Quality Filter] M15 FVG at index 468 rejected: Weak displacement candle (body/range 0.47 < 0.5)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:09:20 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Shadow Tracker] Resolved 6 shadow signals, expired 0, appended 0 labeled rows.
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (110.36 USD > 60.0 USD limit) / price is too far from market (118.74 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+[Quality Filter] M15 FVG at index 468 rejected: Weak displacement candle (body/range 0.47 < 0.5)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:10:35 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (110.22 USD > 60.0 USD limit) / price is too far from market (118.60 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+[Quality Filter] M15 FVG at index 468 rejected: Weak displacement candle (body/range 0.47 < 0.5)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:11:50 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (110.18 USD > 60.0 USD limit) / price is too far from market (118.56 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+[Quality Filter] M15 FVG at index 468 rejected: Weak displacement candle (body/range 0.47 < 0.5)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:13:15 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (111.75 USD > 60.0 USD limit) / price is too far from market (120.13 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+[Quality Filter] M15 FVG at index 468 rejected: Weak displacement candle (body/range 0.47 < 0.5)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:14:30 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Shadow Tracker] Resolved 5 shadow signals, expired 0, appended 0 labeled rows.
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (111.98 USD > 60.0 USD limit) / price is too far from market (120.36 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+[Quality Filter] M15 FVG at index 468 rejected: Weak displacement candle (body/range 0.47 < 0.5)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:16:03 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Shadow Tracker] Resolved 12 shadow signals, expired 0, appended 0 labeled rows.
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (111.77 USD > 60.0 USD limit) / price is too far from market (120.15 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:17:37 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Shadow Tracker] Resolved 3 shadow signals, expired 0, appended 0 labeled rows.
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (111.72 USD > 60.0 USD limit) / price is too far from market (120.10 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:18:55 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Shadow Tracker] Resolved 14 shadow signals, expired 0, appended 0 labeled rows.
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (110.09 USD > 60.0 USD limit) / price is too far from market (118.47 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:20:12 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (110.05 USD > 60.0 USD limit) / price is too far from market (118.44 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:21:38 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (108.19 USD > 60.0 USD limit) / price is too far from market (116.57 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:22:56 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (105.16 USD > 60.0 USD limit) / price is too far from market (113.55 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:24:27 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (106.45 USD > 60.0 USD limit) / price is too far from market (114.84 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:25:41 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (107.47 USD > 60.0 USD limit) / price is too far from market (115.86 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:27:13 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (108.81 USD > 60.0 USD limit) / price is too far from market (117.20 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:28:29 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (110.44 USD > 60.0 USD limit) / price is too far from market (118.83 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:29:44 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (113.91 USD > 60.0 USD limit) / price is too far from market (122.30 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:30:59 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (111.90 USD > 60.0 USD limit) / price is too far from market (120.29 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:32:21 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Shadow Tracker] Resolved 6 shadow signals, expired 0, appended 0 labeled rows.
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (111.78 USD > 60.0 USD limit) / price is too far from market (120.17 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:33:46 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (112.57 USD > 60.0 USD limit) / price is too far from market (120.96 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:35:01 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (113.52 USD > 60.0 USD limit) / price is too far from market (121.90 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:36:21 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (111.39 USD > 60.0 USD limit) / price is too far from market (119.78 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:37:35 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (110.59 USD > 60.0 USD limit) / price is too far from market (118.98 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:38:50 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (109.27 USD > 60.0 USD limit) / price is too far from market (117.65 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:40:05 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (111.30 USD > 60.0 USD limit) / price is too far from market (119.69 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:41:20 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (111.23 USD > 60.0 USD limit) / price is too far from market (119.62 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:42:53 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (112.20 USD > 60.0 USD limit) / price is too far from market (120.59 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:44:25 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (113.53 USD > 60.0 USD limit) / price is too far from market (121.91 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:45:48 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (111.81 USD > 60.0 USD limit) / price is too far from market (120.20 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:47:20 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (110.70 USD > 60.0 USD limit) / price is too far from market (119.09 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:48:36 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (110.53 USD > 60.0 USD limit) / price is too far from market (118.91 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:50:05 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (110.77 USD > 60.0 USD limit) / price is too far from market (119.15 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:51:20 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (109.86 USD > 60.0 USD limit) / price is too far from market (118.24 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:52:35 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (109.07 USD > 60.0 USD limit) / price is too far from market (117.46 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:53:50 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: Failed to get symbol info for XAUUSD / Failed to get symbol info for XAUUSD
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...
+
+--- Starting Scan Cycle for XAUUSD at 2026-06-09 16:55:09 ---
+Fetching multi-timeframe data from MT5...
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+Successfully fetched data for symbol: XAUUSDm
+[Pivots Visualizer] Successfully wrote daily pivot levels to: C:\Users\WINDOWS 11 PRO\AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json
+[Pivots Visualizer] Drew/updated Daily Pivots on MT5 charts.
+Pre-calculating KNN and Volume Profile features for live scanner...
+[Quality Filter] H4 FVG at index 125 rejected: Weak displacement candle (body/range 0.46 < 0.5)
+[Execution Engine] H1 FVG at index 257 skipped: price is too far from market (107.35 USD > 60.0 USD limit) / price is too far from market (115.73 USD > 60.0 USD limit)
+[Quality Filter] H4 FVG at index 24 rejected: Weak displacement candle (body/range 0.33 < 0.5)
+[Quality Filter] H1 FVG at index 150 rejected: FVG width too narrow (0.12 < 0.25 ATR)
+[Quality Filter] H1 FVG at index 188 rejected: FVG width too narrow (0.03 < 0.25 ATR)
+No new high confidence trade signals triggered this cycle.
+--- Scan Cycle Finished ---
+Sleeping for 1 minutes...

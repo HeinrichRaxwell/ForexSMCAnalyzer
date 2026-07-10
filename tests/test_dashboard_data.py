@@ -61,6 +61,14 @@ def test_dashboard_uses_streamlit_fragment_instead_of_browser_reload():
     assert "_install_auto_refresh" not in dashboard_source
 
 
+def test_dashboard_emergency_exit_rules_match_same_timeframe_mitigation_policy():
+    dashboard_source = (Path(__file__).resolve().parents[1] / "src" / "dashboard.py").read_text(encoding="utf-8")
+
+    assert "M15/M30: close only after two closed opposite candles on the setup timeframe." in dashboard_source
+    assert "Early mitigation is separate" in dashboard_source
+    assert "or H1/H4 confirmation" not in dashboard_source
+
+
 def test_load_json_safe_reads_existing_file(tmp_path):
     path = tmp_path / "sample.json"
     path.write_text(json.dumps({"ok": True}), encoding="utf-8")

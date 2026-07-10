@@ -51,6 +51,25 @@ def test_breaker_blocks_detection():
     assert df['BB_Bottom'].iloc[8] == 100.5
     assert df['OB_Mitigated'].iloc[2] == True
 
+
+def test_breaker_retest_does_not_mark_mitigated_without_closed_invalidation():
+    df = pd.DataFrame({
+        'Open':  [100.0, 102.0, 101.0, 103.0, 102.0, 101.0],
+        'High':  [101.0, 102.5, 103.2, 103.5, 102.8, 103.0],
+        'Low':   [99.0, 100.5, 100.8, 99.0, 100.0, 99.8],
+        'Close': [100.5, 101.0, 103.0, 100.0, 101.8, 101.5],
+        'Swing_High': [np.nan]*6,
+        'Swing_Low': [np.nan]*6,
+        'BOS': [np.nan, np.nan, 102.5, np.nan, np.nan, np.nan],
+        'CHoCH': [np.nan]*6,
+        'Trend': [1]*6,
+    })
+
+    result = detect_fvg_and_ob(df, symbol="XAUUSD")
+
+    assert result['BB_Type'].iloc[3] == 'BEARISH'
+    assert bool(result['BB_Mitigated'].iloc[3]) is False
+
 def test_swapzones_detection():
     # Construct a series of prices that forms a Swing High and then closes above it
     df = pd.DataFrame({
@@ -74,9 +93,25 @@ def test_swapzones_detection():
     assert df['Swap_Type'].iloc[6] == 'SUPPORT'
     assert df['Swap_Level'].iloc[6] == 103.0
     
-    # Index 9 price is Low=101.0, High=103.0, which touches Swap_Level (103.0)
-    # This should mark the swap zone at index 6 as mitigated
-    assert df['Swap_Mitigated'].iloc[6] == True
+    # Index 9 retests the swap level but does not close back below the support zone.
+    assert bool(df['Swap_Mitigated'].iloc[6]) is False
+
+
+def test_swapzone_close_beyond_zone_marks_mitigated():
+    df = pd.DataFrame({
+        'Open':  [100.0, 101.0, 102.0, 101.0, 100.0, 101.0, 103.5, 104.0, 103.0, 101.0],
+        'High':  [101.0, 103.0, 102.5, 102.0, 101.0, 102.5, 104.5, 105.0, 104.0, 102.0],
+        'Low':   [99.0,  100.5, 101.5, 100.5, 99.5,  100.0, 103.0, 103.5, 102.0, 99.0],
+        'Close': [100.5, 102.0, 101.0, 101.5, 100.5, 102.0, 104.0, 104.5, 102.5, 100.0]
+    })
+    df['Swing_High'] = np.nan
+    df['Swing_Low'] = np.nan
+    df.loc[1, 'Swing_High'] = 103.0
+
+    result = detect_snr_and_swapzones(df)
+
+    assert result['Swap_Type'].iloc[6] == 'SUPPORT'
+    assert bool(result['Swap_Mitigated'].iloc[6]) is True
 
 def test_supply_demand_zones_detection():
     from src.smc_detector import detect_supply_demand_zones
@@ -98,3 +133,34 @@ def test_supply_demand_zones_detection():
     # Check that it calculates SL and Fibo levels correctly
     assert df['SD_SL'].iloc[3] == 109.0 - (20 * 0.1) # XAUUSD pip multiplier is 0.1, buffer is 2.0
 
+
+def test_supply_demand_retest_does_not_mark_mitigated_without_closed_invalidation():
+    from src.smc_detector import detect_supply_demand_zones
+
+    df = pd.DataFrame({
+        'Open':  [100.0, 100.0, 110.0, 111.0, 115.0, 111.0],
+        'High':  [101.0, 111.0, 112.0, 122.0, 118.0, 112.0],
+        'Low':   [99.0,  99.0,  109.0, 110.0, 108.0, 109.5],
+        'Close': [100.5, 110.0, 111.0, 121.0, 114.0, 110.5],
+    })
+
+    result = detect_supply_demand_zones(df, symbol="XAUUSD")
+
+    assert result['SD_Type'].iloc[3] == 'DEMAND_RBR'
+    assert bool(result['SD_Mitigated'].iloc[3]) is False
+
+
+def test_supply_demand_close_beyond_zone_marks_mitigated():
+    from src.smc_detector import detect_supply_demand_zones
+
+    df = pd.DataFrame({
+        'Open':  [100.0, 100.0, 110.0, 111.0, 115.0, 111.0],
+        'High':  [101.0, 111.0, 112.0, 122.0, 118.0, 112.0],
+        'Low':   [99.0,  99.0,  109.0, 110.0, 108.0, 106.0],
+        'Close': [100.5, 110.0, 111.0, 121.0, 114.0, 108.0],
+    })
+
+    result = detect_supply_demand_zones(df, symbol="XAUUSD")
+
+    assert result['SD_Type'].iloc[3] == 'DEMAND_RBR'
+    assert bool(result['SD_Mitigated'].iloc[3]) is True

@@ -1,13 +1,20 @@
 import pandas as pd
 
 import src.scanner_worker as scanner_worker
+from src.entry_quality_gate import OscillatorContext, SpreadContext
 from src.scanner_worker import (
+    assert_rollout_ready_for_live,
     apply_smc_detectors,
     choose_dual_market_entry_option,
     choose_dual_recovery_execution_mode,
+    evaluate_live_entry_gate,
+    is_price_too_far_execution,
+    is_live_entry_timeframe,
     choose_recovery_execution_mode,
     send_recovery_alert_with_chart,
+    should_place_pending_setup,
     should_promote_low_confidence_record,
+    should_retry_unfilled_watch_record,
     should_market_enter_setup,
 )
 
@@ -24,16 +31,67 @@ def _setup(**overrides):
     return data
 
 
+def test_live_entry_timeframes_exclude_m15_but_keep_higher_timeframes():
+    assert is_live_entry_timeframe("M15") is False
+
+    for timeframe in ("M30", "H1", "H4", "D1"):
+        assert is_live_entry_timeframe(timeframe) is True
+
+
 def test_should_market_enter_buy_when_rejection_confirmed_inside_entry_zone():
     setup = _setup(direction=1, entry_price=100.0, sl_price=90.0)
 
-    assert should_market_enter_setup(setup, current_price=95.0) is True
+    assert should_market_enter_setup(setup, current_price=99.8) is True
 
 
 def test_should_market_enter_sell_when_rejection_confirmed_inside_entry_zone():
     setup = _setup(direction=-1, entry_price=100.0, sl_price=110.0)
 
-    assert should_market_enter_setup(setup, current_price=105.0) is True
+    assert should_market_enter_setup(setup, current_price=100.2) is True
+
+
+def test_should_market_enter_blocks_when_emergency_reversal_is_already_active():
+    setup = _setup(direction=-1, entry_price=4085.4325, sl_price=4092.193)
+    timeframes_data = {"M15": pd.DataFrame({"Trend": [1, 1, 1]})}
+
+    assert (
+        should_market_enter_setup(
+            setup,
+            current_price=4085.44,
+            timeframe="M15",
+            timeframes_data=timeframes_data,
+        )
+        is False
+    )
+
+
+def test_should_place_pending_blocks_when_trade_manager_would_immediately_exit():
+    setup = _setup(direction=1, entry_price=4177.682908, sl_price=4133.245)
+    timeframes_data = {"H4": pd.DataFrame({"Trend": [1, 1, -1, -1]})}
+
+    assert (
+        should_place_pending_setup(
+            setup,
+            timeframe="H4",
+            timeframes_data=timeframes_data,
+        )
+        is False
+    )
+    assert setup["pending_entry_blocked_reason"] == "immediate_emergency_reversal"
+
+
+def test_should_place_pending_allows_when_trade_manager_would_not_exit():
+    setup = _setup(direction=1, entry_price=4180.0645, sl_price=4159.714)
+    timeframes_data = {"M30": pd.DataFrame({"Trend": [1, 1, 1, -1]})}
+
+    assert (
+        should_place_pending_setup(
+            setup,
+            timeframe="M30",
+            timeframes_data=timeframes_data,
+        )
+        is True
+    )
 
 
 def test_should_market_enter_requires_rejection_confirmation():
@@ -49,13 +107,26 @@ def test_should_market_enter_rejects_price_outside_entry_zone():
     assert should_market_enter_setup(setup, current_price=90.0) is False
 
 
+def test_should_market_enter_waits_for_reclaim_after_deep_sweep():
+    setup = _setup(direction=1, entry_price=4079.34189, sl_price=4073.562)
+
+    assert should_market_enter_setup(setup, current_price=4077.811) is False
+
+
 def test_choose_dual_market_entry_option_buy_selects_correct_layer():
     opt_a = _setup(direction=1, entry_price=100.0, sl_price=90.0)
     opt_b = _setup(direction=1, entry_price=98.0, sl_price=90.0)
 
     assert choose_dual_market_entry_option(opt_a, opt_b, current_price=99.0) == "a"
-    assert choose_dual_market_entry_option(opt_a, opt_b, current_price=95.0) == "b"
+    assert choose_dual_market_entry_option(opt_a, opt_b, current_price=97.7) == "b"
     assert choose_dual_market_entry_option(opt_a, opt_b, current_price=101.0) is None
+
+
+def test_choose_dual_market_entry_option_buy_waits_for_reclaim_after_deep_sweep():
+    opt_a = _setup(direction=1, entry_price=4080.5095, sl_price=4073.562)
+    opt_b = _setup(direction=1, entry_price=4079.34189, sl_price=4073.562)
+
+    assert choose_dual_market_entry_option(opt_a, opt_b, current_price=4077.811) is None
 
 
 def test_choose_dual_market_entry_option_sell_selects_correct_layer():
@@ -63,14 +134,31 @@ def test_choose_dual_market_entry_option_sell_selects_correct_layer():
     opt_b = _setup(direction=-1, entry_price=102.0, sl_price=110.0)
 
     assert choose_dual_market_entry_option(opt_a, opt_b, current_price=101.0) == "a"
-    assert choose_dual_market_entry_option(opt_a, opt_b, current_price=105.0) == "b"
+    assert choose_dual_market_entry_option(opt_a, opt_b, current_price=102.3) == "b"
     assert choose_dual_market_entry_option(opt_a, opt_b, current_price=99.0) is None
+
+
+def test_choose_dual_market_entry_option_blocks_when_emergency_reversal_is_already_active():
+    opt_a = _setup(direction=-1, entry_price=4085.4325, sl_price=4092.193)
+    opt_b = _setup(direction=-1, entry_price=4086.556, sl_price=4092.193)
+    timeframes_data = {"M15": pd.DataFrame({"Trend": [1, 1, 1]})}
+
+    assert (
+        choose_dual_market_entry_option(
+            opt_a,
+            opt_b,
+            current_price=4085.44,
+            timeframe="M15",
+            timeframes_data=timeframes_data,
+        )
+        is None
+    )
 
 
 def test_recovery_execution_uses_market_when_price_returns_to_rejection_zone():
     setup = _setup(direction=1, entry_price=100.0, sl_price=90.0, rejection_confirmed=True)
 
-    assert choose_recovery_execution_mode(setup, current_price=96.0) == "market"
+    assert choose_recovery_execution_mode(setup, current_price=99.8) == "market"
     assert choose_recovery_execution_mode(setup, current_price=101.0) == "pending"
 
 
@@ -82,6 +170,86 @@ def test_low_confidence_registry_record_can_promote_to_live_single_execution():
     }
 
     assert should_promote_low_confidence_record(record, ("ticket_id",)) is True
+
+
+def test_price_too_far_execution_message_is_detected_for_watch_retry():
+    assert is_price_too_far_execution(
+        "price is too far from market (123.63 USD > 30.0 USD limit)"
+    ) is True
+    assert is_price_too_far_execution("Market indicators check failed") is False
+
+
+def test_price_too_far_watch_record_can_retry_until_ticket_or_outcome_exists():
+    record = {
+        "watch_reason": "watch_price_too_far",
+        "ticket_id": None,
+        "outcome_recorded": False,
+    }
+
+    assert should_retry_unfilled_watch_record(record, ("ticket_id",)) is True
+
+    record["ticket_id"] = 123456
+    assert should_retry_unfilled_watch_record(record, ("ticket_id",)) is False
+
+    record["ticket_id"] = None
+    record["outcome_recorded"] = True
+    assert should_retry_unfilled_watch_record(record, ("ticket_id",)) is False
+
+
+def test_scanner_guard_blocks_live_execution_when_rollout_preflight_fails(monkeypatch, tmp_path):
+    report_path = tmp_path / "calibration_report.json"
+    env_path = tmp_path / ".env"
+    report_path.write_text(
+        """
+        {
+          "live_policy": {
+            "allowed_timeframes": ["M30", "H1"],
+            "blocked_strategies": ["Pivot", "PIVOT_REJECTION", "SND", "Swapzone"],
+            "allowed_strategies": ["FVG_OR_BPR"],
+            "thresholds": {
+              "0.50": {
+                "sample_count": 120,
+                "expectancy_r": 0.10,
+                "max_drawdown_r": 12.0,
+                "profit_factor": 1.10,
+                "max_consecutive_losses": 8
+              }
+            },
+            "sources": {
+              "real": {"expectancy_r": -0.10, "profit_factor": 0.90}
+            }
+          }
+        }
+        """,
+        encoding="utf-8",
+    )
+    env_path.write_text(
+        "\n".join(
+            [
+                "MT5_EXECUTE_TRADES=True",
+                "MT5_REQUIRE_ROLLOUT_READY=True",
+                "MT5_MAX_CONCURRENT_TRADES=1",
+                "MT5_ALLOWED_TIMEFRAMES=M30,H1",
+                "MT5_LIVE_STRATEGY_ALLOWLIST=FVG_OR_BPR",
+                "MT5_LIVE_STRATEGY_BLOCKLIST=Pivot,SND,Swapzone",
+                "MT5_ENFORCE_ENTRY_GATE=False",
+                "MT5_DAILY_GOVERNOR_ENABLED=True",
+                "ML_LIVE_MIN_THRESHOLD=0.50",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("MT5_EXECUTE_TRADES", "True")
+    monkeypatch.setenv("MT5_REQUIRE_ROLLOUT_READY", "True")
+
+    ready, message = assert_rollout_ready_for_live(
+        0.50,
+        report_path=str(report_path),
+        env_path=str(env_path),
+    )
+
+    assert ready is False
+    assert "expectancy_r" in message
 
 
 def test_low_confidence_registry_record_does_not_promote_when_ticket_exists():
@@ -109,8 +277,10 @@ def test_dual_recovery_execution_uses_same_layer_priority_as_new_market_entry():
 
     assert choose_dual_recovery_execution_mode(opt_a, opt_b, current_price=99.0, option="a") == "market"
     assert choose_dual_recovery_execution_mode(opt_a, opt_b, current_price=99.0, option="b") == "skip"
-    assert choose_dual_recovery_execution_mode(opt_a, opt_b, current_price=95.0, option="a") == "skip"
-    assert choose_dual_recovery_execution_mode(opt_a, opt_b, current_price=95.0, option="b") == "market"
+    assert choose_dual_recovery_execution_mode(opt_a, opt_b, current_price=95.0, option="a") == "pending"
+    assert choose_dual_recovery_execution_mode(opt_a, opt_b, current_price=95.0, option="b") == "pending"
+    assert choose_dual_recovery_execution_mode(opt_a, opt_b, current_price=97.7, option="a") == "skip"
+    assert choose_dual_recovery_execution_mode(opt_a, opt_b, current_price=97.7, option="b") == "market"
     assert choose_dual_recovery_execution_mode(opt_a, opt_b, current_price=101.0, option="a") == "pending"
 
 
@@ -139,6 +309,97 @@ def test_apply_smc_detectors_includes_supply_demand_detector(monkeypatch):
 
     assert result is df
     assert calls == ["swing", "structure", "fvg_ob", "swapzone", "bpr", "ic", "snd"]
+
+
+def test_live_entry_gate_keeps_fvg_eligible_with_good_spread_and_oscillator(monkeypatch):
+    monkeypatch.delenv("ML_ENTRY_BUY_CONFIDENCE_BONUS", raising=False)
+    monkeypatch.setattr(
+        scanner_worker,
+        "get_live_spread_context",
+        lambda symbol: SpreadContext(spread_points=280, spread_price=0.280, point=0.001, digits=3),
+    )
+    monkeypatch.setattr(
+        scanner_worker,
+        "build_oscillator_context",
+        lambda df: OscillatorContext(rsi_8=52.0, stoch_rsi_k=0.50, stoch_rsi_d=0.48),
+    )
+    setup = _setup(features={"rr_ratio": 2.0})
+
+    decision = evaluate_live_entry_gate(
+        setup,
+        strategy="FVG",
+        probability=0.63,
+        accept_threshold=0.50,
+        symbol="XAUUSD",
+        timeframe="M15",
+        timeframes_data={"M15": pd.DataFrame({"Close": [1.0, 2.0]})},
+    )
+
+    assert decision.allowed is True
+    assert setup["entry_gate"]["filtered_reason"] == "entry_gate_pass"
+
+
+def test_live_entry_gate_records_rejection_without_blocking_execution(monkeypatch):
+    monkeypatch.setattr(
+        scanner_worker,
+        "get_live_spread_context",
+        lambda symbol: SpreadContext(spread_points=250, spread_price=0.250, point=0.001, digits=3),
+    )
+    monkeypatch.setattr(
+        scanner_worker,
+        "build_oscillator_context",
+        lambda df: OscillatorContext(rsi_8=28.0, stoch_rsi_k=0.12, stoch_rsi_d=0.15),
+    )
+    setup = _setup(direction=-1, entry_price=100.0, sl_price=105.0, tp_price=90.0, features={"rr_ratio": 2.0})
+
+    decision = evaluate_live_entry_gate(
+        setup,
+        strategy="BPR",
+        probability=0.72,
+        accept_threshold=0.50,
+        symbol="XAUUSD",
+        timeframe="M15",
+        timeframes_data={"M15": pd.DataFrame({"Close": [1.0, 2.0]})},
+    )
+
+    assert decision.allowed is True
+    assert decision.filtered_reason == "entry_gate_observer_only"
+    assert "would have blocked" in decision.reason
+    assert setup["entry_gate"]["allowed"] is True
+    assert setup["entry_gate"]["enforced"] is False
+    assert setup["entry_gate"]["would_have_allowed"] is False
+    assert setup["entry_gate"]["filtered_reason"] == "entry_gate_oscillator_oversold_sell"
+
+
+def test_live_entry_gate_ignores_enforcement_env(monkeypatch):
+    monkeypatch.setenv("MT5_ENFORCE_ENTRY_GATE", "True")
+    monkeypatch.setattr(
+        scanner_worker,
+        "get_live_spread_context",
+        lambda symbol: SpreadContext(spread_points=250, spread_price=0.250, point=0.001, digits=3),
+    )
+    monkeypatch.setattr(
+        scanner_worker,
+        "build_oscillator_context",
+        lambda df: OscillatorContext(rsi_8=28.0, stoch_rsi_k=0.12, stoch_rsi_d=0.15),
+    )
+    setup = _setup(direction=-1, entry_price=100.0, sl_price=105.0, tp_price=90.0, features={"rr_ratio": 2.0})
+
+    decision = evaluate_live_entry_gate(
+        setup,
+        strategy="BPR",
+        probability=0.72,
+        accept_threshold=0.50,
+        symbol="XAUUSD",
+        timeframe="M15",
+        timeframes_data={"M15": pd.DataFrame({"Close": [1.0, 2.0]})},
+    )
+
+    assert decision.allowed is True
+    assert decision.filtered_reason == "entry_gate_observer_only"
+    assert setup["entry_gate"]["allowed"] is True
+    assert setup["entry_gate"]["enforced"] is False
+    assert setup["entry_gate"]["would_have_allowed"] is False
 
 
 def _bpr_forms_on_last_candle_df() -> pd.DataFrame:

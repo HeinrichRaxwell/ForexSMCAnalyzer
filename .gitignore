@@ -4,9 +4,21 @@ __pycache__/
 *.pyc
 *.png
 brain/
-data/backtest_simulation_results.csv
 
-# Secrets / credentials
+# Secrets — jangan pernah commit file ini
 .env
 .env.*
 !.env.example
+
+# Runtime artifacts
+*.log
+*.pid
+*.lock
+
+# Ticks data besar (ratusan MB)
+data/ticks/
+
+# File backup & noise
+data/*_backup_*.json
+data/*_bak.*
+data/real_tick_*.pid

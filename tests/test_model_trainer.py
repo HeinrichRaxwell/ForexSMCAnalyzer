@@ -256,6 +256,11 @@ def test_prepare_training_features_drops_shadow_metadata_and_keeps_numeric_featu
         'direction': [1, -1],
         'entry_price': [2300.0, 2301.0],
         'pnl_relative': [2.0, -1.0],
+        'close_price': [2310.0, 2295.0],
+        'close_reason': ['TP', 'EXPERT'],
+        'net_profit': [100000.0, -25000.0],
+        'manager_exit_trigger': ['tp1_full_close', 'emergency_reversal'],
+        'manager_exit_detail': ['target reached', 'opposite CHoCH'],
         'label': [1, 0],
     }).to_csv(real_path, index=False)
     pd.DataFrame({
@@ -281,6 +286,11 @@ def test_prepare_training_features_drops_shadow_metadata_and_keeps_numeric_featu
     assert 'confidence' not in X.columns
     assert 'accept_threshold' not in X.columns
     assert 'pnl_relative' not in X.columns
+    assert 'close_price' not in X.columns
+    assert 'close_reason' not in X.columns
+    assert 'net_profit' not in X.columns
+    assert 'manager_exit_trigger' not in X.columns
+    assert 'manager_exit_detail' not in X.columns
     assert X.columns.tolist() == ['hour', 'direction', 'entry_price']
 
 
@@ -356,3 +366,40 @@ def test_champion_gate_failure_does_not_overwrite_existing_models(tmp_path):
     assert stats['status'] == 'REJECTED_GATE_ERROR'
     assert isinstance(joblib.load(model_dir / "smc_xgb_classifier.joblib"), RejectingChampionModel)
     assert isinstance(joblib.load(model_dir / "smc_lgb_classifier.joblib"), RejectingChampionModel)
+
+
+def test_champion_gate_handles_feature_schema_migration(tmp_path, monkeypatch):
+    monkeypatch.setenv("ML_TRAINING_MAX_SETUPS", "1000")
+    np.random.seed(42)
+    rows = 100
+    labels = np.array([0, 1] * (rows // 2))
+    base_df = pd.DataFrame({
+        'time': pd.date_range(start="2026-06-01", periods=rows, freq="15min").strftime("%Y-%m-%d %H:%M:%S"),
+        'hour': np.random.randint(0, 24, size=rows),
+        'day_of_week': np.random.randint(0, 7, size=rows),
+        'setup_type': np.random.randint(0, 2, size=rows),
+        'direction': np.where(labels == 1, 1, -1),
+        'entry_price': np.random.uniform(2300, 2350, size=rows),
+        'sl_price': np.random.uniform(2290, 2300, size=rows),
+        'tp_price': np.random.uniform(2350, 2360, size=rows),
+        'risk_pips': np.random.uniform(1.0, 10.0, size=rows),
+        'atr_14': np.random.uniform(1.0, 5.0, size=rows),
+        'trend': np.where(labels == 1, 1, -1),
+        'killzone': np.random.randint(0, 4, size=rows),
+        'pnl_relative': np.where(labels == 1, 2.0, -1.0),
+        'label': labels,
+    })
+    labeled_data_path = tmp_path / "labeled_setups.csv"
+    model_dir = tmp_path / "models"
+    base_df.to_csv(labeled_data_path, index=False)
+    train_xgboost_filter(labeled_data_path=str(labeled_data_path), model_dir=str(model_dir))
+
+    migrated_df = base_df.copy()
+    migrated_df['rr_ratio'] = np.where(labels == 1, 2.0, 0.5)
+    migrated_df['reaction_strength'] = np.where(labels == 1, 0.8, 0.1)
+    migrated_df.to_csv(labeled_data_path, index=False)
+
+    _, stats = train_xgboost_filter(labeled_data_path=str(labeled_data_path), model_dir=str(model_dir))
+
+    assert stats['status'] in ['ACCEPTED', 'REJECTED']
+    assert 'gate_error' not in stats

@@ -100,11 +100,18 @@ def test_label_smc_setups_fvg_bullish():
     highs[13] = 15.0
     lows[13] = 12.0
     
-    # Subsequent candles: index 14 goes up to hit TP
+    # Index 14 is the post-formation confirmation candle. It must not be
+    # tradable yet for FVG/BPR labeling, and it must not hit entry/TP/SL.
     opens[14] = 14.5
-    closes[14] = 25.0
-    highs[14] = 30.0
-    lows[14] = 11.0
+    closes[14] = 14.8
+    highs[14] = 15.2
+    lows[14] = 13.0
+
+    # Index 15 is the first tradable candle after confirmation and hits TP.
+    opens[15] = 14.8
+    closes[15] = 25.0
+    highs[15] = 30.0
+    lows[15] = 11.0
     
     df = pd.DataFrame({
         'time': times,
@@ -162,11 +169,18 @@ def test_label_smc_setups_fvg_bearish():
     highs[13] = 18.0
     lows[13] = 15.0
     
-    # Subsequent candles: index 14 goes down to hit TP
+    # Index 14 is the post-formation confirmation candle. It must not be
+    # tradable yet for FVG/BPR labeling, and it must not hit entry/TP/SL.
     opens[14] = 15.5
-    closes[14] = 10.5
-    highs[14] = 19.0
-    lows[14] = 8.0
+    closes[14] = 15.2
+    highs[14] = 17.0
+    lows[14] = 14.8
+
+    # Index 15 is the first tradable candle after confirmation and hits TP.
+    opens[15] = 15.2
+    closes[15] = 10.5
+    highs[15] = 19.0
+    lows[15] = 8.0
     
     df = pd.DataFrame({
         'time': times,

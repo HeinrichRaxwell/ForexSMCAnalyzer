@@ -37,17 +37,17 @@ def test_detect_fvg_bearish():
     assert result['FVG_Top'].iloc[2] == 15.0
     assert result['FVG_Bottom'].iloc[2] == 13.0
 
-def test_detect_ob_and_mitigation():
-    """Test that Order Blocks are correctly identified and their mitigation is tracked."""
+def test_detect_ob_retest_does_not_mark_mitigated():
+    """Order Block retest is an entry event; mitigation requires a body close beyond the zone."""
     # 0. Bearish candle (future OB): O=12, H=13, L=10, C=11
     # 1. Bullish break (BOS): O=11, H=18, L=11, C=17 (BOS is triggered here)
     # 2. Bullish candle: O=17, H=19, L=15, C=18
-    # 3. Pullback (Mitigation): O=18, H=18, L=12, C=13 (Low 12 goes below OB_Top 13)
+    # 3. Pullback/retest: wick enters the OB, but the candle body does not close beyond OB_Bottom.
     data = {
         'Open':       [12, 11, 17, 18],
         'High':       [13, 18, 19, 18],
         'Low':        [10, 11, 15, 11],
-        'Close':      [11, 17, 18, 13],
+        'Close':      [11, 17, 18, 12],
         'Swing_High': [13, np.nan, np.nan, np.nan],
         'Swing_Low':  [np.nan, 10, np.nan, np.nan],
         'BOS':        [np.nan, 13, np.nan, np.nan],
@@ -63,5 +63,49 @@ def test_detect_ob_and_mitigation():
     assert result['OB_Top'].iloc[1] == 13.0
     assert result['OB_Bottom'].iloc[1] == 10.0
     
-    # Mitigation check: candle index 3 Low is 12, which is <= OB_Top (13.0)
-    assert result['OB_Mitigated'].iloc[1] == True
+    assert bool(result['OB_Mitigated'].iloc[1]) is False
+
+
+def test_detect_ob_close_beyond_zone_marks_mitigated_and_creates_breaker():
+    """A closed candle beyond the OB invalidates it and creates the breaker block."""
+    data = {
+        'Open':       [12, 11, 17, 18],
+        'High':       [13, 18, 19, 18],
+        'Low':        [10, 11, 15, 9],
+        'Close':      [11, 17, 18, 9.5],
+        'Swing_High': [13, np.nan, np.nan, np.nan],
+        'Swing_Low':  [np.nan, 10, np.nan, np.nan],
+        'BOS':        [np.nan, 13, np.nan, np.nan],
+        'CHoCH':      [np.nan, np.nan, np.nan, np.nan],
+        'Trend':      [1, 1, 1, 1]
+    }
+    df = pd.DataFrame(data)
+
+    result = detect_fvg_and_ob(df)
+
+    assert result['OB_Type'].iloc[1] == 'BULLISH'
+    assert bool(result['OB_Mitigated'].iloc[1]) is True
+    assert result['BB_Type'].iloc[3] == 'BEARISH'
+
+
+def test_bearish_order_block_uses_last_bullish_candle_before_drop():
+    """Bearish OB must anchor to the final bullish candle before a bearish break."""
+    data = {
+        'Open':       [100.0, 104.0, 106.0, 105.0, 103.0],
+        'High':       [105.0, 107.0, 108.0, 106.0, 104.0],
+        'Low':        [99.0, 103.0, 104.0, 100.0, 96.0],
+        'Close':      [104.0, 106.0, 105.0, 102.0, 97.0],
+        'Swing_High': [np.nan, 107.0, np.nan, np.nan, np.nan],
+        'Swing_Low':  [np.nan, np.nan, 104.0, np.nan, np.nan],
+        'BOS':        [np.nan, np.nan, np.nan, np.nan, 104.0],
+        'CHoCH':      [np.nan, np.nan, np.nan, np.nan, np.nan],
+        'Trend':      [-1, -1, -1, -1, -1],
+    }
+    df = pd.DataFrame(data)
+
+    result = detect_fvg_and_ob(df, symbol="XAUUSD")
+
+    assert result['OB_Type'].iloc[4] == 'BEARISH'
+    assert result['OB_Top'].iloc[4] == 107.0
+    assert result['OB_Bottom'].iloc[4] == 103.0
+    assert result['OB_Fibo_0.5'].iloc[4] == 105.0

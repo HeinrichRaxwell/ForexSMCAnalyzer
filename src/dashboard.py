@@ -1,16 +1,48 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
+
+# Ensure project root is in sys.path before any local src imports
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+import json
+import os
 from typing import Any
 
 import pandas as pd
 import streamlit as st
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
+try:
+    import MetaTrader5 as mt5
+    from src.data_loader import connect_mt5, fetch_historical_data
+    from src.smc_detector import (
+        detect_swing_points,
+        detect_structures,
+        detect_fvg_and_ob,
+        detect_snr_and_swapzones,
+        detect_bpr,
+        detect_indecision_candles,
+        detect_supply_demand_zones,
+        get_pip_multiplier,
+    )
+    from src.entry_quality_gate import (
+        evaluate_entry_quality,
+        build_oscillator_context,
+        build_spread_context,
+    )
+    from src.execution import get_active_broker_symbol
+    MT5_AVAILABLE = True
+    MT5_ERROR = None
+except Exception as e:
+    MT5_AVAILABLE = False
+    MT5_ERROR = str(e)
+
+
 
 from src.dashboard_data import (
     BASE_DIR,
@@ -81,24 +113,451 @@ st.markdown(
     <style>
     .block-container { padding-top: 1.25rem; padding-bottom: 2rem; }
     div[data-testid="stMetric"] {
-        border: 1px solid #d7dde5;
-        border-radius: 8px;
-        padding: 0.85rem 1rem;
-        background: #ffffff;
+        border: 1px solid var(--border-color, rgba(128, 128, 128, 0.2));
+        border-radius: 12px;
+        padding: 1rem 1.2rem;
+        background: var(--secondary-background-color);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        border-left: 4px solid var(--primary-color, #3b82f6);
+        transition: all 0.3s ease;
     }
-    div[data-testid="stMetricValue"] { font-size: 1.55rem; }
-    .small-note { color: #586574; font-size: 0.88rem; }
+    div[data-testid="stMetric"]:hover {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+        transform: translateY(-2px);
+    }
+    div[data-testid="stMetricValue"] { font-size: 1.65rem; font-weight: 700; color: var(--text-color); }
+    .small-note { color: var(--text-color); opacity: 0.7; font-size: 0.88rem; font-weight: 500; }
     .rule-line {
-        border-left: 4px solid #2f7d68;
-        padding: 0.55rem 0.8rem;
-        margin: 0.4rem 0;
-        background: #f6f8fa;
-        border-radius: 4px;
+        border-left: 4px solid #10b981; /* bright emerald */
+        padding: 0.75rem 1rem;
+        margin: 0.5rem 0;
+        background: var(--secondary-background-color);
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        color: var(--text-color);
     }
     </style>
     """,
     unsafe_allow_html=True,
 )
+
+
+def draw_plotly_chart(df: pd.DataFrame, symbol: str, timeframe: str, theme: str = "Dark (TradingView)") -> go.Figure:
+    """
+    Generate a highly polished, interactive TradingView-style candlestick chart using Plotly,
+    complete with Swing Points, BOS, CHoCH, Fair Value Gaps (FVG), Order Blocks (OB),
+    Balanced Price Ranges (BPR), Swapzones, and Volume subplots. Supports Dark and Light themes.
+    """
+    # Create subplots (80% Candlesticks, 20% Volume)
+    fig = make_subplots(
+        rows=2, cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.03,
+        row_heights=[0.8, 0.2]
+    )
+
+    # Set up theme colors
+    is_dark = "Dark" in theme
+    template = 'plotly_dark' if is_dark else 'plotly_white'
+    bg_color = '#131722' if is_dark else '#ffffff'
+    grid_color = '#2a2e39' if is_dark else '#e2e8f0'
+    border_color = '#2a2e39' if is_dark else '#cbd5e1'
+    legend_bg = 'rgba(19, 23, 34, 0.8)' if is_dark else 'rgba(255, 255, 255, 0.8)'
+
+    # 1. Candlestick trace
+    fig.add_trace(
+        go.Candlestick(
+            x=df['time'],
+            open=df['Open'],
+            high=df['High'],
+            low=df['Low'],
+            close=df['Close'],
+            name='Price',
+            increasing_line_color='#089981',
+            increasing_fillcolor='#089981',
+            decreasing_line_color='#f23645',
+            decreasing_fillcolor='#f23645',
+        ),
+        row=1, col=1
+    )
+
+    # 2. Volume trace with colors matching the candle direction
+    vol_colors = ['#089981' if df['Close'].iloc[i] >= df['Open'].iloc[i] else '#f23645' for i in range(len(df))]
+    fig.add_trace(
+        go.Bar(
+            x=df['time'],
+            y=df['Volume'],
+            name='Volume',
+            marker_color=vol_colors,
+            opacity=0.4,
+            showlegend=False
+        ),
+        row=2, col=1
+    )
+
+    # 3. Dynamic EMAs
+    df_copy = df.copy()
+    df_copy['EMA_20'] = df_copy['Close'].ewm(span=20, adjust=False).mean()
+    df_copy['EMA_50'] = df_copy['Close'].ewm(span=50, adjust=False).mean()
+    
+    fig.add_trace(
+        go.Scatter(
+            x=df_copy['time'],
+            y=df_copy['EMA_20'],
+            mode='lines',
+            line=dict(color='#2962FF', width=1.2),
+            name='EMA 20'
+        ),
+        row=1, col=1
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=df_copy['time'],
+            y=df_copy['EMA_50'],
+            mode='lines',
+            line=dict(color='#FF6D00', width=1.2),
+            name='EMA 50'
+        ),
+        row=1, col=1
+    )
+
+    # 4. Swing Highs & Swing Lows
+    sh_df = df_copy[df_copy['Swing_High'].notna()]
+    if not sh_df.empty:
+        fig.add_trace(
+            go.Scatter(
+                x=sh_df['time'],
+                y=sh_df['Swing_High'],
+                mode='markers',
+                marker=dict(symbol='triangle-down', size=8, color='#FF5252'),
+                name='Swing High (SH)'
+            ),
+            row=1, col=1
+        )
+    sl_df = df_copy[df_copy['Swing_Low'].notna()]
+    if not sl_df.empty:
+        fig.add_trace(
+            go.Scatter(
+                x=sl_df['time'],
+                y=sl_df['Swing_Low'],
+                mode='markers',
+                marker=dict(symbol='triangle-up', size=8, color='#00E676'),
+                name='Swing Low (SL)'
+            ),
+            row=1, col=1
+        )
+
+    # 5. BOS / CHoCH Lines (restrict lookback to prevent clutter)
+    lookback_start = max(0, len(df_copy) - 150)
+    for idx in range(lookback_start, len(df_copy)):
+        row = df_copy.iloc[idx]
+        if pd.notna(row.get('BOS')):
+            fig.add_trace(
+                go.Scatter(
+                    x=[df_copy['time'].iloc[max(0, idx-8)], df_copy['time'].iloc[idx]],
+                    y=[row['BOS'], row['BOS']],
+                    mode='lines+text',
+                    line=dict(color='#FFB300', width=1.5, dash='dot'),
+                    text=['', 'BOS'],
+                    textposition='top left',
+                    showlegend=False
+                ),
+                row=1, col=1
+            )
+        if pd.notna(row.get('CHoCH')):
+            fig.add_trace(
+                go.Scatter(
+                    x=[df_copy['time'].iloc[max(0, idx-8)], df_copy['time'].iloc[idx]],
+                    y=[row['CHoCH'], row['CHoCH']],
+                    mode='lines+text',
+                    line=dict(color='#8E24AA', width=1.5, dash='dash'),
+                    text=['', 'CHoCH'],
+                    textposition='top left',
+                    showlegend=False
+                ),
+                row=1, col=1
+            )
+
+    # 6. Accumulate rectangles (FVG, OB, BPR, Swapzones, SnD)
+    shapes = []
+    for idx in range(lookback_start, len(df_copy)):
+        row = df_copy.iloc[idx]
+        
+        # Fair Value Gaps (FVG)
+        if 'FVG_Type' in df_copy.columns and pd.notna(row.get('FVG_Type')) and row['FVG_Type'] is not None:
+            is_bull_fvg = row['FVG_Type'] == 'BULLISH'
+            fvg_color = '#00E676' if is_bull_fvg else '#FF5252'
+            
+            # Close-based mitigation check
+            mitigated = False
+            for j in range(idx + 1, len(df_copy)):
+                if is_bull_fvg:
+                    if df_copy['Close'].iloc[j] < row['FVG_Bottom']:
+                        mitigated = True
+                        break
+                else:
+                    if df_copy['Close'].iloc[j] > row['FVG_Top']:
+                        mitigated = True
+                        break
+            
+            x0 = df_copy['time'].iloc[max(0, idx-2)]
+            x1 = df_copy['time'].iloc[idx] if mitigated else df_copy['time'].iloc[-1]
+            opacity = 0.04 if mitigated else 0.12
+            
+            shapes.append(dict(
+                type="rect",
+                x0=x0, y0=row['FVG_Bottom'],
+                x1=x1, y1=row['FVG_Top'],
+                fillcolor=fvg_color,
+                opacity=opacity,
+                line=dict(width=0),
+                xref="x", yref="y"
+            ))
+
+        # Order Blocks (OB)
+        if 'OB_Type' in df_copy.columns and pd.notna(row.get('OB_Type')) and row['OB_Type'] is not None:
+            is_bull_ob = row['OB_Type'] == 'BULLISH'
+            ob_color = '#2979FF' if is_bull_ob else '#FF9100'
+            mitigated = bool(row.get('OB_Mitigated', False))
+            
+            x0 = df_copy['time'].iloc[idx]
+            x1 = df_copy['time'].iloc[min(idx+2, len(df_copy)-1)] if mitigated else df_copy['time'].iloc[-1]
+            opacity = 0.04 if mitigated else 0.12
+            
+            shapes.append(dict(
+                type="rect",
+                x0=x0, y0=row['OB_Bottom'],
+                x1=x1, y1=row['OB_Top'],
+                fillcolor=ob_color,
+                opacity=opacity,
+                line=dict(width=0),
+                xref="x", yref="y"
+            ))
+            
+        # Balanced Price Ranges (BPR)
+        if 'BPR_Type' in df_copy.columns and pd.notna(row.get('BPR_Type')) and row['BPR_Type'] is not None:
+            bpr_color = '#E040FB'
+            mitigated = bool(row.get('BPR_Mitigated', False))
+            
+            x0 = df_copy['time'].iloc[max(0, idx-2)]
+            x1 = df_copy['time'].iloc[idx] if mitigated else df_copy['time'].iloc[-1]
+            opacity = 0.04 if mitigated else 0.12
+            
+            shapes.append(dict(
+                type="rect",
+                x0=x0, y0=row['BPR_Bottom'],
+                x1=x1, y1=row['BPR_Top'],
+                fillcolor=bpr_color,
+                opacity=opacity,
+                line=dict(width=0),
+                xref="x", yref="y"
+            ))
+
+        # Swapzones (Support / Resistance Flips)
+        if 'Swap_Type' in df_copy.columns and pd.notna(row.get('Swap_Type')) and row['Swap_Type'] is not None:
+            swap_type = row['Swap_Type']
+            swap_color = '#651FFF' if swap_type == 'SUPPORT' else '#F50057'
+            mitigated = bool(row.get('Swap_Mitigated', False))
+            
+            y0 = min(row['Swap_Level'], row['Swap_SL'])
+            y1 = max(row['Swap_Level'], row['Swap_SL'])
+            
+            x0 = df_copy['time'].iloc[idx]
+            x1 = df_copy['time'].iloc[min(idx+2, len(df_copy)-1)] if mitigated else df_copy['time'].iloc[-1]
+            opacity = 0.04 if mitigated else 0.12
+            
+            shapes.append(dict(
+                type="rect",
+                x0=x0, y0=y0,
+                x1=x1, y1=y1,
+                fillcolor=swap_color,
+                opacity=opacity,
+                line=dict(width=0),
+                xref="x", yref="y"
+            ))
+
+        # Supply / Demand Zones
+        if 'SD_Type' in df_copy.columns and pd.notna(row.get('SD_Type')) and row['SD_Type'] is not None:
+            sd_type = row['SD_Type']
+            sd_color = '#00C853' if 'DEMAND' in sd_type else '#D50000'
+            mitigated = bool(row.get('SD_Mitigated', False))
+            
+            x0 = df_copy['time'].iloc[max(0, idx-1)]
+            x1 = df_copy['time'].iloc[idx] if mitigated else df_copy['time'].iloc[-1]
+            opacity = 0.04 if mitigated else 0.12
+            
+            shapes.append(dict(
+                type="rect",
+                x0=x0, y0=row['SD_Bottom'],
+                x1=x1, y1=row['SD_Top'],
+                fillcolor=sd_color,
+                opacity=opacity,
+                line=dict(width=0),
+                xref="x", yref="y"
+            ))
+
+    # Apply shapes
+    fig.update_layout(shapes=shapes)
+
+    # 7. Configure layout limits & aesthetics
+    visible_candles = 80
+    start_time = df_copy['time'].iloc[max(0, len(df_copy) - visible_candles)]
+    end_time = df_copy['time'].iloc[-1]
+    
+    df_visible = df_copy.iloc[max(0, len(df_copy) - visible_candles):]
+    p_min = df_visible['Low'].min()
+    p_max = df_visible['High'].max()
+    p_diff = p_max - p_min
+    p_min_margin = p_min - 0.05 * p_diff if p_diff > 0 else p_min - 1.0
+    p_max_margin = p_max + 0.05 * p_diff if p_diff > 0 else p_max + 1.0
+
+    fig.update_layout(
+        template=template,
+        paper_bgcolor=bg_color,
+        plot_bgcolor=bg_color,
+        xaxis=dict(
+            gridcolor=grid_color,
+            zerolinecolor=grid_color,
+            linecolor=border_color,
+            rangeslider=dict(visible=False),
+            type='date',
+            range=[start_time, end_time]
+        ),
+        yaxis=dict(
+            gridcolor=grid_color,
+            zerolinecolor=grid_color,
+            linecolor=border_color,
+            range=[p_min_margin, p_max_margin],
+            side='right'
+        ),
+        xaxis2=dict(
+            gridcolor=grid_color,
+            zerolinecolor=grid_color,
+            linecolor=border_color,
+            type='date'
+        ),
+        yaxis2=dict(
+            gridcolor=grid_color,
+            zerolinecolor=grid_color,
+            linecolor=border_color,
+            showticklabels=False
+        ),
+        margin=dict(l=10, r=60, t=10, b=10),
+        height=550,
+        hovermode='x unified',
+        legend=dict(
+            orientation='h',
+            yanchor='bottom',
+            y=1.02,
+            xanchor='right',
+            x=1,
+            bgcolor=legend_bg,
+            font=dict(size=10)
+        )
+    )
+
+    return fig
+
+
+class MockTick:
+    def __init__(self, bid: float, ask: float):
+        self.bid = bid
+        self.ask = ask
+
+class MockInfo:
+    def __init__(self, digits: int = 5, point: float = 0.00001):
+        self.digits = digits
+        self.point = point
+
+def generate_synthetic_data(symbol: str, timeframe_str: str, num_candles: int) -> pd.DataFrame:
+    import numpy as np
+    import pandas as pd
+    from datetime import datetime, timedelta
+
+    tf_delta_map = {
+        "M1": timedelta(minutes=1),
+        "M5": timedelta(minutes=5),
+        "M15": timedelta(minutes=15),
+        "M30": timedelta(minutes=30),
+        "H1": timedelta(hours=1),
+        "H4": timedelta(hours=4),
+        "D1": timedelta(days=1),
+    }
+    delta = tf_delta_map.get(timeframe_str, timedelta(minutes=15))
+    
+    start_prices = {
+        "XAUUSD": 2000.0,
+        "EURUSD": 1.1000,
+        "GBPUSD": 1.2500,
+        "USDJPY": 140.00,
+        "BTCUSD": 60000.0,
+        "ETHUSD": 3000.0,
+        "US30": 38000.0,
+        "AUDUSD": 0.6500,
+        "USDCAD": 1.3500
+    }
+    
+    base_sym = "".join([c for c in symbol if c.isalpha()]).upper()
+    start_price = start_prices.get(base_sym, 1.0000)
+    
+    np.random.seed(42)
+    times = [datetime.now() - (num_candles - i) * delta for i in range(num_candles)]
+    
+    prices = []
+    for i in range(num_candles):
+        trend = np.sin(i / 15.0) * (start_price * 0.01) + (i / float(num_candles)) * (start_price * 0.005)
+        noise = np.random.normal(0, start_price * 0.001)
+        price = start_price + trend + noise
+        prices.append(price)
+        
+    df = pd.DataFrame(columns=['time', 'Open', 'High', 'Low', 'Close', 'Volume'])
+    df['time'] = times
+    
+    for idx in range(num_candles):
+        close_p = prices[idx]
+        open_p = prices[idx-1] if idx > 0 else close_p * 0.999
+        max_p = max(open_p, close_p)
+        min_p = min(open_p, close_p)
+        high_p = max_p + abs(np.random.normal(0, start_price * 0.0005))
+        low_p = min_p - abs(np.random.normal(0, start_price * 0.0005))
+        volume = int(np.random.poisson(2000))
+        df.loc[idx] = [times[idx], open_p, high_p, low_p, close_p, volume]
+        
+    return df
+
+
+def fetch_simulated_data(symbol: str, timeframe_str: str, num_candles: int) -> pd.DataFrame:
+    tf_suffix_map = {
+        "M15": "_15",
+        "M30": "_30",
+        "H1": "_1h",
+        "H4": "_4h",
+        "D1": "_1d"
+    }
+    suffix = tf_suffix_map.get(timeframe_str, "")
+    clean_sym = symbol.lower().replace("m", "").replace(".", "")
+    possible_names = [
+        f"historical_{clean_sym}m{suffix}.csv",
+        f"historical_{clean_sym}{suffix}.csv",
+        f"historical_{symbol.lower()}{suffix}.csv",
+    ]
+    
+    df = None
+    for name in possible_names:
+        csv_path = BASE_DIR / "data" / name
+        if csv_path.exists():
+            try:
+                df = pd.read_csv(csv_path)
+                df['time'] = pd.to_datetime(df['time'])
+                df = df.tail(num_candles).reset_index(drop=True)
+                break
+            except Exception:
+                pass
+                
+    if df is not None and not df.empty:
+        return df[['time', 'Open', 'High', 'Low', 'Close', 'Volume']]
+        
+    return generate_synthetic_data(symbol, timeframe_str, num_candles)
 
 
 def _display(value: Any, suffix: str = "") -> str:
@@ -419,6 +878,7 @@ def render_dashboard_body():
     
     tabs = st.tabs([
         "Command Center",
+        "Real-Time Market Chart",
         "Live Signal Monitor",
         "Trade Manager",
         "AI Learning",
@@ -517,6 +977,295 @@ def render_dashboard_body():
             st.markdown(f'<div class="rule-line">{note}</div>', unsafe_allow_html=True)
     
     with tabs[1]:
+        st.subheader("Interactive Real-Time Market Chart")
+        
+        # Determine connection/simulation status
+        is_simulation = False
+        if not MT5_AVAILABLE:
+            is_simulation = True
+            st.info("💡 MetaTrader 5 library is not available in this environment. Running in **Simulation Mode** using local CSV data or synthetic prices.")
+        else:
+            connected = connect_mt5()
+            if not connected:
+                is_simulation = True
+                st.warning("⚠️ Failed to initialize connection to MT5 terminal. Running in **Simulation Mode**.")
+                st.info("💡 Start your MT5 terminal to connect live.")
+
+        col_status, col_btn = st.columns([4, 1])
+        with col_status:
+            if is_simulation:
+                st.markdown(
+                    '<span style="background-color: rgba(255, 167, 38, 0.12); color: #ffa726; border: 1px solid rgba(255, 167, 38, 0.3); padding:4px 8px; border-radius:4px; font-weight:bold; font-size:0.9rem;">🟡 SIMULATION MODE</span>',
+                    unsafe_allow_html=True
+                )
+            else:
+                st.markdown(
+                    '<span style="background-color: rgba(76, 175, 80, 0.12); color: #66bb6a; border: 1px solid rgba(76, 175, 80, 0.3); padding:4px 8px; border-radius:4px; font-weight:bold; font-size:0.9rem;">🟢 MT5 CONNECTED</span>',
+                    unsafe_allow_html=True
+                )
+        with col_btn:
+            if st.button("🔄 Refresh Data", key="refresh_chart_manual"):
+                st.rerun()
+
+        st.markdown("---")
+        
+        # Inputs for symbol and timeframe
+        col_inp1, col_inp2, col_inp3, col_inp4 = st.columns(4)
+        with col_inp1:
+            symbol_list = ["XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "BTCUSD", "ETHUSD", "US30", "AUDUSD", "USDCAD"]
+            selected_symbol = st.selectbox(
+                "Select Forex/Crypto Symbol",
+                symbol_list,
+                index=0,
+                key="chart_symbol_select"
+            )
+            custom_symbol = st.text_input("Or enter custom symbol (e.g. EURUSDm)", value="", key="chart_custom_symbol")
+            symbol = custom_symbol.strip() if custom_symbol.strip() else selected_symbol
+
+        with col_inp2:
+            timeframe_options = ["M1", "M5", "M15", "M30", "H1", "H4", "D1"]
+            timeframe_str = st.selectbox(
+                "Select Timeframe",
+                timeframe_options,
+                index=2, # Default M15
+                key="chart_timeframe_select"
+            )
+        
+        with col_inp3:
+            num_candles = st.slider(
+                "Candles to Fetch",
+                min_value=50,
+                max_value=300,
+                value=150,
+                step=10,
+                key="chart_num_candles"
+            )
+
+        with col_inp4:
+            chart_theme = st.selectbox(
+                "Select Chart Theme",
+                ["Dark (TradingView)", "Light Theme"],
+                index=0,
+                key="chart_theme_select"
+            )
+
+        # Fetch and plot data
+        try:
+            # Timeframe mapping
+            if MT5_AVAILABLE:
+                tf_map = {
+                    "M1": mt5.TIMEFRAME_M1,
+                    "M5": mt5.TIMEFRAME_M5,
+                    "M15": mt5.TIMEFRAME_M15,
+                    "M30": mt5.TIMEFRAME_M30,
+                    "H1": mt5.TIMEFRAME_H1,
+                    "H4": mt5.TIMEFRAME_H4,
+                    "D1": mt5.TIMEFRAME_D1,
+                }
+            else:
+                tf_map = {
+                    "M1": 1,
+                    "M5": 5,
+                    "M15": 15,
+                    "M30": 30,
+                    "H1": 16385,
+                    "H4": 16388,
+                    "D1": 16408,
+                }
+            tf_val = tf_map[timeframe_str]
+            
+            if not is_simulation:
+                broker_symbol = get_active_broker_symbol(symbol)
+                with st.spinner(f"Fetching {broker_symbol} historical data..."):
+                    df = fetch_historical_data(symbol, tf_val, num_candles)
+            else:
+                broker_symbol = symbol + " (Simulated)"
+                with st.spinner(f"Loading simulated {symbol} data..."):
+                    df = fetch_simulated_data(symbol, timeframe_str, num_candles)
+            
+            if df.empty:
+                st.warning(f"No candles returned for {broker_symbol}.")
+            else:
+                # Fetch live tick info for spread evaluation
+                if not is_simulation:
+                    tick = mt5.symbol_info_tick(broker_symbol)
+                    info = mt5.symbol_info(broker_symbol)
+                else:
+                    tick = None
+                    info = None
+                
+                # Mock tick and info if live retrieval failed or in simulation mode
+                if tick is None or info is None:
+                    last_close = df['Close'].iloc[-1]
+                    pip_multiplier = get_pip_multiplier(symbol)
+                    
+                    # Define realistic simulated spreads (in pips) for different pairs
+                    sim_spreads_pips = {
+                        "XAUUSD": 2.0,
+                        "EURUSD": 0.8,
+                        "GBPUSD": 1.2,
+                        "USDJPY": 0.9,
+                        "BTCUSD": 25.0,
+                        "ETHUSD": 2.5,
+                        "US30": 3.0,
+                        "AUDUSD": 0.8,
+                        "USDCAD": 1.1,
+                    }
+                    # Clean symbol base lookup
+                    base_sym = "".join([c for c in symbol if c.isalpha()]).upper()
+                    for k in list(sim_spreads_pips.keys()):
+                        if k in symbol.upper():
+                            base_sym = k
+                            break
+                    spread_pips_val = sim_spreads_pips.get(base_sym, 1.2)
+                    
+                    sim_spread = spread_pips_val * (pip_multiplier if pip_multiplier > 0 else 0.0001)
+                    bid = last_close
+                    ask = last_close + sim_spread
+                    tick = MockTick(bid, ask)
+                    digits = 3 if "JPY" in symbol.upper() or "XAU" in symbol.upper() else 5
+                    point = 0.01 if digits == 3 else 0.00001
+                    info = MockInfo(digits=digits, point=point)
+                
+                # Apply detectors
+                with st.spinner("Analyzing SMC structural patterns..."):
+                    df_analyzed = detect_swing_points(df)
+                    df_analyzed = detect_structures(df_analyzed)
+                    df_analyzed = detect_fvg_and_ob(df_analyzed, symbol=symbol)
+                    df_analyzed = detect_snr_and_swapzones(df_analyzed, symbol=symbol)
+                    df_analyzed = detect_bpr(df_analyzed, symbol=symbol)
+                    df_analyzed = detect_indecision_candles(df_analyzed, symbol=symbol)
+                    df_analyzed = detect_supply_demand_zones(df_analyzed, symbol=symbol)
+
+                # Display Live Market metrics in styled Bento Cards
+                if tick is not None and info is not None:
+                    pip_multiplier = get_pip_multiplier(symbol)
+                    digits = getattr(info, "digits", 5)
+                    bid = tick.bid
+                    ask = tick.ask
+                    spread_price = ask - bid
+                    spread_pips = spread_price / pip_multiplier if pip_multiplier > 0 else 0.0
+                    
+                    # Get max spread from env
+                    max_spread_pips = float(os.getenv("MT5_RUNNER_MAX_SPREAD_PIPS", 5.0))
+                    spread_ratio_limit = float(os.getenv("MT5_MAX_SPREAD_RATIO", 0.20))
+                    
+                    # Build context
+                    spread_ctx = build_spread_context(bid=bid, ask=ask, point=info.point, digits=digits)
+                    osc_ctx = build_oscillator_context(df_analyzed)
+                    
+                    # Live Spread Status check
+                    is_spread_ok = True
+                    spread_status_text = "🟢 SPREAD OK"
+                    spread_status_style = "background-color: rgba(76, 175, 80, 0.12); color: #66bb6a; border: 1px solid rgba(76, 175, 80, 0.3);"
+                    
+                    if spread_pips > max_spread_pips:
+                        is_spread_ok = False
+                        spread_status_text = "🔴 SPREAD TOO WIDE"
+                        spread_status_style = "background-color: rgba(244, 67, 54, 0.12); color: #ef5350; border: 1px solid rgba(244, 67, 54, 0.3);"
+                    elif spread_pips > max_spread_pips * 0.7:
+                        spread_status_text = "🟡 SPREAD MODERATE"
+                        spread_status_style = "background-color: rgba(255, 167, 38, 0.12); color: #ffa726; border: 1px solid rgba(255, 167, 38, 0.3);"
+                        
+                    # Display metrics row
+                    mcol1, mcol2, mcol3, mcol4 = st.columns(4)
+                    with mcol1:
+                        st.markdown(
+                            f"""
+                            <div style="border: 1px solid var(--border-color, rgba(128, 128, 128, 0.2)); border-radius: 8px; padding: 0.85rem 1rem; background: var(--secondary-background-color); color: var(--text-color);">
+                                <div class="small-note">Symbol Price (Bid/Ask)</div>
+                                <div style="font-size: 1.4rem; font-weight: bold; color: var(--text-color);">{bid:.{digits}f} / {ask:.{digits}f}</div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+                    with mcol2:
+                        st.markdown(
+                            f"""
+                            <div style="border: 1px solid var(--border-color, rgba(128, 128, 128, 0.2)); border-radius: 8px; padding: 0.85rem 1rem; background: var(--secondary-background-color); color: var(--text-color);">
+                                <div class="small-note">Current Spread</div>
+                                <div style="font-size: 1.4rem; font-weight: bold; color: var(--text-color);">{spread_pips:.1f} pips</div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+                    with mcol3:
+                        st.markdown(
+                            f"""
+                            <div style="border: 1px solid var(--border-color, rgba(128, 128, 128, 0.2)); border-radius: 8px; padding: 0.85rem 1rem; background: var(--secondary-background-color); color: var(--text-color); height:100%;">
+                                <div class="small-note">Spread Safety Gate</div>
+                                <div style="padding: 2px 6px; border-radius: 4px; font-weight: bold; text-align: center; font-size: 1.1rem; {spread_status_style}">{spread_status_text}</div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+                    with mcol4:
+                        rsi_val = osc_ctx.rsi_8
+                        rsi_str = f"{rsi_val:.1f}" if rsi_val is not None else "-"
+                        st.markdown(
+                            f"""
+                            <div style="border: 1px solid var(--border-color, rgba(128, 128, 128, 0.2)); border-radius: 8px; padding: 0.85rem 1rem; background: var(--secondary-background-color); color: var(--text-color);">
+                                <div class="small-note">Oscillator State (RSI 8)</div>
+                                <div style="font-size: 1.4rem; font-weight: bold; color: var(--text-color);">{rsi_str}</div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+                        
+                    # Entry Gate Simulation on the latest closed bar
+                    st.markdown("##### Entry Gate Evaluation (Simulated on Latest Bar)")
+                    latest_close = df_analyzed['Close'].iloc[-1]
+                    latest_open = df_analyzed['Open'].iloc[-1]
+                    direction = 1 if latest_close >= latest_open else -1
+                    
+                    sl_distance = 15 * pip_multiplier
+                    sl_price = latest_close - sl_distance if direction == 1 else latest_close + sl_distance
+                    
+                    mock_setup = {
+                        "symbol": symbol,
+                        "direction": direction,
+                        "entry_price": latest_close,
+                        "sl_price": sl_price,
+                        "features": {
+                            "rr_ratio": 2.0,
+                            "floop_trend_aligned": 1,
+                            "confluence_score": 2.0
+                        }
+                    }
+                    
+                    accept_threshold = float(os.getenv("ML_ACCEPT_THRESHOLD", 0.50))
+                    gate_decision = evaluate_entry_quality(
+                        mock_setup,
+                        strategy="FVG",
+                        probability=0.65,
+                        accept_threshold=accept_threshold,
+                        spread=spread_ctx,
+                        oscillator=osc_ctx
+                    )
+                    
+                    gate_bg = "rgba(76, 175, 80, 0.12)" if gate_decision.allowed else "rgba(244, 67, 54, 0.12)"
+                    gate_fg = "#66bb6a" if gate_decision.allowed else "#ef5350"
+                    gate_border = "#4caf50" if gate_decision.allowed else "#f44336"
+                    st.markdown(
+                        f"""
+                        <div style="border-left: 5px solid {gate_border}; padding: 0.75rem 1rem; margin-bottom: 1.5rem; background: {gate_bg}; border-radius: 4px; border-top: 1px solid rgba(128,128,128,0.1); border-right: 1px solid rgba(128,128,128,0.1); border-bottom: 1px solid rgba(128,128,128,0.1);">
+                            <div style="font-weight: bold; color: {gate_fg}; font-size: 1.05rem;">Entry Gate Allowed: {gate_decision.allowed}</div>
+                            <div style="color: var(--text-color); font-size: 0.9rem; margin-top: 0.2rem; opacity: 0.9;"><b>Reason:</b> {gate_decision.reason}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                    
+                    # Draw the Plotly chart
+                    fig = draw_plotly_chart(df_analyzed, broker_symbol, timeframe_str, theme=chart_theme)
+                    st.plotly_chart(fig, use_container_width=True)
+
+        except Exception as ex:
+            st.error(f"Error fetching/analyzing data for {symbol}: {ex}")
+            import traceback
+            st.code(traceback.format_exc())
+    
+    with tabs[2]:
         st.subheader("Signals")
         if filtered_df.empty:
             st.info("No signals match the active filters.")
@@ -609,7 +1358,7 @@ def render_dashboard_body():
                             key=f"download_signal_detail_{_safe_filename(selected_signal_id)}",
                         )
     
-    with tabs[2]:
+    with tabs[3]:
         st.subheader("Active Trade View")
         active = accepted_df.copy()
         if not active.empty and "outcome_recorded" in active.columns:
@@ -617,11 +1366,12 @@ def render_dashboard_body():
         render_signal_table(active if not active.empty else accepted_df.head(50), height=360)
     
         st.subheader("Emergency Exit Rules")
-        st.markdown('<div class="rule-line">M15/M30: close only after two closed opposite candles or H1/H4 confirmation.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="rule-line">M15/M30: close only after two closed opposite candles on the setup timeframe.</div>', unsafe_allow_html=True)
         st.markdown('<div class="rule-line">H1/H4/D1: one closed opposite candle can trigger emergency CHoCH exit.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="rule-line">Early mitigation is separate and requires same-timeframe closed structure, opposite volume, and adverse bid/ask evidence.</div>', unsafe_allow_html=True)
         st.markdown('<div class="rule-line">The candle currently forming is ignored for emergency CHoCH decisions.</div>', unsafe_allow_html=True)
     
-    with tabs[3]:
+    with tabs[4]:
         st.subheader("Learning Pipeline")
         cols = st.columns(4)
         cols[0].metric("Real Labeled", snapshot["counts"]["real_labeled_rows"])
@@ -670,7 +1420,7 @@ def render_dashboard_body():
             bucket_totals = bucket_summary_df.groupby(["source", "confidence_bucket"], dropna=False)["signal_count"].sum().reset_index()
             st.bar_chart(bucket_totals, x="confidence_bucket", y="signal_count", color="source")
     
-    with tabs[4]:
+    with tabs[5]:
         st.subheader("Overall Calibration")
         st.dataframe(pd.DataFrame([calibration_report.get("overall", {})]), width="stretch", hide_index=True)
     
@@ -685,7 +1435,7 @@ def render_dashboard_body():
             st.subheader("Confidence Buckets")
             st.dataframe(buckets, width="stretch", hide_index=True)
     
-    with tabs[5]:
+    with tabs[6]:
         st.subheader("Formula QA")
         formula_cols = st.columns(4)
         formula_cols[0].metric("Core Formula Status", str(formula_qa_report.get("core_status", "unknown")).upper())
@@ -739,7 +1489,7 @@ def render_dashboard_body():
         with perf_tabs[1]:
             st.dataframe(shadow_perf, width="stretch", hide_index=True)
     
-    with tabs[6]:
+    with tabs[7]:
         st.subheader("Backtest Files")
         st.dataframe(backtest_files, width="stretch", hide_index=True)
     

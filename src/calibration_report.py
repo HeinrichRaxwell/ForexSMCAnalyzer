@@ -17,6 +17,8 @@ from src.model_trainer import (
     make_xgb_model,
     make_lgb_model,
 )
+from src.calibrator import fit_calibrator, save_calibrator
+from src.live_trade_policy import normalize_strategy_name
 
 from sklearn.model_selection import TimeSeriesSplit
 
@@ -28,6 +30,29 @@ SETUP_TYPE_STRATEGY_FALLBACK = {
     1: "OB_OR_SWAPZONE_IC_SND",
     2: "PIVOT_REJECTION",
 }
+DEFAULT_LIVE_TIMEFRAMES = {"M30", "H1", "H4", "D1"}
+DEFAULT_LIVE_BLOCKED_STRATEGIES = {"Pivot", "PIVOT_REJECTION", "SND", "Swapzone"}
+TIMEFRAME_ALIASES = {
+    "15": "M15",
+    "15.0": "M15",
+    "M15": "M15",
+    "30": "M30",
+    "30.0": "M30",
+    "M30": "M30",
+    "60": "H1",
+    "60.0": "H1",
+    "1H": "H1",
+    "H1": "H1",
+    "240": "H4",
+    "240.0": "H4",
+    "4H": "H4",
+    "H4": "H4",
+    "1440": "D1",
+    "1440.0": "D1",
+    "1D": "D1",
+    "D1": "D1",
+}
+TIMEFRAME_SORT_ORDER = {"M15": 0, "M30": 1, "H1": 2, "H4": 3, "D1": 4}
 
 
 def _resolve_project_path(path):
@@ -36,6 +61,70 @@ def _resolve_project_path(path):
     if os.path.isabs(path):
         return path
     return os.path.join(BASE_DIR, path)
+
+
+def _csv_set(value: str | None) -> set[str]:
+    if not value:
+        return set()
+    return {item.strip() for item in str(value).split(",") if item.strip()}
+
+
+def _load_env_values(path=".env") -> dict:
+    env_path = _resolve_project_path(path)
+    values = {}
+    if not env_path or not os.path.exists(env_path):
+        return values
+    with open(env_path, "r", encoding="utf-8") as env_file:
+        for raw_line in env_file:
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, raw_value = line.split("=", 1)
+            values[key.strip()] = raw_value.strip().strip("\"'")
+    return values
+
+
+def normalize_live_timeframe(value) -> str | None:
+    if value is None:
+        return None
+    try:
+        if pd.isna(value):
+            return None
+    except TypeError:
+        pass
+    normalized = str(value).strip().upper()
+    return TIMEFRAME_ALIASES.get(normalized, normalized)
+
+
+def _live_policy_env_value(env_values: dict, name: str, default: str | None = None):
+    if name in env_values:
+        return env_values[name]
+    return os.getenv(name, default)
+
+
+def _live_policy_allowed_timeframes(env_values: dict) -> set[str]:
+    configured = _csv_set(_live_policy_env_value(env_values, "MT5_ALLOWED_TIMEFRAMES", None))
+    if not configured:
+        return set(DEFAULT_LIVE_TIMEFRAMES)
+    return {tf for tf in (normalize_live_timeframe(item) for item in configured) if tf}
+
+
+def _live_policy_blocked_strategies(env_values: dict) -> set[str]:
+    configured = _csv_set(_live_policy_env_value(env_values, "MT5_LIVE_STRATEGY_BLOCKLIST", None))
+    if not configured:
+        return set(DEFAULT_LIVE_BLOCKED_STRATEGIES)
+    blocked = set(configured)
+    if "Pivot" in blocked:
+        blocked.add("PIVOT_REJECTION")
+    return blocked
+
+
+def _live_policy_allowed_strategies(env_values: dict) -> set[str]:
+    return _csv_set(_live_policy_env_value(env_values, "MT5_LIVE_STRATEGY_ALLOWLIST", None))
+
+
+def _sort_timeframes(timeframes: set[str]) -> list[str]:
+    return sorted(timeframes, key=lambda tf: (TIMEFRAME_SORT_ORDER.get(tf, 99), tf))
 
 
 def assign_confidence_bucket(confidence) -> str:
@@ -231,6 +320,23 @@ def score_outcome_dataset(
     return df.reset_index(drop=True)
 
 
+def fit_calibrator_from_scored(scored_df: pd.DataFrame, min_samples: int = 50):
+    """Fit isotonic calibrator from honest out-of-fold scored rows only."""
+    df = scored_df.copy()
+    confidence = pd.to_numeric(df.get("confidence"), errors="coerce")
+    labels = pd.to_numeric(df.get("label"), errors="coerce")
+    mask = confidence.notna() & labels.isin([0, 1])
+    if "confidence_source" in df.columns:
+        mask &= df["confidence_source"].astype(str).eq("walk_forward_oof")
+    if int(mask.sum()) < int(min_samples):
+        return None
+    return fit_calibrator(
+        confidence[mask].to_numpy(),
+        labels[mask].astype(int).to_numpy(),
+        min_samples=min_samples,
+    )
+
+
 def _round_float(value, digits=2):
     if value is None:
         return None
@@ -325,6 +431,9 @@ def _ensure_strategy_column(df: pd.DataFrame) -> pd.DataFrame:
 
     strategy = df["strategy"].replace("", np.nan)
     df["strategy"] = strategy.fillna(fallback)
+    if "setup_type" in df.columns:
+        setup_type = pd.to_numeric(df["setup_type"], errors="coerce")
+        df.loc[setup_type == 2, "strategy"] = "PIVOT_REJECTION"
     return df
 
 
@@ -336,6 +445,49 @@ def _threshold_metrics(df: pd.DataFrame, thresholds=None) -> dict:
         passed = df[scored_confidence >= threshold]
         result[f"{threshold:.2f}"] = _metrics_for_group(passed)
     return result
+
+
+def _build_live_policy_report(df: pd.DataFrame, thresholds=None, env_values=None) -> dict:
+    env_values = env_values if env_values is not None else _load_env_values(".env")
+    allowed_timeframes = _live_policy_allowed_timeframes(env_values)
+    blocked_strategies = _live_policy_blocked_strategies(env_values)
+    allowed_strategies = _live_policy_allowed_strategies(env_values)
+
+    live_df = df.copy()
+    live_df["_live_timeframe"] = live_df.get("timeframe", pd.Series(index=live_df.index, dtype=object)).apply(
+        normalize_live_timeframe
+    )
+    live_df["_live_strategy"] = live_df.apply(
+        lambda row: normalize_strategy_name(row.get("strategy"), {"setup_type": row.get("setup_type")}),
+        axis=1
+    )
+    live_df["_raw_strategy"] = live_df["strategy"].astype(str)
+
+    timeframe_mask = live_df["_live_timeframe"].isin(allowed_timeframes)
+    strategy_mask = ~(live_df["_live_strategy"].isin(blocked_strategies) | live_df["_raw_strategy"].isin(blocked_strategies))
+    if allowed_strategies:
+        strategy_mask &= (live_df["_live_strategy"].isin(allowed_strategies) | live_df["_raw_strategy"].isin(allowed_strategies))
+    live_mask = timeframe_mask & strategy_mask
+    filtered = live_df[live_mask].drop(columns=["_live_timeframe", "_live_strategy", "_raw_strategy"])
+
+    excluded_timeframe = int((~timeframe_mask).sum())
+    excluded_strategy = int((timeframe_mask & ~strategy_mask).sum())
+
+    return {
+        "allowed_timeframes": _sort_timeframes(allowed_timeframes),
+        "blocked_strategies": sorted(blocked_strategies),
+        "allowed_strategies": sorted(allowed_strategies),
+        "excluded_counts": {
+            "timeframe": excluded_timeframe,
+            "strategy": excluded_strategy,
+            "total": int((~live_mask).sum()),
+        },
+        "overall": _metrics_for_group(filtered),
+        "thresholds": _threshold_metrics(filtered, thresholds=thresholds),
+        "timeframes": _group_metrics(filtered, "timeframe"),
+        "strategies": _group_metrics(filtered, "strategy"),
+        "sources": _group_metrics(filtered, "sample_source"),
+    }
 
 
 def recommend_threshold(
@@ -389,6 +541,7 @@ def build_calibration_report(
     output_path="data/calibration_report.json",
     thresholds=None,
     scoring_mode="walk_forward",
+    live_policy_env=None,
 ) -> dict:
     df = scored_df.copy()
     df["label"] = pd.to_numeric(df["label"], errors="coerce")
@@ -434,6 +587,7 @@ def build_calibration_report(
         "directions": _group_metrics(df, "direction"),
         "sources": _group_metrics(df, "sample_source"),
     }
+    report["live_policy"] = _build_live_policy_report(df, thresholds=thresholds, env_values=live_policy_env)
     report["recommendation"] = recommend_threshold(report)
 
     if output_path:
@@ -476,6 +630,14 @@ def main():
         n_splits=args.n_splits,
         embargo=args.embargo,
     )
+    if args.mode == "walk_forward":
+        calibrator = fit_calibrator_from_scored(scored)
+        calibrator_path = os.path.join(_resolve_project_path(args.model_dir), "confidence_calibrator.joblib")
+        if calibrator is not None:
+            save_calibrator(calibrator, calibrator_path)
+            print(f"[Calibration] Isotonic calibrator saved to {calibrator_path}")
+        else:
+            print("[Calibration] Not enough walk-forward OOF rows to fit calibrator; skipped.")
     report = build_calibration_report(scored, output_path=args.output, scoring_mode=args.mode)
     print(f"[Calibration] Report written to {_resolve_project_path(args.output)}")
     print(f"[Calibration] scoring_mode={args.mode}")

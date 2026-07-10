@@ -16,6 +16,16 @@ from src.rejection_detector import detect_rejection_at_level, is_near_psychologi
 from src.indicators.knn_classifier import run_knn_classifier, calculate_knn_probability_at_bar
 from src.indicators.volume_clusters import calculate_volume_clusters
 
+
+def has_post_confirmation_candle(df: pd.DataFrame, setup_idx: int) -> bool:
+    """FVG/BPR setup is tradable only after one closed candle exists after formation."""
+    try:
+        idx = int(setup_idx)
+    except (TypeError, ValueError):
+        return False
+    return idx + 1 < len(df)
+
+
 def generate_synthetic_data(num_candles=100, seed=42) -> pd.DataFrame:
     """
     Generate synthetic candlestick data representing simulated market structures.
@@ -539,6 +549,9 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUU
     for i in range(len(df)):
         fvg_type = df['FVG_Type'].iloc[i]
         if pd.notna(fvg_type) and fvg_type is not None:
+            if not has_post_confirmation_candle(df, i):
+                continue
+
             fvg_top = df['FVG_Top'].iloc[i]
             fvg_bottom = df['FVG_Bottom'].iloc[i]
             
@@ -654,8 +667,8 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUU
                     'rejection_confirmed': rejection_confirmed_b
                 })
                 
-    # 3. Breaker Block Setups
-    if 'BB_Type' in df.columns:
+    # 3. Breaker Block Setups (Disabled for entry)
+    if False and 'BB_Type' in df.columns:
         for i in range(len(df)):
             bb_type = df['BB_Type'].iloc[i]
             if pd.notna(bb_type) and bb_type is not None:
@@ -767,6 +780,9 @@ def get_active_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUU
         for i in range(len(df)):
             bpr_type = df['BPR_Type'].iloc[i]
             if pd.notna(bpr_type) and bpr_type is not None:
+                if not has_post_confirmation_candle(df, i):
+                    continue
+
                 if not df['BPR_Mitigated'].iloc[i]:
                     bpr_top = df['BPR_Top'].iloc[i]
                     bpr_bottom = df['BPR_Bottom'].iloc[i]

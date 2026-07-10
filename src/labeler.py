@@ -17,8 +17,19 @@ from src.setup_features import (
     rr_ratio, atr_percentile, body_to_range_ratio,
     dist_to_recent_swing_norm, htf_trend_aligned, confluence_score,
 )
+from src.reaction_router import ORDER_MARKET, classify_reaction, compute_levels
 from src.indicators.knn_classifier import run_knn_classifier, calculate_knn_probability_at_bar
 from src.indicators.volume_clusters import calculate_volume_clusters
+
+
+def has_post_confirmation_candle(df: pd.DataFrame, setup_idx: int) -> bool:
+    """FVG/BPR setup is tradable only after one full candle closes after formation."""
+    try:
+        idx = int(setup_idx)
+    except (TypeError, ValueError):
+        return False
+    return idx + 1 < len(df)
+
 
 def _read_float_env(name: str, default: float) -> float:
     raw = os.getenv(name)
@@ -456,6 +467,9 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
         # 1. Check FVG Setup
         fvg_type = df['FVG_Type'].iloc[i] if 'FVG_Type' in df.columns else None
         if pd.notna(fvg_type) and fvg_type is not None:
+            if not has_post_confirmation_candle(df, i):
+                continue
+
             fvg_top = df['FVG_Top'].iloc[i]
             fvg_bottom = df['FVG_Bottom'].iloc[i]
             fvg_sl = df['FVG_SL'].iloc[i]
@@ -475,7 +489,7 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
                 risk_pips = abs(entry - sl)
                 p_feat = get_pivot_features_at_idx(df, i, entry)
                     
-                label = simulate_trade(df, i + 1, direction, sl, tp, entry=entry, symbol=symbol)
+                label = simulate_trade(df, i + 2, direction, sl, tp, entry=entry, symbol=symbol)
                 if label is not None:
                     setups.append({
                         'time': t_val,
@@ -547,6 +561,9 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
         # 3. Check BPR Setup
         bpr_type = df['BPR_Type'].iloc[i] if 'BPR_Type' in df.columns else None
         if pd.notna(bpr_type) and bpr_type is not None:
+            if not has_post_confirmation_candle(df, i):
+                continue
+
             bpr_top = df['BPR_Top'].iloc[i]
             bpr_bottom = df['BPR_Bottom'].iloc[i]
             bpr_sl = df['BPR_SL'].iloc[i]
@@ -559,7 +576,7 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
                 risk_pips = abs(entry - sl)
                 p_feat = get_pivot_features_at_idx(df, i, entry)
                 
-                label = simulate_trade(df, i + 1, direction, sl, tp, entry=entry, symbol=symbol)
+                label = simulate_trade(df, i + 2, direction, sl, tp, entry=entry, symbol=symbol)
                 if label is not None:
                     setups.append({
                         'time': t_val,
@@ -711,10 +728,32 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
         pivot_setups = detect_pivot_rejection_setups_at_idx(df, i, symbol=symbol)
         for ps in pivot_setups:
             direction = ps['direction']
-            entry = ps['entry_price']
-            sl = ps['sl_price']
-            tp = ps['tp_price']
+            pivot_level = ps['pivot_level']
+            pivot_target = ps['tp_price']
+            reaction_window = df.iloc[max(0, i - 5):i + 1]
+            _, order_type, rstrength = classify_reaction(
+                reaction_window, level=pivot_level, direction=direction
+            )
+            confirm_price = float(df['Close'].iloc[i])
+            wick_extreme = float(df['Low'].iloc[i]) if direction == 1 else float(df['High'].iloc[i])
+            levels = compute_levels(
+                order_type,
+                direction=direction,
+                confirm_price=confirm_price,
+                level=pivot_level,
+                wick_extreme=wick_extreme,
+                target=pivot_target,
+            )
+            entry = levels['entry']
+            sl = levels['sl']
+            tp = levels['tp']
             risk_pips = abs(entry - sl)
+            if risk_pips <= 0.0:
+                continue
+            if direction == 1 and tp <= entry:
+                continue
+            if direction == -1 and tp >= entry:
+                continue
             p_feat = get_pivot_features_at_idx(df, i, entry)
             
             label = simulate_trade(df, i + 1, direction, sl, tp, entry=entry, symbol=symbol)
@@ -725,7 +764,7 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
                     'hour': hour_val,
                     'day_of_week': day_of_week_val,
                     'setup_type': 2,  # 2: Pivot Rejection
-                    'strategy': 'Pivot',
+                    'strategy': 'PIVOT_REJECTION',
                     'direction': direction,
                     'entry_price': entry,
                     'sl_price': sl,
@@ -741,6 +780,8 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
                     'floop_strength': floop_strength_val,
                     'dist_entry_to_pp': p_feat['dist_entry_to_pp'],
                     'dist_entry_to_nearest_pivot': p_feat['dist_entry_to_nearest_pivot'],
+                    'order_type': order_type,
+                    'reaction_strength': rstrength,
                     'label': int(label)
                 })
                     
@@ -762,6 +803,8 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
         
         idx = time_to_idx.get(t_val)
         if idx is not None:
+            s['order_type'] = int(s.get('order_type', ORDER_MARKET))
+            s['reaction_strength'] = float(s.get('reaction_strength', 0.0))
             floop_trend_val = int(df['floop_trend'].iloc[idx]) if 'floop_trend' in df.columns else 0
             s['floop_trend'] = floop_trend_val
             s['floop_trend_aligned'] = 1 if floop_trend_val == s['direction'] else 0
@@ -851,6 +894,8 @@ def label_smc_setups(df: pd.DataFrame, buffer: float = 0.5, symbol: str = "XAUUS
             # New entry-quality feature defaults (idx not found -> no NaN leak)
             s['floop_trend'] = s.get('floop_trend', 0)
             s['floop_trend_aligned'] = s.get('floop_trend_aligned', 0)
+            s['order_type'] = int(s.get('order_type', ORDER_MARKET))
+            s['reaction_strength'] = float(s.get('reaction_strength', 0.0))
             s['rr_ratio'] = rr_ratio(s['entry_price'], s['sl_price'], s['tp_price'])
             s['atr_percentile'] = 0.0
             s['body_to_range_ratio'] = 0.0
