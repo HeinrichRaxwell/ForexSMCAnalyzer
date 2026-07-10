@@ -129,7 +129,8 @@ def resolve_ambiguity_with_ticks(symbol: str, start_time: pd.Timestamp, end_time
         
     # Make sure MT5 is initialized only once
     if not _MT5_INITIALIZED:
-        if not mt5.initialize():
+        from src.data_loader import connect_mt5
+        if not connect_mt5():
             return is_filled, None
         _MT5_INITIALIZED = True
         

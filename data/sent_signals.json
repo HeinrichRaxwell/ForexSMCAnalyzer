@@ -40847,14 +40847,14 @@
             "floop_trend": -1,
             "floop_trend_aligned": 1
         },
-        "watch_last_execution_message_0.5": "price is too far from market (5907.0 pips > 2000.0 pips limit)",
-        "watch_last_execution_message_0.618": "price is too far from market (6050.7 pips > 2000.0 pips limit)",
+        "watch_last_execution_message_0.5": "price is too far from market (5916.1 pips > 2000.0 pips limit)",
+        "watch_last_execution_message_0.618": "price is too far from market (6059.9 pips > 2000.0 pips limit)",
         "watch_reason": "watch_price_too_far",
         "watch_status": "waiting_for_price_return",
-        "watch_last_checked_at": "2026-07-10 13:20:48",
+        "watch_last_checked_at": "2026-07-10 13:23:14",
         "outcome_recorded": true,
-        "last_execution_attempt_0.5": "2026-07-10 13:20:48",
-        "last_execution_attempt_0.618": "2026-07-10 13:20:48"
+        "last_execution_attempt_0.5": "2026-07-10 13:23:14",
+        "last_execution_attempt_0.618": "2026-07-10 13:23:14"
     },
     "D1_IC_DUAL_BEAR_5008.909_5017.303_2026-03-18_00:00:00": {
         "time_sent": "2026-06-15 07:57:44",

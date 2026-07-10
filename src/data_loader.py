@@ -9,7 +9,7 @@ load_dotenv()
 
 def connect_mt5() -> bool:
     """
-    Initialize connection to the MetaTrader 5 terminal.
+    Initialize connection to the MetaTrader 5 terminal and login to the specific account if credentials exist.
     
     Returns:
         bool: True if connection is successful, False otherwise.
@@ -17,6 +17,23 @@ def connect_mt5() -> bool:
     if not mt5.initialize():
         print("MT5 initialization failed, error code =", mt5.last_error())
         return False
+        
+    login_id = os.getenv("MT5_LOGIN")
+    password = os.getenv("MT5_PASSWORD")
+    server = os.getenv("MT5_SERVER")
+    
+    if login_id and password and server:
+        try:
+            login_num = int(login_id)
+            if mt5.login(login=login_num, password=password, server=server):
+                print(f"[MT5 Connection] Successfully logged in to account #{login_num} on server {server}")
+            else:
+                print(f"[MT5 Connection] Login failed for account #{login_num} on server {server}, error code =", mt5.last_error())
+                return False
+        except ValueError:
+            print("[MT5 Connection] Invalid MT5_LOGIN format in .env, must be an integer.")
+            return False
+            
     return True
 
 def fetch_historical_data(symbol: str, timeframe: int, num_candles: int) -> pd.DataFrame:
