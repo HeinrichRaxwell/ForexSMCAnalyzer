@@ -40847,14 +40847,14 @@
             "floop_trend": -1,
             "floop_trend_aligned": 1
         },
-        "watch_last_execution_message_0.5": "price is too far from market (5823.4 pips > 2000.0 pips limit)",
-        "watch_last_execution_message_0.618": "price is too far from market (5967.1 pips > 2000.0 pips limit)",
+        "watch_last_execution_message_0.5": "price is too far from market (5813.1 pips > 2000.0 pips limit)",
+        "watch_last_execution_message_0.618": "price is too far from market (5956.9 pips > 2000.0 pips limit)",
         "watch_reason": "watch_price_too_far",
         "watch_status": "waiting_for_price_return",
-        "watch_last_checked_at": "2026-07-10 09:58:56",
+        "watch_last_checked_at": "2026-07-10 10:14:22",
         "outcome_recorded": true,
-        "last_execution_attempt_0.5": "2026-07-10 09:58:56",
-        "last_execution_attempt_0.618": "2026-07-10 09:58:56"
+        "last_execution_attempt_0.5": "2026-07-10 10:14:22",
+        "last_execution_attempt_0.618": "2026-07-10 10:14:22"
     },
     "D1_IC_DUAL_BEAR_5008.909_5017.303_2026-03-18_00:00:00": {
         "time_sent": "2026-06-15 07:57:44",
@@ -78484,8 +78484,8 @@
         "probability_0.618": 0.5833333333333334,
         "ticket_a": 4353377437,
         "ticket_b": 4353377439,
-        "outcome_a_recorded": false,
-        "outcome_b_recorded": false,
+        "outcome_a_recorded": true,
+        "outcome_b_recorded": true,
         "entry_gate_0.5": {
             "allowed": true,
             "filtered_reason": "entry_gate_pass",
@@ -78565,6 +78565,23 @@
         "watch_last_execution_message_0.618": null,
         "last_execution_attempt_0.5": null,
         "last_execution_attempt_0.618": null,
-        "confidence_tier": "NORMAL"
+        "confidence_tier": "NORMAL",
+        "status_a": "resolved",
+        "result_a": "cut_loss_early",
+        "exit_category_a": "cut_loss_early",
+        "pnl_relative_a": -0.28155339805821566,
+        "net_profit_a": -2.68,
+        "close_price_a": 4131.956999999999,
+        "close_reason_a": "SL",
+        "resolved_at_a": "2026-07-10 10:08:00",
+        "status_b": "resolved",
+        "result_b": "cut_loss_early",
+        "exit_category_b": "cut_loss_early",
+        "pnl_relative_b": -0.12229770487057857,
+        "net_profit_b": -1.11,
+        "close_price_b": 4131.956999999999,
+        "close_reason_b": "SL",
+        "resolved_at_b": "2026-07-10 10:08:01",
+        "outcome_recorded": true
     }
 }
