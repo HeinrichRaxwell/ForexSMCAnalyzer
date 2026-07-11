@@ -1413,12 +1413,12 @@ def should_early_mitigate_on_market_deterioration(
         return False, "entry or tick price unavailable"
 
     adverse_price_move = (entry_value - float(exit_price)) * int(direction)
-    min_adverse_price = _read_float_env("MT5_EARLY_MITIGATION_MIN_ADVERSE_PIPS", 15.0) * float(pip_multiplier)
+    min_adverse_price = _read_float_env("MT5_EARLY_MITIGATION_MIN_ADVERSE_PIPS", 35.0) * float(pip_multiplier)
     try:
         risk_price = abs(entry_value - float(original_sl))
     except (TypeError, ValueError):
         risk_price = 0.0
-    risk_fraction = _read_float_env("MT5_EARLY_MITIGATION_RISK_FRACTION", 0.25)
+    risk_fraction = _read_float_env("MT5_EARLY_MITIGATION_RISK_FRACTION", 0.40)
     required_adverse = max(min_adverse_price, risk_price * risk_fraction)
 
     if adverse_price_move < required_adverse:

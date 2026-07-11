@@ -81,6 +81,11 @@ def fetch_historical_data(symbol: str, timeframe: int, num_candles: int) -> pd.D
         inplace=True
     )
     
+    # copy_rates_from_pos(pos=0) always includes the currently-forming candle
+    # as the LAST row. Mark this so smc_detector.py can exclude it from lookahead
+    # windows and prevent swing point repainting.
+    df.attrs["has_running_candle"] = True
+    
     # Return formatted columns
     return df[['time', 'Open', 'High', 'Low', 'Close', 'Volume']]
 
@@ -128,6 +133,11 @@ def fetch_historical_data_range(symbol: str, timeframe: int, date_from: datetime
         },
         inplace=True
     )
+    
+    # copy_rates_range fetches by date range (historical). The live candle is
+    # only included if date_to is in the future. Mark conservatively as False
+    # since this is used for historical analysis and backtesting.
+    df.attrs["has_running_candle"] = False
     
     return df[['time', 'Open', 'High', 'Low', 'Close', 'Volume']]
 

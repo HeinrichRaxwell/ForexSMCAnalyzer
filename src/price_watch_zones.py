@@ -39,14 +39,23 @@ _DATA_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data"
 )
 
-# Zone expires after this many minutes regardless of hits (prevent stale zones)
+# Zone safety-net TTL (absolute maximum age, even if not mitigated).
+# Default: 120 minutes. A zone is NOT removed just because it hasn't been hit
+# within this time — it is removed when MITIGATED (price closes through it) or
+# when this hard cap is reached. Set to 0 to disable time-based expiry entirely.
 _ZONE_TTL_MINUTES = int(os.getenv("WATCH_ZONE_TTL_MINUTES", "120"))
 
-# Maximum number of active watch zones kept in memory / disk per symbol
-_MAX_ZONES_PER_SYMBOL = int(os.getenv("WATCH_ZONE_MAX_PER_SYMBOL", "40"))
+# Maximum number of active watch zones kept in memory / disk per symbol.
+# Increased to 100 since zones persist until mitigated, not just 2 hrs.
+_MAX_ZONES_PER_SYMBOL = int(os.getenv("WATCH_ZONE_MAX_PER_SYMBOL", "100"))
 
 # How close (in price units, i.e. USD for XAUUSD) price needs to be to trigger
 _ZONE_APPROACH_BUFFER = float(os.getenv("WATCH_ZONE_APPROACH_BUFFER", "0.30"))
+
+# How many pips beyond the zone edge counts as "fully mitigated" (zone invalidated).
+# For XAUUSD, pip_multiplier = 0.10, so 5 pips = $0.50 beyond zone edge.
+_ZONE_MITIGATION_BUFFER_PIPS = float(os.getenv("WATCH_ZONE_MITIGATION_BUFFER_PIPS", "5.0"))
+_ZONE_MITIGATION_PIP_MULT = float(os.getenv("WATCH_ZONE_MITIGATION_PIP_MULT", "0.10"))  # XAUUSD default
 
 
 # ---------------------------------------------------------------------------
@@ -74,10 +83,12 @@ class WatchZone:
     oscillator_label: str   # e.g. "BUY" / "SELL" / "WAIT" for quick Telegram note
     is_dual: bool
     created_at: str         # ISO timestamp when zone was registered
-    expires_at: str         # ISO timestamp when zone auto-expires
+    expires_at: str         # ISO timestamp of hard-cap expiry (safety net only)
     hit_count: int = 0      # How many times price entered this zone
     last_hit_at: str = ""   # ISO timestamp of last hit
     triggered: bool = False # True once an order was placed from this zone
+    mitigated: bool = False # True once price fully passed through the zone (zone invalid)
+    mitigated_at: str = ""  # ISO timestamp when zone was declared mitigated
     htf_prioritized: bool = False
     rejection_confirmed: bool = False
 
@@ -153,6 +164,8 @@ def _zone_from_dict(d: dict) -> WatchZone:
         hit_count=int(d.get("hit_count", 0)),
         last_hit_at=d.get("last_hit_at", ""),
         triggered=bool(d.get("triggered", False)),
+        mitigated=bool(d.get("mitigated", False)),
+        mitigated_at=d.get("mitigated_at", ""),
         htf_prioritized=bool(d.get("htf_prioritized", False)),
         rejection_confirmed=bool(d.get("rejection_confirmed", False)),
     )
@@ -167,7 +180,8 @@ def _build_zone_id(setup: dict, symbol: str) -> str:
     direction = "BULL" if int(setup.get("direction", 1)) == 1 else "BEAR"
     entry = float(setup.get("entry_price", 0))
     bar_time = str(setup.get("time", ""))[:16].replace(" ", "T").replace(":", "")
-    return f"{tf}_{strat}_{direction}_{entry:.3f}_{bar_time}"
+    safe_sym = symbol.replace("/", "").replace("\\", "")[:6]  # e.g. XAUUSD
+    return f"{safe_sym}_{tf}_{strat}_{direction}_{entry:.3f}_{bar_time}"
 
 
 # ---------------------------------------------------------------------------
@@ -191,10 +205,17 @@ def save_watch_zones(symbol: str, all_setups_or_candidates: list, confidence_thr
 
     existing = _load_zones(symbol)
 
-    # Purge expired and already-triggered zones first
+    # Purge zones that are:
+    # 1. Already triggered (order was placed) — no need to watch further
+    # 2. Already mitigated (price closed fully through zone) — zone is invalid
+    # 3. Past the hard-cap TTL safety net (e.g. 2 hours — absolute last resort)
+    # NOTE: "just expired TTL" alone does NOT remove a zone if it hasn't been mitigated.
+    # Zones without a valid expires_at (empty string) are kept alive until mitigated.
     existing = {
         k: v for k, v in existing.items()
-        if not _is_expired(v, now) and not v.get("triggered", False)
+        if not v.get("triggered", False)
+        and not v.get("mitigated", False)
+        and not _is_hard_expired(v, now)
     }
 
     added = 0
@@ -236,13 +257,15 @@ def save_watch_zones(symbol: str, all_setups_or_candidates: list, confidence_thr
             existing[zid] = _zone_to_dict(zone)
             added += 1
 
-    # Trim to max zones, keeping highest probability ones
+    # Trim to max zones only when truly needed (large safety cap of 100).
+    # Keep highest probability zones if over limit.
     if len(existing) > _MAX_ZONES_PER_SYMBOL:
         sorted_zones = sorted(existing.items(), key=lambda kv: -kv[1].get("probability", 0))
         existing = dict(sorted_zones[:_MAX_ZONES_PER_SYMBOL])
 
     _save_zones(symbol, existing)
-    print(f"[WatchZones] {symbol}: {len(existing)} active zones ({added} new) | TTL {_ZONE_TTL_MINUTES}min")
+    ttl_info = f"hard-cap {_ZONE_TTL_MINUTES}min" if _ZONE_TTL_MINUTES > 0 else "no TTL (mitigation-only expiry)"
+    print(f"[WatchZones] {symbol}: {len(existing)} active zones ({added} new) | {ttl_info}")
     return len(existing)
 
 
@@ -280,11 +303,13 @@ def check_price_in_watch_zones(
     zones_updated = False
 
     for zid, zd in list(zones_data.items()):
-        if _is_expired(zd, now):
+        # Remove if hard-cap TTL exceeded (safety net)
+        if _is_hard_expired(zd, now):
             del zones_data[zid]
             zones_updated = True
             continue
-        if zd.get("triggered", False):
+        # Skip already triggered or mitigated zones
+        if zd.get("triggered", False) or zd.get("mitigated", False):
             continue
 
         prob = float(zd.get("probability", 0.5))
@@ -298,12 +323,29 @@ def check_price_in_watch_zones(
         zone_bottom = float(zd.get("zone_bottom", 0))
         buf = _ZONE_APPROACH_BUFFER
 
-        if direction == 1:  # BULL: price should be near or inside the zone from above
+        if direction == 1:  # BULL zone: price descends into it from above
             price = current_ask
             in_zone = (zone_bottom - buf) <= price <= (zone_top + buf)
-        else:               # BEAR: price should be near or inside the zone from below
+            # Check mitigation: price fully closed BELOW the zone bottom (zone is now invalid)
+            is_mitigated = _is_price_mitigated(current_bid, zone_bottom, zone_top, direction)
+        else:               # BEAR zone: price ascends into it from below
             price = current_bid
             in_zone = (zone_bottom - buf) <= price <= (zone_top + buf)
+            # Check mitigation: price fully closed ABOVE the zone top (zone is now invalid)
+            is_mitigated = _is_price_mitigated(current_ask, zone_bottom, zone_top, direction)
+
+        if is_mitigated:
+            # Zone fully mitigated — mark it as inactive (do NOT delete immediately,
+            # keep for audit/logging, will be filtered on next save_watch_zones call)
+            zones_data[zid]["mitigated"] = True
+            zones_data[zid]["mitigated_at"] = now.strftime("%Y-%m-%d %H:%M:%S")
+            zones_updated = True
+            print(
+                f"[WatchZones] Zone {zid} MITIGATED — price "
+                f"{'bid' if direction == 1 else 'ask'} {current_bid if direction == 1 else current_ask:.3f} "
+                f"fully passed through [{zone_bottom:.3f}–{zone_top:.3f}]"
+            )
+            continue
 
         if not in_zone:
             continue
@@ -348,27 +390,63 @@ def clear_watch_zones(symbol: str) -> None:
 
 
 def get_active_zone_count(symbol: str) -> int:
-    """Quick count of non-expired, non-triggered zones."""
+    """Quick count of non-expired, non-triggered, non-mitigated zones."""
     zones_data = _load_zones(symbol)
     now = datetime.now()
     return sum(
         1 for zd in zones_data.values()
-        if not _is_expired(zd, now) and not zd.get("triggered", False)
+        if not _is_hard_expired(zd, now)
+        and not zd.get("triggered", False)
+        and not zd.get("mitigated", False)
     )
 
 
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
-def _is_expired(zone_dict: dict, now: datetime) -> bool:
+def _is_hard_expired(zone_dict: dict, now: datetime) -> bool:
+    """
+    Returns True ONLY if the hard-cap TTL safety net has been exceeded.
+    A zone with no expires_at is treated as never expiring by time (only by mitigation).
+    If WATCH_ZONE_TTL_MINUTES=0, time-based expiry is completely disabled.
+    """
+    if _ZONE_TTL_MINUTES <= 0:
+        return False  # Time-based expiry disabled — only mitigation removes zones
     exp_str = zone_dict.get("expires_at", "")
     if not exp_str:
-        return False
+        return False  # No expiry timestamp → keep alive
     try:
         exp_dt = datetime.strptime(str(exp_str)[:19], "%Y-%m-%d %H:%M:%S")
         return now > exp_dt
     except (ValueError, TypeError):
         return False
+
+
+def _is_price_mitigated(
+    price: float,
+    zone_bottom: float,
+    zone_top: float,
+    direction: int,
+) -> bool:
+    """
+    Returns True if price has fully passed through the zone in the unfavorable direction,
+    meaning the zone is now structurally invalid (mitigated).
+
+    For a BULL zone (direction=1): zone is mitigated if the BID price drops
+      *below* the zone bottom by the mitigation buffer.
+      (Price fell through without bouncing → no longer a valid support zone)
+
+    For a BEAR zone (direction=-1): zone is mitigated if the ASK price rises
+      *above* the zone top by the mitigation buffer.
+      (Price pushed through without rejecting → no longer a valid resistance zone)
+    """
+    mitigation_distance = _ZONE_MITIGATION_BUFFER_PIPS * _ZONE_MITIGATION_PIP_MULT
+    if direction == 1:  # BULL zone
+        # Mitigated when price drops below zone bottom
+        return price < (zone_bottom - mitigation_distance)
+    else:               # BEAR zone
+        # Mitigated when price rises above zone top
+        return price > (zone_top + mitigation_distance)
 
 
 def _extract_oscillator_label(setup: dict) -> str:
@@ -473,16 +551,18 @@ def _build_zone_from_dual(
     except (KeyError, TypeError, ValueError):
         return None
 
-    # Zone spans from the deepest fib entry (opt_b) to sl of opt_a
+    # Zone spans between the two entry prices only (fib 0.5 and fib 0.618 range).
+    # We deliberately exclude SL from the zone bounds — the zone is the ENTRY area,
+    # not the full risk region. Mitigation = price passes BEYOND the zone edge.
     direction = int(opt_a.get("direction", 1))
     if direction == 1:
-        # Bull: SL is below, entries are above SL
-        zone_bottom = min(sl_a, sl_b)
+        # Bull: zone_bottom = deeper entry (opt_b, fib 0.618), zone_top = shallower (opt_a, fib 0.5)
+        zone_bottom = min(entry_a, entry_b)
         zone_top = max(entry_a, entry_b)
     else:
-        # Bear: SL is above, entries are below SL
-        zone_top = max(sl_a, sl_b)
+        # Bear: zone_bottom = shallower entry (opt_a, fib 0.5), zone_top = deeper (opt_b, fib 0.618)
         zone_bottom = min(entry_a, entry_b)
+        zone_top = max(entry_a, entry_b)
 
     zid = _build_zone_id(opt_a, symbol)
     max_prob = max(prob_a, prob_b)

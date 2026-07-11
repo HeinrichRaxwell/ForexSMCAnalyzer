@@ -30,7 +30,16 @@ def detect_swing_points(df: pd.DataFrame, window: int = 5) -> pd.DataFrame:
     df['Swing_High'] = np.nan
     df['Swing_Low'] = np.nan
     
-    for i in range(half, len(df) - half):
+    # If the dataframe has a running candle at the end, we must exclude the last row
+    # from being used as a future lookahead candle in the sliding window.
+    # This prevents the running candle's live high/low from repainting the swing points of previous closed candles.
+    has_running = (
+        bool(df.attrs.get("has_running_candle", False))
+        and not bool(df.attrs.get("closed_only", False))
+    )
+    end_offset = half + 1 if has_running else half
+    
+    for i in range(half, len(df) - end_offset):
         high_range = df['High'].iloc[i - half : i + half + 1]
         low_range = df['Low'].iloc[i - half : i + half + 1]
         
@@ -313,7 +322,7 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
         # --- C. OB Mitigation Check & Breaker Block Creation ---
         still_active = []
         for ob in active_obs:
-            if i <= ob['index']:
+            if i <= ob['index'] or is_running:
                 still_active.append(ob)
                 continue
                 
@@ -349,7 +358,7 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
         # --- D. Breaker Block Mitigation Check ---
         still_active_breakers = []
         for bb in active_breakers:
-            if i <= bb['index']:
+            if i <= bb['index'] or is_running:
                 still_active_breakers.append(bb)
                 continue
                 
@@ -419,31 +428,34 @@ def detect_snr_and_swapzones(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.Dat
             
             # Check broken Resistances (Resistance flips to Support)
             broken_resistances = []
+            recorded_any = False
             for res_dict in active_resistances:
                 res = res_dict['level']
                 if close_val > res:
-                    df.at[df.index[i], 'Swap_Type'] = 'SUPPORT' # Swap Support
-                    df.at[df.index[i], 'Swap_Level'] = res
-                    
-                    # Fibo calculation on the swing point candle!
                     swap_high = res_dict['high']
                     swap_low = res_dict['low']
                     buffer = 20 * get_pip_multiplier(symbol)
                     
-                    # Bullish Swapzone Fibo (S/R flip)
-                    fibo_1_0 = swap_low
-                    fibo_0_0 = float(df['High'].iloc[i]) # Target TP (breakout candle high)
-                    
-                    # Entry levels on the 1-candle zone
-                    fibo_0_5 = swap_high - 0.5 * (swap_high - swap_low)
-                    fibo_0_618 = swap_high - 0.618 * (swap_high - swap_low)
-                    swap_sl = swap_low - buffer
-                    
-                    df.at[df.index[i], 'Swap_Fibo_0.0'] = fibo_0_0
-                    df.at[df.index[i], 'Swap_Fibo_0.5'] = fibo_0_5
-                    df.at[df.index[i], 'Swap_Fibo_0.618'] = fibo_0_618
-                    df.at[df.index[i], 'Swap_Fibo_1.0'] = fibo_1_0
-                    df.at[df.index[i], 'Swap_SL'] = swap_sl
+                    if not recorded_any:
+                        df.at[df.index[i], 'Swap_Type'] = 'SUPPORT' # Swap Support
+                        df.at[df.index[i], 'Swap_Level'] = res
+                        
+                        # Fibo calculation on the swing point candle!
+                        # Bullish Swapzone Fibo (S/R flip)
+                        fibo_1_0 = swap_low
+                        fibo_0_0 = float(df['High'].iloc[i]) # Target TP (breakout candle high)
+                        
+                        # Entry levels on the 1-candle zone
+                        fibo_0_5 = swap_high - 0.5 * (swap_high - swap_low)
+                        fibo_0_618 = swap_high - 0.618 * (swap_high - swap_low)
+                        swap_sl = swap_low - buffer
+                        
+                        df.at[df.index[i], 'Swap_Fibo_0.0'] = fibo_0_0
+                        df.at[df.index[i], 'Swap_Fibo_0.5'] = fibo_0_5
+                        df.at[df.index[i], 'Swap_Fibo_0.618'] = fibo_0_618
+                        df.at[df.index[i], 'Swap_Fibo_1.0'] = fibo_1_0
+                        df.at[df.index[i], 'Swap_SL'] = swap_sl
+                        recorded_any = True
                     
                     active_swapzones.append({
                         'index': i,
@@ -458,31 +470,34 @@ def detect_snr_and_swapzones(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.Dat
                 
             # Check broken Supports (Support flips to Resistance)
             broken_supports = []
+            recorded_any_sup = False
             for sup_dict in active_supports:
                 sup = sup_dict['level']
                 if close_val < sup:
-                    df.at[df.index[i], 'Swap_Type'] = 'RESISTANCE' # Swap Resistance
-                    df.at[df.index[i], 'Swap_Level'] = sup
-                    
-                    # Fibo calculation on the swing point candle!
                     swap_high = sup_dict['high']
                     swap_low = sup_dict['low']
                     buffer = 20 * get_pip_multiplier(symbol)
                     
-                    # Bearish Swapzone Fibo (S/R flip)
-                    fibo_1_0 = swap_high
-                    fibo_0_0 = float(df['Low'].iloc[i]) # Target TP (breakout candle low)
-                    
-                    # Entry levels on the 1-candle zone
-                    fibo_0_5 = swap_low + 0.5 * (swap_high - swap_low)
-                    fibo_0_618 = swap_low + 0.618 * (swap_high - swap_low)
-                    swap_sl = swap_high + buffer
-                    
-                    df.at[df.index[i], 'Swap_Fibo_0.0'] = fibo_0_0
-                    df.at[df.index[i], 'Swap_Fibo_0.5'] = fibo_0_5
-                    df.at[df.index[i], 'Swap_Fibo_0.618'] = fibo_0_618
-                    df.at[df.index[i], 'Swap_Fibo_1.0'] = fibo_1_0
-                    df.at[df.index[i], 'Swap_SL'] = swap_sl
+                    if not recorded_any_sup:
+                        df.at[df.index[i], 'Swap_Type'] = 'RESISTANCE' # Swap Resistance
+                        df.at[df.index[i], 'Swap_Level'] = sup
+                        
+                        # Fibo calculation on the swing point candle!
+                        # Bearish Swapzone Fibo (S/R flip)
+                        fibo_1_0 = swap_high
+                        fibo_0_0 = float(df['Low'].iloc[i]) # Target TP (breakout candle low)
+                        
+                        # Entry levels on the 1-candle zone
+                        fibo_0_5 = swap_low + 0.5 * (swap_high - swap_low)
+                        fibo_0_618 = swap_low + 0.618 * (swap_high - swap_low)
+                        swap_sl = swap_high + buffer
+                        
+                        df.at[df.index[i], 'Swap_Fibo_0.0'] = fibo_0_0
+                        df.at[df.index[i], 'Swap_Fibo_0.5'] = fibo_0_5
+                        df.at[df.index[i], 'Swap_Fibo_0.618'] = fibo_0_618
+                        df.at[df.index[i], 'Swap_Fibo_1.0'] = fibo_1_0
+                        df.at[df.index[i], 'Swap_SL'] = swap_sl
+                        recorded_any_sup = True
                     
                     active_swapzones.append({
                         'index': i,
@@ -498,7 +513,7 @@ def detect_snr_and_swapzones(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.Dat
         # 3. Check mitigation of active swapzones
         still_active_swaps = []
         for swap in active_swapzones:
-            if i <= swap['index']:
+            if i <= swap['index'] or is_running:
                 still_active_swaps.append(swap)
                 continue
                 
@@ -612,7 +627,7 @@ def detect_bpr(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
         # 3. Check mitigation of active BPRs
         still_active_bprs = []
         for bpr in active_bprs:
-            if i <= bpr['index']:
+            if i <= bpr['index'] or is_running:
                 still_active_bprs.append(bpr)
                 continue
                 
@@ -742,7 +757,7 @@ def detect_indecision_candles(df: pd.DataFrame, body_ratio: float = 0.25, symbol
         # Check mitigation of active IC zones
         still_active = []
         for ic in active_ics:
-            if i <= ic['index']:
+            if i <= ic['index'] or is_running:
                 still_active.append(ic)
                 continue
                 
@@ -873,7 +888,7 @@ def detect_supply_demand_zones(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.D
         
         still_active = []
         for zone in active_zones:
-            if zone['index'] == i:
+            if zone['index'] == i or is_running:
                 still_active.append(zone)
                 continue
                 
