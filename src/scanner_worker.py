@@ -2929,18 +2929,19 @@ def run_scan(symbol: str, confidence_threshold: float):
     # 9. Save all detected candidates as Price Watch Zones so the tick loop can react
     #    immediately when price enters any zone — even ones below confidence threshold.
     #    This eliminates the "late entry" problem caused by waiting for the next full scan.
-    try:
-        zone_candidates = []
-        for c in clusters:
-            zone_candidates.append(c["lead"])
-        # Also include any non-clustered setups from other_setups (LTF reference zones)
-        for s in other_setups:
-            if not s.get("suppressed", False):
-                zone_candidates.append(s)
-        n_zones = save_watch_zones(symbol, zone_candidates, confidence_threshold)
-        print(f"[WatchZones] Registered {n_zones} active price watch zones for {symbol}.")
-    except Exception as e:
-        print(f"[WatchZones] Failed to save watch zones: {e}")
+    if os.getenv("MT5_WATCH_ZONE_ENABLED", "True").strip().lower() == "true":
+        try:
+            zone_candidates = []
+            for c in clusters:
+                zone_candidates.append(c["lead"])
+            # Also include any non-clustered setups from other_setups (LTF reference zones)
+            for s in other_setups:
+                if not s.get("suppressed", False):
+                    zone_candidates.append(s)
+            n_zones = save_watch_zones(symbol, zone_candidates, confidence_threshold)
+            print(f"[WatchZones] Registered {n_zones} active price watch zones for {symbol}.")
+        except Exception as e:
+            print(f"[WatchZones] Failed to save watch zones: {e}")
 
     # Free MT5 connection at the very end of the cycle
     import MetaTrader5 as mt5
@@ -3047,60 +3048,61 @@ def main():
                                         )
 
                                         # --- NEW: check all pre-registered price watch zones ---
-                                        try:
-                                            zone_hits = check_price_in_watch_zones(
-                                                sym, current_tick, confidence_threshold
-                                            )
-                                            for hit in zone_hits:
-                                                if not hit.entry_triggered:
-                                                    # Price is near zone but confidence not yet at threshold
-                                                    # Just log at debug level (don't spam)
-                                                    continue
-                                                zone = hit.zone
-                                                # Build a minimal setup dict for execution
-                                                setup_dict = {
-                                                    "timeframe": zone.timeframe,
-                                                    "strategy": zone.strategy,
-                                                    "direction": zone.direction,
-                                                    "entry_price": zone.entry_price,
-                                                    "sl_price": zone.sl_price,
-                                                    "tp_price": zone.tp_price,
-                                                    "option_name": "WatchZone 0.5",
-                                                    "probability": zone.probability,
-                                                    "rejection_confirmed": zone.rejection_confirmed,
-                                                    "htf_prioritized": zone.htf_prioritized,
-                                                }
-                                                # Immediately attempt market order at current price
-                                                ticket_id, exec_msg = execute_market_order_for_setup(setup_dict, sym)
-                                                if ticket_id is not None:
-                                                    mark_zone_triggered(sym, zone.zone_id)
-                                                    print(
-                                                        f"[WatchZones] ✅ ZONE HIT → Market order #{ticket_id} placed! "
-                                                        f"{zone.timeframe} {zone.strategy} {hit.reason}"
-                                                    )
-                                                    try:
-                                                        from src.telegram_bot import send_telegram_alert
-                                                        wz_msg = (
-                                                            f"⚡ <b>[WatchZone Hit] Immediate Entry!</b>\n\n"
-                                                            f"Harga masuk ke zona yang dipantau sebelum scan berikutnya.\n"
-                                                            f"• <b>Zone:</b> <code>{zone.timeframe} {zone.strategy}</code>\n"
-                                                            f"• <b>Harga masuk:</b> <code>{hit.current_price:.3f}</code>\n"
-                                                            f"• <b>Entry:</b> <code>{zone.entry_price:.3f}</code> | "
-                                                            f"SL: <code>{zone.sl_price:.3f}</code> | "
-                                                            f"TP: <code>{zone.tp_price:.3f}</code>\n"
-                                                            f"• <b>Confidence:</b> <code>{zone.probability:.1%}</code>\n"
-                                                            f"• <b>Ticket:</b> #{ticket_id}"
+                                        if os.getenv("MT5_WATCH_ZONE_ENABLED", "True").strip().lower() == "true":
+                                            try:
+                                                zone_hits = check_price_in_watch_zones(
+                                                    sym, current_tick, confidence_threshold
+                                                )
+                                                for hit in zone_hits:
+                                                    if not hit.entry_triggered:
+                                                        # Price is near zone but confidence not yet at threshold
+                                                        # Just log at debug level (don't spam)
+                                                        continue
+                                                    zone = hit.zone
+                                                    # Build a minimal setup dict for execution
+                                                    setup_dict = {
+                                                        "timeframe": zone.timeframe,
+                                                        "strategy": zone.strategy,
+                                                        "direction": zone.direction,
+                                                        "entry_price": zone.entry_price,
+                                                        "sl_price": zone.sl_price,
+                                                        "tp_price": zone.tp_price,
+                                                        "option_name": "WatchZone 0.5",
+                                                        "probability": zone.probability,
+                                                        "rejection_confirmed": zone.rejection_confirmed,
+                                                        "htf_prioritized": zone.htf_prioritized,
+                                                    }
+                                                    # Immediately attempt market order at current price
+                                                    ticket_id, exec_msg = execute_market_order_for_setup(setup_dict, sym)
+                                                    if ticket_id is not None:
+                                                        mark_zone_triggered(sym, zone.zone_id)
+                                                        print(
+                                                            f"[WatchZones] ✅ ZONE HIT → Market order #{ticket_id} placed! "
+                                                            f"{zone.timeframe} {zone.strategy} {hit.reason}"
                                                         )
-                                                        send_telegram_alert(wz_msg)
-                                                    except Exception:
-                                                        pass
-                                                elif "duplicate" not in exec_msg.lower() and "disabled" not in exec_msg.lower():
-                                                    print(
-                                                        f"[WatchZones] ⚠ Zone hit but order not placed: {exec_msg} "
-                                                        f"({zone.timeframe} {zone.strategy})"
-                                                    )
-                                        except Exception as wz_exc:
-                                            print(f"[WatchZones - {sym}] Zone check error: {wz_exc}")
+                                                        try:
+                                                            from src.telegram_bot import send_telegram_alert
+                                                            wz_msg = (
+                                                                f"⚡ <b>[WatchZone Hit] Immediate Entry!</b>\n\n"
+                                                                f"Harga masuk ke zona yang dipantau sebelum scan berikutnya.\n"
+                                                                f"• <b>Zone:</b> <code>{zone.timeframe} {zone.strategy}</code>\n"
+                                                                f"• <b>Harga masuk:</b> <code>{hit.current_price:.3f}</code>\n"
+                                                                f"• <b>Entry:</b> <code>{zone.entry_price:.3f}</code> | "
+                                                                f"SL: <code>{zone.sl_price:.3f}</code> | "
+                                                                f"TP: <code>{zone.tp_price:.3f}</code>\n"
+                                                                f"• <b>Confidence:</b> <code>{zone.probability:.1%}</code>\n"
+                                                                f"• <b>Ticket:</b> #{ticket_id}"
+                                                            )
+                                                            send_telegram_alert(wz_msg)
+                                                        except Exception:
+                                                            pass
+                                                    elif "duplicate" not in exec_msg.lower() and "disabled" not in exec_msg.lower():
+                                                        print(
+                                                            f"[WatchZones] ⚠ Zone hit but order not placed: {exec_msg} "
+                                                            f"({zone.timeframe} {zone.strategy})"
+                                                        )
+                                            except Exception as wz_exc:
+                                                print(f"[WatchZones - {sym}] Zone check error: {wz_exc}")
 
                                     previous_ticks[sym] = current_tick
                                 except Exception as exc:
