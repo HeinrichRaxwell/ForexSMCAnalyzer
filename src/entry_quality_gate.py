@@ -58,14 +58,39 @@ class OscillatorContext:
     signal_label: str | None = None     # 'BUY','REBUY','WAIT','RESELL','SELL'
     confidence_delta: float = 0.0       # + boost / - penalty
 
+    def __init__(
+        self,
+        rsi_8: float | None = None,
+        stoch_k: float | None = None,
+        stoch_d: float | None = None,
+        signal_label: str | None = None,
+        confidence_delta: float = 0.0,
+        stoch_rsi_k: float | None = None,
+        stoch_rsi_d: float | None = None,
+    ):
+        object.__setattr__(self, "rsi_8", rsi_8)
+        
+        resolved_k = stoch_k
+        if resolved_k is None and stoch_rsi_k is not None:
+            resolved_k = stoch_rsi_k * 100.0 if stoch_rsi_k <= 1.0 else stoch_rsi_k
+        object.__setattr__(self, "stoch_k", resolved_k)
+
+        resolved_d = stoch_d
+        if resolved_d is None and stoch_rsi_d is not None:
+            resolved_d = stoch_rsi_d * 100.0 if stoch_rsi_d <= 1.0 else stoch_rsi_d
+        object.__setattr__(self, "stoch_d", resolved_d)
+
+        object.__setattr__(self, "signal_label", signal_label)
+        object.__setattr__(self, "confidence_delta", confidence_delta)
+
     # Backward-compat aliases
     @property
     def stoch_rsi_k(self):
-        return self.stoch_k
+        return self.stoch_k / 100.0 if self.stoch_k is not None else None
 
     @property
     def stoch_rsi_d(self):
-        return self.stoch_d
+        return self.stoch_d / 100.0 if self.stoch_d is not None else None
 
 
 # TF hierarchy order (ascending timeframe size)

@@ -52,7 +52,11 @@ def test_format_single_signal_message_uses_professional_sections():
     assert "Automated alert from Forex SMC AI Analyzer" not in msg
 
 
-def test_format_dual_signal_message_keeps_fib_lot_plan_clear():
+def test_format_dual_signal_message_keeps_fib_lot_plan_clear(monkeypatch):
+    monkeypatch.setenv("MT5_DYNAMIC_LOT_ENABLED", "False")
+    monkeypatch.setenv("MT5_LOT_SIZE_OPTION_A", "0.01")
+    monkeypatch.setenv("MT5_LOT_SIZE_OPTION_B", "0.02")
+
     opt_a = _base_setup(entry_price=2300.500)
     opt_b = _base_setup(entry_price=2298.618)
 

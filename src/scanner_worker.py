@@ -687,7 +687,8 @@ def _market_entry_has_immediate_emergency_reversal(
 
     h1_trend = _last_closed_trend(timeframes_data.get("H1")) if "H1" in timeframes_data else None
     h4_trend = _last_closed_trend(timeframes_data.get("H4")) if "H4" in timeframes_data else None
-    return should_emergency_exit_on_reversal(df_tf, timeframe, direction, h1_trend, h4_trend)
+    entry_val = float(setup.get("entry_price", 0.0))
+    return should_emergency_exit_on_reversal(df_tf, timeframe, direction, entry_val, entry_val, h1_trend, h4_trend)
 
 
 def should_market_enter_setup(

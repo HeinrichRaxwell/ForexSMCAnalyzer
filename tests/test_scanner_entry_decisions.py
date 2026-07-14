@@ -67,7 +67,7 @@ def test_should_market_enter_blocks_when_emergency_reversal_is_already_active():
 
 def test_should_place_pending_blocks_when_trade_manager_would_immediately_exit():
     setup = _setup(direction=1, entry_price=4177.682908, sl_price=4133.245)
-    timeframes_data = {"H4": pd.DataFrame({"Trend": [1, 1, -1, -1]})}
+    timeframes_data = {"H4": pd.DataFrame({"Trend": [1, 1, -1, -1, -1]})}
 
     assert (
         should_place_pending_setup(
