@@ -962,6 +962,54 @@ def execute_trade_for_setup(setup: dict, base_symbol: str = "XAUUSD") -> tuple:
     return None, f"Failed to place order: {last_error}"
 
 
+def _check_market_proximity_message(symbol: str, magic: int, setup: dict, current_price: float) -> str | None:
+    from src.smc_detector import get_pip_multiplier
+    pip_multiplier = get_pip_multiplier(symbol)
+    proximity_pips = _read_float_env("MT5_PENDING_PROXIMITY_PIPS", 15.0)
+    proximity_limit = proximity_pips * pip_multiplier if pip_multiplier > 0 else proximity_pips
+
+    tf = setup.get("timeframe", "M15")
+    opt_name = setup.get("option_name", "")
+    direction = setup.get("direction", 1)
+    
+    candidate_strategy = "FVG"
+    for strat in ["OB", "BPR", "IC", "Swap", "Breaker", "SND", "Pivot"]:
+        if strat in opt_name:
+            candidate_strategy = "Swapzone" if strat == "Swap" else strat
+            break
+
+    same_tf_proximity_pips = _read_float_env("MT5_SAME_TF_PROXIMITY_PIPS", 30.0)
+    same_tf_limit = same_tf_proximity_pips * pip_multiplier if pip_multiplier > 0 else same_tf_proximity_pips
+
+    def _is_option_b(text: str) -> bool:
+        return any(k in str(text) for k in ("Option B", "0.618", "GoldenPocket"))
+
+    new_is_b = _is_option_b(opt_name)
+
+    positions = _positions_for_symbol_magic(symbol, magic)
+    for p in positions:
+        p_type = getattr(p, "type", None)
+        p_direction = 1 if p_type == mt5.ORDER_TYPE_BUY else (-1 if p_type == mt5.ORDER_TYPE_SELL else 0)
+        if p_direction != direction:
+            continue
+            
+        p_tf, p_strat = _parse_order_comment(getattr(p, "comment", ""))
+        is_same_setup = (p_tf == tf and p_strat == candidate_strategy)
+        if is_same_setup and (_is_option_b(getattr(p, "comment", "")) != new_is_b):
+            continue  # A+B counterparts of the same dual-fib structure — never block each other
+            
+        effective_limit = same_tf_limit if is_same_setup else proximity_limit
+        effective_pips = same_tf_proximity_pips if is_same_setup else proximity_pips
+        dist = abs(p.price_open - current_price)
+        if dist < effective_limit:
+            return (
+                f"market proximity block: current price {current_price:.3f} is too close to existing "
+                f"position #{p.ticket} ({p.comment}) at {p.price_open:.3f} "
+                f"(dist: {dist/pip_multiplier if pip_multiplier > 0 else dist:.1f} pips < {effective_pips} pips limit)"
+            )
+    return None
+
+
 def execute_market_order_for_setup(setup: dict, base_symbol: str = "XAUUSD") -> tuple:
     """
     Sends a market buy/sell order (Instant Execution) to MT5 for the given setup.
@@ -1030,6 +1078,12 @@ def execute_market_order_for_setup(setup: dict, base_symbol: str = "XAUUSD") -> 
     digits = symbol_info.digits
     
     price_formatted = round(float(price), digits)
+    
+    # Check market proximity to prevent over-exposure / clustering
+    proximity_msg = _check_market_proximity_message(symbol, magic, setup, price_formatted)
+    if proximity_msg:
+        return None, proximity_msg
+        
     sl_price = round(float(setup["sl_price"]), digits)
     safety_tp_price = _server_take_profit_price(setup, price_formatted, direction, symbol)
     tp_price = round(float(safety_tp_price), digits)

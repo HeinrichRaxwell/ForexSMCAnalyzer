@@ -3059,6 +3059,23 @@ def main():
                                                         # Just log at debug level (don't spam)
                                                         continue
                                                     zone = hit.zone
+                                                    
+                                                    # Enforce live strategy policy (blocklist/allowlist)
+                                                    strategy_allowed, strategy_reason = should_allow_live_strategy(
+                                                        zone.strategy,
+                                                        None,
+                                                        probability=zone.probability,
+                                                        timeframe=zone.timeframe,
+                                                    )
+                                                    if not strategy_allowed:
+                                                        # Mark it triggered/disabled so it won't keep checking it
+                                                        mark_zone_triggered(sym, zone.zone_id)
+                                                        print(
+                                                            f"[WatchZones] ⚠️ Strategy {zone.strategy} on {zone.timeframe} "
+                                                            f"blocked by live policy: {strategy_reason}"
+                                                        )
+                                                        continue
+
                                                     # Build a minimal setup dict for execution
                                                     setup_dict = {
                                                         "timeframe": zone.timeframe,
