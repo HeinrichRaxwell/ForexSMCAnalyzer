@@ -80484,8 +80484,8 @@
         "probability_0.618": 0.5833333333333334,
         "ticket_a": null,
         "ticket_b": null,
-        "outcome_a_recorded": false,
-        "outcome_b_recorded": false,
+        "outcome_a_recorded": true,
+        "outcome_b_recorded": true,
         "entry_gate_0.5": {
             "allowed": true,
             "filtered_reason": "entry_gate_pass",
@@ -80561,15 +80561,17 @@
             "floop_trend": 1,
             "floop_trend_aligned": 0
         },
-        "watch_last_execution_message_0.5": "price is too far from market (1126.3 pips > 300.0 pips limit)",
-        "watch_last_execution_message_0.618": "price is too far from market (1142.0 pips > 300.0 pips limit)",
-        "last_execution_attempt_0.5": "2026-07-14 09:22:03",
-        "last_execution_attempt_0.618": "2026-07-14 09:22:03",
+        "watch_last_execution_message_0.5": "Skipped (immediate emergency reversal)",
+        "watch_last_execution_message_0.618": "Skipped (immediate emergency reversal)",
+        "last_execution_attempt_0.5": "2026-07-14 09:34:52",
+        "last_execution_attempt_0.618": "2026-07-14 09:34:52",
         "confidence_tier": "NORMAL",
         "watch_reason": "watch_price_too_far",
         "watch_status": "waiting_for_price_return",
-        "watch_last_checked_at": "2026-07-14 09:22:03",
-        "outcome_recorded": true
+        "watch_last_checked_at": "2026-07-14 09:30:41",
+        "outcome_recorded": true,
+        "execution_retries_0.5": 2,
+        "execution_retries_0.618": 2
     },
     "H1_OB_DUAL_BEAR_4076.601_4078.536_2026-07-13_01:00:00": {
         "time_sent": "2026-07-13 09:03:44",
@@ -82672,8 +82674,8 @@
         "probability_0.618": 0.5552325581395349,
         "ticket_a": null,
         "ticket_b": null,
-        "outcome_a_recorded": false,
-        "outcome_b_recorded": false,
+        "outcome_a_recorded": true,
+        "outcome_b_recorded": true,
         "entry_gate_0.5": {
             "allowed": true,
             "filtered_reason": "entry_gate_pass",
@@ -82749,16 +82751,17 @@
             "floop_trend": -1,
             "floop_trend_aligned": 1
         },
-        "watch_last_execution_message_0.5": "price is too far from market (361.1 pips > 300.0 pips limit)",
-        "watch_last_execution_message_0.618": "price is too far from market (387.3 pips > 300.0 pips limit)",
-        "last_execution_attempt_0.5": "2026-07-14 09:22:03",
-        "last_execution_attempt_0.618": "2026-07-14 09:22:03",
+        "watch_last_execution_message_0.5": "Skipped (immediate emergency reversal)",
+        "watch_last_execution_message_0.618": "Skipped (immediate emergency reversal)",
+        "last_execution_attempt_0.5": "2026-07-14 09:34:52",
+        "last_execution_attempt_0.618": "2026-07-14 09:32:19",
         "confidence_tier": "NORMAL",
         "watch_reason": "watch_price_too_far",
         "watch_status": "waiting_for_price_return",
-        "watch_last_checked_at": "2026-07-14 09:22:03",
+        "watch_last_checked_at": "2026-07-14 09:30:41",
         "outcome_recorded": true,
-        "execution_retries_0.618": 1
+        "execution_retries_0.618": 2,
+        "execution_retries_0.5": 2
     },
     "H1_Swapzone_SINGLE_BEAR_4028.418_2026-07-13_14:00:00": {
         "time_sent": "2026-07-13 22:01:07",
@@ -83577,7 +83580,7 @@
         "ticket_a": 634203634,
         "ticket_b": 634203635,
         "outcome_a_recorded": true,
-        "outcome_b_recorded": false,
+        "outcome_b_recorded": true,
         "entry_gate_0.5": {
             "allowed": true,
             "filtered_reason": "entry_gate_below_required_confidence",
@@ -83651,7 +83654,11 @@
             "floop_signal": 0,
             "floop_strength": 12.0,
             "floop_trend": -1,
-            "floop_trend_aligned": 1
+            "floop_trend_aligned": 1,
+            "manager_exit_trigger": "emergency_reversal",
+            "manager_exit_timeframe": "M30",
+            "manager_exit_detail": "opposite CHoCH confirmed on closed M30 candles",
+            "manager_exit_recorded_at": "2026-07-14 09:32:27"
         },
         "watch_last_execution_message_0.5": null,
         "watch_last_execution_message_0.618": null,
@@ -83665,7 +83672,20 @@
         "net_profit_a": 1.06,
         "close_price_a": 4014.33,
         "close_reason_a": "CLIENT",
-        "resolved_at_a": "2026-07-14 09:15:41"
+        "resolved_at_a": "2026-07-14 09:15:41",
+        "manager_exit_trigger_b": "emergency_reversal",
+        "manager_exit_timeframe_b": "M30",
+        "manager_exit_detail_b": "opposite CHoCH confirmed on closed M30 candles",
+        "manager_exit_recorded_at_b": "2026-07-14 09:32:27",
+        "status_b": "resolved",
+        "result_b": "cut_loss_early",
+        "exit_category_b": "cut_loss_early",
+        "pnl_relative_b": -0.2595013940866802,
+        "net_profit_b": -1.71,
+        "close_price_b": 4018.243,
+        "close_reason_b": "EXPERT",
+        "resolved_at_b": "2026-07-14 09:33:28",
+        "outcome_recorded": true
     },
     "H1_IC_DUAL_BULL_3995.315_3992.481_2026-07-14_01:00:00": {
         "time_sent": "2026-07-14 09:03:46",
