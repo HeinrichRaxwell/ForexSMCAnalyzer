@@ -784,3 +784,81 @@ def test_pending_order_proximity_block(mock_mt5, _mock_validate, monkeypatch):
         )
         assert ticket_stack is None
         assert "proximity block" in msg_stack
+
+
+@patch("MetaTrader5.symbol_info")
+@patch("MetaTrader5.orders_get")
+@patch("MetaTrader5.symbol_info_tick")
+@patch("MetaTrader5.order_send")
+@patch("src.execution.load_sent_signals")
+def test_prune_pending_orders_preserves_young_order(
+    mock_load_signals, mock_order_send, mock_tick, mock_orders_get, mock_symbol_info
+):
+    from src.scanner_worker import prune_invalid_pending_orders
+    from datetime import datetime
+
+    mock_symbol_info.return_value = SimpleNamespace(digits=3, point=0.001)
+    mock_tick.return_value = SimpleNamespace(ask=4077.900, bid=4077.640, last=4077.640)
+    mock_orders_get.return_value = [
+        SimpleNamespace(
+            ticket=55555,
+            magic=202606,
+            price_open=4050.0,
+            sl=4040.0,
+            type=2, # BUY_LIMIT
+        )
+    ]
+    
+    # Mock sent signals showing the order was placed 5 minutes ago (young)
+    mock_load_signals.return_value = {
+        "sig-test": {
+            "ticket_a": 55555,
+            "time_sent": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+    }
+
+    # Pass empty active setups (meaning it's not active in current scan)
+    prune_invalid_pending_orders("XAUUSD", 202606, [])
+
+    # Order should be preserved (not canceled)
+    mock_order_send.assert_not_called()
+
+
+@patch("MetaTrader5.symbol_info")
+@patch("MetaTrader5.orders_get")
+@patch("MetaTrader5.symbol_info_tick")
+@patch("MetaTrader5.order_send")
+@patch("src.execution.load_sent_signals")
+def test_prune_pending_orders_cancels_when_sl_violated(
+    mock_load_signals, mock_order_send, mock_tick, mock_orders_get, mock_symbol_info
+):
+    from src.scanner_worker import prune_invalid_pending_orders
+    from datetime import datetime
+
+    mock_symbol_info.return_value = SimpleNamespace(digits=3, point=0.001)
+    # Price bid (4035.0) is below SL (4040.0) -> BUY limit SL violated!
+    mock_tick.return_value = SimpleNamespace(ask=4035.2, bid=4035.0, last=4035.0)
+    mock_orders_get.return_value = [
+        SimpleNamespace(
+            ticket=66666,
+            magic=202606,
+            price_open=4050.0,
+            sl=4040.0,
+            type=2, # BUY_LIMIT
+        )
+    ]
+    
+    # Even if order is young (placed 5 mins ago), it should be pruned because SL is violated!
+    mock_load_signals.return_value = {
+        "sig-test": {
+            "ticket_a": 66666,
+            "time_sent": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+    }
+    
+    mock_order_send.return_value = SimpleNamespace(retcode=10009)
+
+    prune_invalid_pending_orders("XAUUSD", 202606, [])
+
+    # Order should be canceled
+    mock_order_send.assert_called_once()

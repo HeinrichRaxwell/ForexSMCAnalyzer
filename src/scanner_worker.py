@@ -1208,9 +1208,15 @@ def prune_invalid_pending_orders(symbol: str, magic: int, active_high_confidence
     """
     Cancel pending orders on the MT5 account that are no longer active or mitigated.
     Valid limit orders are allowed to wait for price to return to the entry zone.
+    To prevent premature cancellations of valid pending orders during normal pullbacks:
+    1. We check the setup age in the sent signals registry. If it is young (< 4 hours), we keep it.
+    2. We check if the price has violated the stop loss level of the pending order. If violated, we prune it immediately.
     """
     import MetaTrader5 as mt5
-    from src.execution import _orders_for_symbol_magic, get_active_broker_symbol
+    import os
+    from datetime import datetime
+    from src.execution import _orders_for_symbol_magic, get_active_broker_symbol, load_sent_signals
+    
     broker_symbol = get_active_broker_symbol(symbol)
     orders = _orders_for_symbol_magic(broker_symbol, magic)
     if len(orders) == 0:
@@ -1221,6 +1227,11 @@ def prune_invalid_pending_orders(symbol: str, magic: int, active_high_confidence
         return
     current_price = tick.ask if len(orders) > 0 else tick.bid
     
+    try:
+        sent_signals = load_sent_signals()
+    except Exception:
+        sent_signals = {}
+        
     # We check if there is an active high-confidence setup with a matching direction and close entry price
     cancelled_tickets = []
     for o in orders:
@@ -1254,7 +1265,41 @@ def prune_invalid_pending_orders(symbol: str, magic: int, active_high_confidence
                     break
                     
         if not is_still_valid:
-            reason = "structure mitigated/invalid"
+            # Check if this ticket is registered in sent_signals and is still "young"
+            found_in_registry = False
+            time_placed_str = None
+            for sig_key, sig_data in sent_signals.items():
+                if sig_data.get('ticket_a') == o.ticket or sig_data.get('ticket_b') == o.ticket or sig_data.get('ticket_id') == o.ticket:
+                    found_in_registry = True
+                    time_placed_str = sig_data.get('time_sent')
+                    break
+            
+            is_young = False
+            if found_in_registry and time_placed_str:
+                try:
+                    placed_time = datetime.strptime(time_placed_str, "%Y-%m-%d %H:%M:%S")
+                    age_seconds = (datetime.now() - placed_time).total_seconds()
+                    min_age_hours = float(os.getenv("MT5_PENDING_PRUNE_MIN_AGE_HOURS", "4.0"))
+                    if age_seconds < min_age_hours * 3600:
+                        is_young = True
+                except Exception:
+                    pass
+            
+            # Check if price has violated the SL of this pending order
+            sl_violated = False
+            if getattr(o, "sl", 0.0) > 0.0:
+                o_sl = float(o.sl)
+                # mt5.ORDER_TYPE_BUY_LIMIT = 2, mt5.ORDER_TYPE_SELL_LIMIT = 3
+                if o_type == 2 and float(tick.bid) <= o_sl:
+                    sl_violated = True
+                elif o_type == 3 and float(tick.ask) >= o_sl:
+                    sl_violated = True
+            
+            if is_young and not sl_violated:
+                # Do not prune young pending orders; let them wait for retracement
+                continue
+
+            reason = "SL violated" if sl_violated else "structure mitigated/invalid (age expired)"
             print(f"[Risk Management] Cancelling zombie/invalid pending order #{o.ticket} ({reason}).")
             
             request = {
