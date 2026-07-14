@@ -350,8 +350,8 @@ python -m src.backtester
 
 ## 11. Analisis Winrate WatchZone & Integrasi Pivot MT5
 
-### A. Laporan Kinerja WatchZone (Hasil Riil Juli 2026)
-Analisis riwayat trading riil (276 total closed trades) menunjukkan hasil sebagai berikut:
+### A. Laporan Kinerja WatchZone (Periode 10 Juli s.d. 14 Juli 2026 - Diupdate Tiap Hari)
+Analisis riwayat trading riil (sejak rilis 10 Juli s.d. hari ini 14 Juli 2026) menunjukkan hasil sebagai berikut:
 
 | Tipe Eksekusi | Total Trades | Winrate | Net Profit | Karakteristik & Rekomendasi |
 | :--- | :---: | :---: | :---: | :--- |
