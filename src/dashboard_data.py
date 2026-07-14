@@ -30,13 +30,7 @@ def resolve_project_path(path: str | Path, base_dir: str | Path = BASE_DIR) -> P
         resolved = Path(base_dir) / path
         
     filename = resolved.name
-    if filename in {
-        "sent_signals.json",
-        "shadow_signals.json",
-        "labeled_setups.csv",
-        "shadow_labeled_setups.csv",
-        "learning_status.json",
-    }:
+    if filename == "sent_signals.json":
         active_path = Path(base_dir) / "data" / "active_account.json"
         if active_path.exists():
             try:

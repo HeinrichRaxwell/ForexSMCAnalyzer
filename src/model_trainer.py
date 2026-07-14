@@ -107,13 +107,8 @@ def _load_shadow_labeled_data(shadow_labeled_data_path):
     return shadow_df
 
 
-def load_training_dataset(labeled_data_path=None, shadow_labeled_data_path=None):
+def load_training_dataset(labeled_data_path="data/labeled_setups.csv", shadow_labeled_data_path=None):
     """Load real labeled setups plus optional resolved shadow setups for training."""
-    if labeled_data_path is None:
-        from src.data_loader import get_active_account_login
-        login = get_active_account_login()
-        filename = f"labeled_setups_{login}.csv" if login else "labeled_setups.csv"
-        labeled_data_path = os.path.join("data", filename)
     labeled_data_path = _resolve_project_path(labeled_data_path)
     if shadow_labeled_data_path is None:
         shadow_labeled_data_path = _default_shadow_labeled_path(labeled_data_path)
@@ -265,7 +260,7 @@ def _apply_data_windowing(df):
     return df.reset_index(drop=True)
 
 
-def train_xgboost_filter(labeled_data_path=None, model_dir="models", shadow_labeled_data_path=None):
+def train_xgboost_filter(labeled_data_path="data/labeled_setups.csv", model_dir="models", shadow_labeled_data_path=None):
     """
     Train an XGBoost classifier to filter out low-probability SMC trade setups.
     
@@ -277,11 +272,6 @@ def train_xgboost_filter(labeled_data_path=None, model_dir="models", shadow_labe
     Returns:
         XGBClassifier: The trained XGBoost model.
     """
-    if labeled_data_path is None:
-        from src.data_loader import get_active_account_login
-        login = get_active_account_login()
-        filename = f"labeled_setups_{login}.csv" if login else "labeled_setups.csv"
-        labeled_data_path = os.path.join("data", filename)
     labeled_data_path = _resolve_project_path(labeled_data_path)
     if shadow_labeled_data_path is None:
         shadow_labeled_data_path = _default_shadow_labeled_path(labeled_data_path)

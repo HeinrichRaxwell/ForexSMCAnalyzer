@@ -109,7 +109,7 @@ def predict_setup_probability(features_dict, model_path="models/smc_xgb_classifi
     else:
         return float(probs[0])
 
-def update_feedback_data(new_trades_list, labeled_data_path=None):
+def update_feedback_data(new_trades_list, labeled_data_path="data/labeled_setups.csv"):
     """
     Append new trades (with their features and actual outcomes) to the labeled dataset CSV.
     
@@ -118,12 +118,7 @@ def update_feedback_data(new_trades_list, labeled_data_path=None):
         labeled_data_path (str): Path to the labeled CSV dataset.
     """
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if labeled_data_path is None:
-        from src.data_loader import get_active_account_login
-        login = get_active_account_login()
-        filename = f"labeled_setups_{login}.csv" if login else "labeled_setups.csv"
-        labeled_data_path = os.path.join(base_dir, "data", filename)
-    elif not os.path.isabs(labeled_data_path):
+    if not os.path.isabs(labeled_data_path):
         labeled_data_path = os.path.join(base_dir, labeled_data_path)
         
     if isinstance(new_trades_list, dict):
@@ -383,10 +378,7 @@ def check_and_trigger_retraining(new_trades_count: int, status_file: str = None)
     
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if status_file is None:
-        from src.data_loader import get_active_account_login
-        login = get_active_account_login()
-        filename = f"learning_status_{login}.json" if login else "learning_status.json"
-        status_file = os.path.join(base_dir, "data", filename)
+        status_file = os.path.join(base_dir, "data", "learning_status.json")
     
     status = {"new_trades_since_last_train": 0, "last_train_time": ""}
     if os.path.exists(status_file):
@@ -802,7 +794,7 @@ def analyze_trade_outcome_reason(features: dict, label: int, pnl_relative: float
     return f"{analysis_text}{manager_exit_text}\n\n{lesson_text}"
 
 
-def process_mt5_history_feedback(sent_signals_file=None, labeled_data_path=None, return_details=False):
+def process_mt5_history_feedback(sent_signals_file=None, labeled_data_path="data/labeled_setups.csv", return_details=False):
     """
     Query MT5 history to check outcomes of sent orders, record wins/losses,
     and trigger retraining if new outcomes are recorded.
@@ -824,10 +816,7 @@ def process_mt5_history_feedback(sent_signals_file=None, labeled_data_path=None,
     elif not os.path.isabs(sent_signals_file):
         sent_signals_file = os.path.join(base_dir, sent_signals_file)
         
-    if labeled_data_path is None:
-        filename = f"labeled_setups_{login}.csv" if login else "labeled_setups.csv"
-        labeled_data_path = os.path.join(base_dir, "data", filename)
-    elif not os.path.isabs(labeled_data_path):
+    if not os.path.isabs(labeled_data_path):
         labeled_data_path = os.path.join(base_dir, labeled_data_path)
         
     empty_result = {"feedback_count": 0, "retrain_result": None}
