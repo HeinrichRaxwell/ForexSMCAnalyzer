@@ -270,6 +270,8 @@ ML_RETRAIN_THRESHOLD=10        # Retrain setelah berapa trade close
 ForexSMCAnalyzer/
 ├── src/
 │   ├── scanner_worker.py        # Main loop — jalankan ini
+│   ├── dashboard.py             # UI Dashboard Streamlit interaktif
+│   ├── dashboard_data.py        # Pengolahan data telemetri untuk dashboard
 │   ├── execution.py             # Kirim order ke MT5, trailing stop
 │   ├── smc_detector.py          # Deteksi FVG, OB, BPR, Swing
 │   ├── inference.py             # Prediksi ML, feedback loop
@@ -308,7 +310,13 @@ ForexSMCAnalyzer/
 python -m src.model_trainer
 ```
 
-**Lihat grafik analisis:**
+**Jalankan dashboard Streamlit:**
+```bash
+streamlit run src/dashboard.py
+```
+*Dashboard ini menyediakan visualisasi chart interaktif bergaya TradingView, telemetri model AI, status shadow tracking, serta analisis performa winrate secara real-time.*
+
+**Lihat grafik analisis static (Matplotlib):**
 ```bash
 python -m src.main --symbol XAUUSD --timeframe M30
 ```
