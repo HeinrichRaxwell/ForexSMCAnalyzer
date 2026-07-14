@@ -3300,10 +3300,10 @@ def main():
                                                         )
                                                         continue
 
-                                                    # WatchZone instant entry is strictly restricted to OB and BPR.
-                                                    # FVG, SND, Swapzone, IC, and Pivot must not enter instantly via WatchZone,
+                                                    # WatchZone instant entry is restricted to OB, BPR, FVG, and Pivot.
+                                                    # SND, Swapzone, and IC must not enter instantly via WatchZone,
                                                     # as they require confirmation or passive pending orders to be safe.
-                                                    if zone.strategy not in ["OB", "BPR"]:
+                                                    if zone.strategy not in ["OB", "BPR", "FVG", "Pivot"]:
                                                         mark_zone_triggered(sym, zone.zone_id)
                                                         print(
                                                             f"[WatchZones] 🛡️ Strategy {zone.strategy} on {zone.timeframe} "
