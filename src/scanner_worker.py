@@ -3161,7 +3161,14 @@ def run_scan(symbol: str, confidence_threshold: float):
             for s in other_setups:
                 if not s.get("suppressed", False):
                     zone_candidates.append(s)
-            n_zones = save_watch_zones(symbol, zone_candidates, confidence_threshold)
+            import MetaTrader5 as mt5
+            from src.execution import get_active_broker_symbol
+            broker_symbol = get_active_broker_symbol(symbol)
+            tick = mt5.symbol_info_tick(broker_symbol)
+            curr_price = 0.0
+            if tick is not None:
+                curr_price = (tick.bid + tick.ask) / 2.0
+            n_zones = save_watch_zones(symbol, zone_candidates, confidence_threshold, current_price=curr_price)
             print(f"[WatchZones] Registered {n_zones} active price watch zones for {symbol}.")
         except Exception as e:
             print(f"[WatchZones] Failed to save watch zones: {e}")

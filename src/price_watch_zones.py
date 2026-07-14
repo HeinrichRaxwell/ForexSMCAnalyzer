@@ -57,6 +57,12 @@ _ZONE_APPROACH_BUFFER = float(os.getenv("WATCH_ZONE_APPROACH_BUFFER", "0.30"))
 _ZONE_MITIGATION_BUFFER_PIPS = float(os.getenv("WATCH_ZONE_MITIGATION_BUFFER_PIPS", "5.0"))
 _ZONE_MITIGATION_PIP_MULT = float(os.getenv("WATCH_ZONE_MITIGATION_PIP_MULT", "0.10"))  # XAUUSD default
 
+# Maximum allowed distance between zone midpoint and current market price, expressed
+# as a percentage of current price. Zones farther than this are unreachable in the
+# near term and are purged from the registry. Set to 0 to disable.
+# Example: 10.0 → zones more than 10% away from current price are dropped.
+_ZONE_MAX_PRICE_DIST_PCT = float(os.getenv("WATCH_ZONE_MAX_PRICE_DIST_PCT", "10.0"))
+
 
 # ---------------------------------------------------------------------------
 # Data classes
@@ -187,7 +193,12 @@ def _build_zone_id(setup: dict, symbol: str) -> str:
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
-def save_watch_zones(symbol: str, all_setups_or_candidates: list, confidence_threshold: float = 0.50) -> int:
+def save_watch_zones(
+    symbol: str,
+    all_setups_or_candidates: list,
+    confidence_threshold: float = 0.50,
+    current_price: float = 0.0,
+) -> int:
     """
     Called at the end of each full scan with the list of all detected setup candidates
     (both single and dual). Saves or updates watch zones to disk.
@@ -195,6 +206,11 @@ def save_watch_zones(symbol: str, all_setups_or_candidates: list, confidence_thr
     Accepts either:
     - A list of raw `setup` dicts (from get_active_setups)
     - A list of scanner `candidate` dicts (with 'opt_a', 'opt_b', 'opt' keys)
+
+    Args:
+        current_price: Current mid-market price. When provided (> 0), zones whose
+            midpoint is more than WATCH_ZONE_MAX_PRICE_DIST_PCT% away from this price
+            are automatically purged — they are unreachable in the current session.
 
     Returns the count of active zones after the update.
     """
@@ -218,6 +234,20 @@ def save_watch_zones(symbol: str, all_setups_or_candidates: list, confidence_thr
         and not _is_hard_expired(v, now)
     }
 
+    # Purge zones that are too far from current market price.
+    # Old D1/H4 zones at price levels the market has long left behind clog the
+    # registry and prevent fresh nearby zones from being registered.
+    if current_price > 0 and _ZONE_MAX_PRICE_DIST_PCT > 0:
+        max_dist = current_price * (_ZONE_MAX_PRICE_DIST_PCT / 100.0)
+        before_count = len(existing)
+        existing = {
+            k: v for k, v in existing.items()
+            if _zone_within_price_range(v, current_price, max_dist)
+        }
+        pruned = before_count - len(existing)
+        if pruned > 0:
+            print(f"[WatchZones] Pruned {pruned} stale zones outside {_ZONE_MAX_PRICE_DIST_PCT:.0f}% of current price {current_price:.3f}")
+
     added = 0
     for item in all_setups_or_candidates:
         # Determine if this is a candidate dict or raw setup dict
@@ -240,6 +270,12 @@ def save_watch_zones(symbol: str, all_setups_or_candidates: list, confidence_thr
         if zone is None:
             continue
 
+        # Skip registering zones too far from current price (new incoming zones)
+        if current_price > 0 and _ZONE_MAX_PRICE_DIST_PCT > 0:
+            max_dist = current_price * (_ZONE_MAX_PRICE_DIST_PCT / 100.0)
+            if not _zone_within_price_range(_zone_to_dict(zone), current_price, max_dist):
+                continue
+
         zid = zone.zone_id
         if zid in existing:
             # Update probability and oscillator label from latest scan, preserve hit state
@@ -251,21 +287,35 @@ def save_watch_zones(symbol: str, all_setups_or_candidates: list, confidence_thr
             existing_zone["htf_prioritized"] = zone.htf_prioritized
             existing_zone["features"] = zone.features
             existing_zone["features_b"] = zone.features_b
-            # Extend TTL each scan since zone is still active
-            existing_zone["expires_at"] = exp_str
+            # Only extend TTL if zone has been hit at least once (proving it's reachable)
+            # or if it's a fresh zone (created in this scan cycle)
+            if existing_zone.get("hit_count", 0) > 0:
+                existing_zone["expires_at"] = exp_str
         else:
             existing[zid] = _zone_to_dict(zone)
             added += 1
 
-    # Trim to max zones only when truly needed (large safety cap of 100).
-    # Keep highest probability zones if over limit.
+    # Trim to max zones when over the cap.
+    # Sort by a combined score: proximity to current price + probability.
+    # This ensures fresh nearby zones are NOT blocked by old high-prob distant zones.
     if len(existing) > _MAX_ZONES_PER_SYMBOL:
-        sorted_zones = sorted(existing.items(), key=lambda kv: -kv[1].get("probability", 0))
+        if current_price > 0:
+            def _zone_score(kv: tuple) -> float:
+                zd = kv[1]
+                prob = float(zd.get("probability", 0.5))
+                mid = (float(zd.get("zone_top", current_price)) + float(zd.get("zone_bottom", current_price))) / 2.0
+                dist_pct = abs(mid - current_price) / current_price  # 0.0 = at current price
+                proximity_score = 1.0 / (1.0 + dist_pct * 20.0)   # Closer zones score higher
+                return -(prob * 0.5 + proximity_score * 0.5)        # Combined: lower value = higher priority
+            sorted_zones = sorted(existing.items(), key=_zone_score)
+        else:
+            sorted_zones = sorted(existing.items(), key=lambda kv: -kv[1].get("probability", 0))
         existing = dict(sorted_zones[:_MAX_ZONES_PER_SYMBOL])
 
     _save_zones(symbol, existing)
     ttl_info = f"hard-cap {_ZONE_TTL_MINUTES}min" if _ZONE_TTL_MINUTES > 0 else "no TTL (mitigation-only expiry)"
-    print(f"[WatchZones] {symbol}: {len(existing)} active zones ({added} new) | {ttl_info}")
+    price_info = f" | current_price={current_price:.3f}" if current_price > 0 else ""
+    print(f"[WatchZones] {symbol}: {len(existing)} active zones ({added} new) | {ttl_info}{price_info}")
     return len(existing)
 
 
@@ -555,14 +605,10 @@ def _build_zone_from_dual(
     # We deliberately exclude SL from the zone bounds — the zone is the ENTRY area,
     # not the full risk region. Mitigation = price passes BEYOND the zone edge.
     direction = int(opt_a.get("direction", 1))
-    if direction == 1:
-        # Bull: zone_bottom = deeper entry (opt_b, fib 0.618), zone_top = shallower (opt_a, fib 0.5)
-        zone_bottom = min(entry_a, entry_b)
-        zone_top = max(entry_a, entry_b)
-    else:
-        # Bear: zone_bottom = shallower entry (opt_a, fib 0.5), zone_top = deeper (opt_b, fib 0.618)
-        zone_bottom = min(entry_a, entry_b)
-        zone_top = max(entry_a, entry_b)
+    # For both bull and bear: zone_bottom = lower of the two entries, zone_top = higher.
+    # min/max is direction-agnostic and always produces the correct range.
+    zone_bottom = min(entry_a, entry_b)
+    zone_top = max(entry_a, entry_b)
 
     zid = _build_zone_id(opt_a, symbol)
     max_prob = max(prob_a, prob_b)
@@ -592,3 +638,9 @@ def _build_zone_from_dual(
         htf_prioritized=bool(opt_a.get("htf_prioritized", False)),
         rejection_confirmed=bool(opt_a.get("rejection_confirmed", False)),
     )
+
+
+def _zone_within_price_range(zone_dict: dict, current_price: float, max_dist: float) -> bool:
+    """Returns True if the zone midpoint is within max_dist of the current price."""
+    mid = (float(zone_dict.get("zone_top", current_price)) + float(zone_dict.get("zone_bottom", current_price))) / 2.0
+    return abs(mid - current_price) <= max_dist
