@@ -1401,7 +1401,11 @@ def should_emergency_exit_on_reversal(
     1. We only exit if the position is currently in a loss (worse than entry price).
     2. We require at least 2 consecutive closed opposite candles for ALL timeframes (M15/M30/H1/H4/D1)
        to confirm a true structural reversal rather than a single-candle retracement.
+    3. For LTF setups (M15/M30), we only allow exit if the HTF trend (H1 or H4) also agrees with the reversal.
     """
+    if not _read_bool_env("MT5_EMERGENCY_EXIT_ENABLED", True):
+        return False
+
     # If the trade is currently in profit, do not close it early (let trailing stop/TP run)
     trade_profit_pips = (exit_price - entry_price) * direction
     if trade_profit_pips > 0:
@@ -1414,10 +1418,30 @@ def should_emergency_exit_on_reversal(
 
     # Require at least 2 consecutive closed candles in the opposite direction for all timeframes
     consecutive_opposite = _consecutive_closed_trend_count(df_tf, opposite_direction)
-    if consecutive_opposite >= 2:
-        return True
+    if consecutive_opposite < 2:
+        return False
 
-    return False
+    # For LTF setups (M15/M30), check if HTF trends are also aligned with the reversal.
+    # If HTF trends are still in our favor, block the emergency exit.
+    timeframe = str(setup_timeframe).upper()
+    if timeframe in {"M15", "M30"}:
+        htf_reversal_confirmed = False
+        has_htf_data = False
+
+        if h1_trend is not None:
+            has_htf_data = True
+            if int(h1_trend) == opposite_direction:
+                htf_reversal_confirmed = True
+
+        if h4_trend is not None:
+            has_htf_data = True
+            if int(h4_trend) == opposite_direction:
+                htf_reversal_confirmed = True
+
+        if has_htf_data and not htf_reversal_confirmed:
+            return False
+
+    return True
 
 
 def should_early_mitigate_on_market_deterioration(
