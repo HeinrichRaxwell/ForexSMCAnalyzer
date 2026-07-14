@@ -348,6 +348,55 @@ python -m src.backtester
 
 ---
 
+## 11. Analisis Winrate WatchZone & Integrasi Pivot MT5
+
+### A. Laporan Kinerja WatchZone (Hasil Riil Juli 2026)
+Analisis riwayat trading riil (276 total closed trades) menunjukkan hasil sebagai berikut:
+
+| Tipe Eksekusi | Total Trades | Winrate | Net Profit | Karakteristik & Rekomendasi |
+| :--- | :---: | :---: | :---: | :--- |
+| **Standard Limit (Pending)** | 27 | **62.96%** | **+$102.38** | Sangat stabil karena antri pasif di level Fib presisi. |
+| **WatchZone (Instant Market)** | 249 | **54.21%** | **-$108.07** | Frekuensi sangat tinggi. Sangat gacor pada OB, namun terseret pada FVG. |
+
+#### **Breakdown Performa WatchZone Berdasarkan Timeframe & Strategi:**
+* **Order Block (OB) via WatchZone (Super Gacor):**
+  * **M30 OB**: Winrate **93.33%** (15 Trades | Profit +$150.65)
+  * **H1 OB**: Winrate **77.78%** (9 Trades | Profit +$65.65)
+  * *Rekomendasi*: OB terbukti memiliki akurasi pantulan instan tertinggi saat disentuh harga.
+* **Fair Value Gap (FVG) via WatchZone (Risiko Tinggi):**
+  * **M30 FVG**: Winrate **51.85%** (Profit -$203.13)
+  * **H1 FVG**: Winrate **41.02%** (Profit -$85.65)
+  * *Penyebab*: FVG sering langsung ditembus dalam saat market *trending* kuat atau *news*.
+* **Daily Timeframe (D1) via WatchZone (Tidak Akurat):**
+  * Winrate **39.43%** (71 Trades | Profit -$17.24) karena zona D1 terlalu lebar untuk eksekusi instan tanpa konfirmasi.
+
+---
+
+### B. Integrasi Visualisasi Pivot & SnR di MT5
+Sistem visualisasi garis SnR dan Pivot di MetaTrader 5 bekerja dengan cara berikut:
+1. **Python Bot**: Menghitung level Pivot Point (PP), Support (S1-S4), dan Resistance (R1-R4) secara periodik dari data D1.
+2. **File Ekspor**: Data level ditulis sebagai file terenkripsi JSON ke direktori global MT5 Common:
+   `AppData\Roaming\MetaQuotes\Terminal\Common\Files\pivot_levels.json`
+3. **MQL5 Indicator**: Indikator kustom di dalam MT5 membaca file `.json` tersebut dan menggambar garis horizontal secara dinamis di chart kamu.
+   * *Troubleshooting*: Jika garis SnR/Pivot tidak muncul di terminal MT5 kamu, pastikan **Indikator Pivot Kustom** sudah ditarik (*drag*) dari panel **Navigator** ke chart `XAUUSDm` kamu saat ini.
+
+---
+
+### C. Update Pengamanan & Aturan Main Baru (Juli 2026)
+Untuk mengunci profit dan meminimalkan kerugian saat terjadi fluktuasi news, pengamanan berikut telah diimplementasikan:
+
+1. **WatchZone Terbatas Khusus OB & BPR**:
+   * Sistem WatchZone sekarang **hanya diizinkan** melakukan entri instan untuk strategi **OB** (Order Block) dan **BPR** (Balanced Price Range) karena akurasinya yang sangat tinggi.
+   * Strategi **FVG** hanya diizinkan melalui **Standard Limit (Pending Order)** agar bot mendapatkan harga diskon terdalam (Fib 0.5/0.618) dan membatasi risiko SL.
+2. **Enforcement Kebijakan Strategi**:
+   * WatchZone sekarang mendeteksi dan memblokir strategi yang masuk daftar hitam di `.env` (seperti `IC`, `SND`, `Swapzone`, `Pivot`).
+3. **Proteksi Clustering & Over-exposure**:
+   * Menambahkan pemeriksaan jarak posisi aktif searah. Bot tidak akan membuka posisi baru jika sudah ada transaksi aktif dalam rentang **30 pips** untuk timeframe yang sama (`MT5_SAME_TF_PROXIMITY_PIPS`) atau **15 pips** secara umum (`MT5_PENDING_PROXIMITY_PIPS`).
+4. **D1 Dinonaktifkan**:
+   * Timeframe `D1` telah dihapus dari daftar trading (`MT5_ALLOWED_TIMEFRAMES=M30,H1,H4`) untuk menghindari entri berskala besar yang lambat dan berisiko tinggi.
+
+---
+
 ## Catatan
 
 - Bot ini dibuat untuk XAUUSD (Gold). Bisa dipakai untuk pair lain tapi parameter pip multiplier dan trailing stop belum dioptimalkan untuk pair lain.
