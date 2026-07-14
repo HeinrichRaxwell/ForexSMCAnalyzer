@@ -93,6 +93,157 @@ PRICE_TOO_FAR_MARKER = "price is too far from market"
 PRICE_TOO_FAR_WATCH_REASON = "watch_price_too_far"
 
 
+LAST_KNOWN_LOGIN = None
+
+def check_and_sync_active_account():
+    """Detect if MT5 login has changed, and if so, synchronize active pending orders to the new account."""
+    global LAST_KNOWN_LOGIN
+    from src.data_loader import get_current_account_login
+    current_login = get_current_account_login()
+    if current_login is not None:
+        if LAST_KNOWN_LOGIN is not None and current_login != LAST_KNOWN_LOGIN:
+            print(f"[Account Change] Switched from #{LAST_KNOWN_LOGIN} to #{current_login}. Syncing active pending orders...")
+            try:
+                sync_pending_orders_on_account_change(LAST_KNOWN_LOGIN, current_login)
+            except Exception as e:
+                print(f"[Account Change] Failed to sync pending orders: {e}")
+        LAST_KNOWN_LOGIN = current_login
+
+def sync_pending_orders_on_account_change(old_login: int, new_login: int):
+    """
+    Read active pending orders from old_login's registry and place them on the new_login account.
+    """
+    import os
+    import json
+    from src.execution import execute_trade_for_setup
+    from src.telegram_bot import send_telegram_alert
+    
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    old_file = os.path.join(base_dir, "data", f"sent_signals_{old_login}.json")
+    new_file = os.path.join(base_dir, "data", f"sent_signals_{new_login}.json")
+    
+    if not os.path.exists(old_file):
+        print(f"[Account Sync] Old account registry {old_file} does not exist. Nothing to sync.")
+        return
+        
+    try:
+        with open(old_file, "r") as f:
+            old_signals = json.load(f)
+    except Exception as e:
+        print(f"[Account Sync] Failed to read old account registry: {e}")
+        return
+        
+    if not old_signals:
+        return
+        
+    new_signals = {}
+    if os.path.exists(new_file):
+        try:
+            with open(new_file, "r") as f:
+                new_signals = json.load(f)
+        except Exception:
+            pass
+            
+    synced_count = 0
+    
+    for sig_key, sig_data in list(old_signals.items()):
+        if sig_data.get("close_reason") or sig_data.get("manager_exit_trigger"):
+            continue
+            
+        is_dual = "price_0.5" in sig_data or "ticket_a" in sig_data or "ticket_b" in sig_data
+        
+        if sig_key in new_signals:
+            existing_sig = new_signals[sig_key]
+            if is_dual:
+                if (existing_sig.get("ticket_a") is not None) or (existing_sig.get("ticket_b") is not None):
+                    continue
+            else:
+                if existing_sig.get("ticket") is not None:
+                    continue
+                    
+        print(f"[Account Sync] Re-placing pending order for signal {sig_key} on new account #{new_login}...")
+        
+        def build_setup_dict(features, price, option_name):
+            if not features:
+                return None
+            return {
+                "timeframe": sig_data.get("timeframe"),
+                "direction": 1 if sig_data.get("direction") == "BUY" else -1,
+                "strategy_type": sig_data.get("type"),
+                "entry_price": float(features.get("entry_price", price)),
+                "sl_price": float(features.get("sl_price")),
+                "tp_price": float(features.get("tp_price")),
+                "option_name": option_name,
+                "tp2_price": features.get("tp2_price"),
+                "tp3_price": features.get("tp3_price"),
+            }
+            
+        new_entry = dict(sig_data)
+        placed_any = False
+        
+        if is_dual:
+            if sig_data.get("ticket_a") is not None:
+                setup_a = build_setup_dict(sig_data.get("features_0.5"), sig_data.get("price_0.5"), "Option A")
+                if setup_a:
+                    ticket_a, msg_a = execute_trade_for_setup(setup_a)
+                    if ticket_a:
+                        new_entry["ticket_a"] = ticket_a
+                        placed_any = True
+                    else:
+                        print(f"[Account Sync] Option A failed: {msg_a}")
+                        new_entry["ticket_a"] = None
+            
+            if sig_data.get("ticket_b") is not None:
+                setup_b = build_setup_dict(sig_data.get("features_0.618"), sig_data.get("price_0.618"), "Option B")
+                if setup_b:
+                    ticket_b, msg_b = execute_trade_for_setup(setup_b)
+                    if ticket_b:
+                        new_entry["ticket_b"] = ticket_b
+                        placed_any = True
+                    else:
+                        print(f"[Account Sync] Option B failed: {msg_b}")
+                        new_entry["ticket_b"] = None
+        else:
+            if sig_data.get("ticket") is not None:
+                setup_single = build_setup_dict(sig_data.get("features"), sig_data.get("price"), "Single Option")
+                if setup_single:
+                    ticket, msg = execute_trade_for_setup(setup_single)
+                    if ticket:
+                        new_entry["ticket"] = ticket
+                        placed_any = True
+                    else:
+                        print(f"[Account Sync] Single order failed: {msg}")
+                        new_entry["ticket"] = None
+                        
+        if placed_any:
+            new_signals[sig_key] = new_entry
+            synced_count += 1
+            try:
+                alert_text = (
+                    f"🔄 <b>[Account Sync] Akun terdeteksi berubah ke #{new_login}</b>\n\n"
+                    f"Memasang ulang pending limit order aktif dari akun lama:\n"
+                    f"• <b>TF/Strategi:</b> <code>{sig_data.get('timeframe')} {sig_data.get('type')}</code>\n"
+                    f"• <b>Arah:</b> <code>{sig_data.get('direction')}</code>\n"
+                )
+                if is_dual:
+                    if new_entry.get("ticket_a"):
+                        alert_text += f"• <b>Ticket Option A:</b> #{new_entry.get('ticket_a')}\n"
+                    if new_entry.get("ticket_b"):
+                        alert_text += f"• <b>Ticket Option B:</b> #{new_entry.get('ticket_b')}\n"
+                else:
+                    if new_entry.get("ticket"):
+                        alert_text += f"• <b>Ticket:</b> #{new_entry.get('ticket')}\n"
+                send_telegram_alert(alert_text)
+            except Exception:
+                pass
+                
+    if synced_count > 0:
+        os.makedirs(os.path.dirname(new_file), exist_ok=True)
+        with open(new_file, "w") as f:
+            json.dump(new_signals, f, indent=4)
+        print(f"[Account Sync] Successfully synchronized {synced_count} active pending orders to account #{new_login}.")
+
+
 def is_cooldown_expired(last_attempt_str: str, cooldown_seconds: int = 60) -> bool:
     """Return True if the cooldown period has passed since the last execution attempt."""
     if not last_attempt_str:
@@ -1431,6 +1582,8 @@ def run_scan(symbol: str, confidence_threshold: float):
     if not connect_mt5():
         print("[Scanner Error] Failed to connect to MetaTrader 5 terminal. Skipping cycle.")
         return
+        
+    check_and_sync_active_account()
         
     # 1.5. Run feedback loop to process MT5 history outcomes and retrain model
     try:
@@ -3104,6 +3257,7 @@ def main():
                     try:
                         import MetaTrader5 as mt5
                         while time.time() < deadline:
+                            check_and_sync_active_account()
                             for sym in symbols:
                                 try:
                                     current_tick = get_realtime_tick(sym, ensure_connection=False)
