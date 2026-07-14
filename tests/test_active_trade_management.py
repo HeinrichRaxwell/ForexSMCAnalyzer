@@ -162,7 +162,7 @@ def test_manage_active_trades_buy_locks_200_pips_after_350_pips_profit(
     mock_order_send.assert_called_once()
     sent_request = mock_order_send.call_args[0][0]
     assert sent_request['position'] == 9998
-    assert sent_request['sl'] == 4020.0
+    assert sent_request['sl'] == 4025.0
 
 
 @patch('MetaTrader5.symbol_info')
@@ -208,7 +208,7 @@ def test_manage_active_trades_sell_locks_200_pips_after_350_pips_profit(
     mock_order_send.assert_called_once()
     sent_request = mock_order_send.call_args[0][0]
     assert sent_request['position'] == 9997
-    assert sent_request['sl'] == 3980.0
+    assert sent_request['sl'] == 3975.0
 
 @patch('MetaTrader5.symbol_info')
 @patch('MetaTrader5.positions_get')
@@ -295,10 +295,10 @@ def test_manage_active_trades_emergency_exit_only_on_closed_candle(
     p_buy.magic = 202606
     mock_positions.return_value = [p_buy]
     
-    # Mock current price (no SL/TP or BE trigger)
+    # Mock current price (in loss to allow emergency exit)
     tick = MagicMock()
-    tick.bid = 102.0
-    tick.ask = 102.2
+    tick.bid = 98.0
+    tick.ask = 98.2
     mock_tick.return_value = tick
     
     # Mock sent signals database
@@ -381,10 +381,10 @@ def test_manage_active_trades_emergency_exit_only_on_closed_candle(
 @patch('MetaTrader5.order_send')
 @patch('src.execution.load_sent_signals')
 @patch('src.telegram_bot.send_telegram_alert')
-def test_manage_active_trades_h1_emergency_exit_allows_one_closed_reversal(
+def test_manage_active_trades_h1_emergency_exit_requires_two_closed_reversals(
     mock_send_alert, mock_load_signals, mock_order_send, mock_tick, mock_positions, mock_symbol_info
 ):
-    """H1/H4 reversal is heavier than LTF noise, so one closed opposite candle can close."""
+    """H1/H4 reversal requires two closed opposite candles to confirm a true reversal."""
     mock_sym = MagicMock()
     mock_sym.digits = 3
     mock_symbol_info.return_value = mock_sym
@@ -401,9 +401,10 @@ def test_manage_active_trades_h1_emergency_exit_allows_one_closed_reversal(
     p_buy.magic = 202606
     mock_positions.return_value = [p_buy]
 
+    # Mock current price in loss to allow emergency exit
     tick = MagicMock()
-    tick.bid = 102.0
-    tick.ask = 102.2
+    tick.bid = 98.0
+    tick.ask = 98.2
     mock_tick.return_value = tick
     mock_load_signals.return_value = {}
 
@@ -411,12 +412,13 @@ def test_manage_active_trades_h1_emergency_exit_allows_one_closed_reversal(
     mock_res.retcode = 10009
     mock_order_send.return_value = mock_res
 
+    # Require 2 closed opposite trend candles ([1, 1, -1, -1, -1] -> closed trends: [1, 1, -1, -1])
     df_h1_reversed = pd.DataFrame({
         'time': pd.date_range("2026-06-01", periods=5, freq="1h"),
         'High': [105.0]*5,
         'Low': [95.0]*5,
         'Close': [100.0]*5,
-        'Trend': [1, 1, 1, -1, -1],
+        'Trend': [1, 1, -1, -1, -1],
         'Swing_High': [np.nan]*5,
         'Swing_Low': [np.nan]*5
     })

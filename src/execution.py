@@ -170,8 +170,26 @@ def _profit_lock_stop_loss(
 
     exit_price = float(tick.bid) if int(direction) == 1 else float(tick.ask)
     profit_pips = ((exit_price - float(entry_price)) * int(direction)) / float(pip_multiplier) if pip_multiplier > 0 else 0.0
+    custom_candidate = None
+
+    if _read_bool_env("MT5_CUSTOM_STAGED_PROFIT_LOCK", False):
+        try:
+            profit_val = float(position_profit) if position_profit is not None else 0.0
+        except (TypeError, ValueError):
+            profit_val = 0.0
+
+        should_lock_50 = profit_pips >= 100.0
+        is_gold_symbol = isinstance(symbol, str) and ("XAU" in symbol.upper() or "GOLD" in symbol.upper())
+        if is_gold_symbol and profit_val >= 10.0:
+            should_lock_50 = True
+
+        if should_lock_50:
+            custom_candidate = float(entry_price) + (50.0 * float(pip_multiplier) * int(direction))
+        elif profit_pips >= 50.0:
+            custom_candidate = float(entry_price) + (spread_buffer * int(direction))
+        return custom_candidate
+
     is_gold = isinstance(symbol, str) and ("XAU" in symbol.upper() or "GOLD" in symbol.upper())
-    custom_candidate = None  # Initialize to avoid NameError if no branch assigns it
     if is_gold:
         # XAUUSD custom trailing stop ladder (pip = $0.10 for Gold):
         # Phase 1 (< 80 pips / < $8):    No SL adjustment, let trade breathe
@@ -188,19 +206,6 @@ def _profit_lock_stop_loss(
         elif profit_pips >= 80.0:
             custom_candidate = float(entry_price) + (spread_buffer * int(direction))
         return custom_candidate  # None means no change (<80 pips); handled by _select_best_stop_loss
-
-    if _read_bool_env("MT5_CUSTOM_STAGED_PROFIT_LOCK", False):
-        try:
-            profit_val = float(position_profit) if position_profit is not None else 0.0
-        except (TypeError, ValueError):
-            profit_val = 0.0
-
-        should_lock_50 = profit_pips >= 100.0
-
-        if should_lock_50:
-            custom_candidate = float(entry_price) + (50.0 * float(pip_multiplier) * int(direction))
-        elif profit_pips >= 50.0:
-            custom_candidate = float(entry_price) + (spread_buffer * int(direction))
 
     # Standard trailing logic fallback
     step_pips = _read_float_env("MT5_PROFIT_LOCK_STEP_PIPS", 100.0)
@@ -1385,23 +1390,29 @@ def should_emergency_exit_on_reversal(
     df_tf: pd.DataFrame,
     setup_timeframe: str,
     direction: int,
+    entry_price: float,
+    exit_price: float,
     h1_trend=None,
     h4_trend=None,
 ) -> bool:
     """
     Confirm opposite CHoCH before closing a live trade.
-    Mitigation is strict to the setup timeframe: M15/M30 need two closed
-    opposite candles, while H1/H4/D1 can exit on one closed opposite candle.
+    To prevent premature exits on pullbacks (especially on higher timeframes):
+    1. We only exit if the position is currently in a loss (worse than entry price).
+    2. We require at least 2 consecutive closed opposite candles for ALL timeframes (M15/M30/H1/H4/D1)
+       to confirm a true structural reversal rather than a single-candle retracement.
     """
+    # If the trade is currently in profit, do not close it early (let trailing stop/TP run)
+    trade_profit_pips = (exit_price - entry_price) * direction
+    if trade_profit_pips > 0:
+        return False
+
     opposite_direction = -int(direction)
     latest_closed_trend = _last_closed_trend(df_tf)
     if latest_closed_trend != opposite_direction:
         return False
 
-    timeframe = str(setup_timeframe).upper()
-    if timeframe in {"H1", "H4", "D1"}:
-        return True
-
+    # Require at least 2 consecutive closed candles in the opposite direction for all timeframes
     consecutive_opposite = _consecutive_closed_trend_count(df_tf, opposite_direction)
     if consecutive_opposite >= 2:
         return True
@@ -1662,7 +1673,7 @@ def manage_active_trades(symbol: str, magic: int, timeframes_data: dict):
         
         # --- A. Emergency Reversal Exit (opposite CHoCH/Trend reversal) ---
         if df_tf is not None and not df_tf.empty and 'Trend' in df_tf.columns:
-            if should_emergency_exit_on_reversal(df_tf, tf, direction, h1_trend, h4_trend):
+            if should_emergency_exit_on_reversal(df_tf, tf, direction, entry_price, exit_price, h1_trend, h4_trend):
                 # Reversal detected on setup timeframe! Close the trade immediately.
                 print(f"[Execution Engine] Confirmed trend reversal (opposite CHoCH) detected on {tf} for position #{ticket}. Closing deal.")
                 success = close_position(ticket, broker_symbol)
