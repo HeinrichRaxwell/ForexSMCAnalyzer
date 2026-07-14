@@ -1238,7 +1238,10 @@ def load_sent_signals() -> dict:
 
 
 def _sent_signals_path() -> str:
-    return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "sent_signals.json")
+    from src.data_loader import get_active_account_login
+    login = get_active_account_login()
+    filename = f"sent_signals_{login}.json" if login else "sent_signals.json"
+    return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", filename)
 
 
 def save_sent_signals(sent_signals: dict):

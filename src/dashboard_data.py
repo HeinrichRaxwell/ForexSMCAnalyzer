@@ -22,10 +22,35 @@ CONFIDENCE_BUCKETS = [
 
 
 def resolve_project_path(path: str | Path, base_dir: str | Path = BASE_DIR) -> Path:
+    import os
     path = Path(path)
     if path.is_absolute():
-        return path
-    return Path(base_dir) / path
+        resolved = path
+    else:
+        resolved = Path(base_dir) / path
+        
+    filename = resolved.name
+    if filename in {
+        "sent_signals.json",
+        "shadow_signals.json",
+        "labeled_setups.csv",
+        "shadow_labeled_setups.csv",
+        "learning_status.json",
+    }:
+        active_path = Path(base_dir) / "data" / "active_account.json"
+        if active_path.exists():
+            try:
+                with open(active_path, "r") as f:
+                    info = json.load(f)
+                    login = info.get("login")
+                    if login:
+                        name, ext = os.path.splitext(filename)
+                        segregated_path = resolved.parent / f"{name}_{login}{ext}"
+                        if segregated_path.exists():
+                            return segregated_path
+            except Exception:
+                pass
+    return resolved
 
 
 def load_json_safe(path: str | Path, default: Any = None, base_dir: str | Path = BASE_DIR) -> Any:

@@ -76,6 +76,18 @@ from src.price_watch_zones import (
 # Storage for sent signal signatures
 SENT_SIGNALS_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "sent_signals.json")
 SHADOW_SIGNALS_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "shadow_signals.json")
+
+def get_sent_signals_file() -> str:
+    from src.data_loader import get_active_account_login
+    login = get_active_account_login()
+    filename = f"sent_signals_{login}.json" if login else "sent_signals.json"
+    return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", filename)
+
+def get_shadow_signals_file() -> str:
+    from src.data_loader import get_active_account_login
+    login = get_active_account_login()
+    filename = f"shadow_signals_{login}.json" if login else "shadow_signals.json"
+    return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", filename)
 DEFAULT_ACCEPT_THRESHOLD = 0.50
 PRICE_TOO_FAR_MARKER = "price is too far from market"
 PRICE_TOO_FAR_WATCH_REASON = "watch_price_too_far"
@@ -881,9 +893,10 @@ def apply_smc_detectors(df_tf: pd.DataFrame, symbol: str, closed_only: bool = Fa
 
 def load_sent_signals() -> dict:
     """Load the registry of already alerted signals."""
-    if os.path.exists(SENT_SIGNALS_FILE):
+    path = get_sent_signals_file()
+    if os.path.exists(path):
         try:
-            with open(SENT_SIGNALS_FILE, "r") as f:
+            with open(path, "r") as f:
                 return json.load(f)
         except Exception:
             return {}
@@ -891,8 +904,9 @@ def load_sent_signals() -> dict:
 
 def save_sent_signals(sent_dict: dict):
     """Save the registry of alerted signals to disk."""
-    os.makedirs(os.path.dirname(SENT_SIGNALS_FILE), exist_ok=True)
-    with open(SENT_SIGNALS_FILE, "w") as f:
+    path = get_sent_signals_file()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
         json.dump(sent_dict, f, indent=4)
 
 
@@ -953,12 +967,14 @@ def register_shadow_candidate(
     probability_a: float = None,
     opt_b: dict = None,
     probability_b: float = None,
-    shadow_signals_file: str = SHADOW_SIGNALS_FILE,
+    shadow_signals_file: str = None,
     now: str = None,
     force: bool = False,
     filtered_reason: str = "below_accept_threshold",
 ) -> bool:
     """Store below-threshold candidates for virtual outcome tracking without executing them."""
+    if shadow_signals_file is None:
+        shadow_signals_file = get_shadow_signals_file()
     if opt is not None and not force:
         if not should_shadow_signal(probability, accept_threshold):
             return False
@@ -994,10 +1010,12 @@ def register_low_confidence_lead(
     strategy: str,
     direction_name: str,
     accept_threshold: float,
-    shadow_signals_file: str = SHADOW_SIGNALS_FILE,
+    shadow_signals_file: str = None,
     now: str = None,
 ) -> bool:
     """Register a below-threshold lead in the silent registry and shadow tracker."""
+    if shadow_signals_file is None:
+        shadow_signals_file = get_shadow_signals_file()
     if lead['is_dual']:
         opt_a = lead['opt_a']
         opt_b = lead['opt_b']
@@ -1095,10 +1113,12 @@ def register_entry_gate_filtered_lead(
     direction_name: str,
     accept_threshold: float,
     filtered_reason: str = None,
-    shadow_signals_file: str = SHADOW_SIGNALS_FILE,
+    shadow_signals_file: str = None,
     now: str = None,
 ) -> bool:
     """Track below-threshold candidates rejected by entry quality checks."""
+    if shadow_signals_file is None:
+        shadow_signals_file = get_shadow_signals_file()
     if lead["is_dual"]:
         opt_a = lead["opt_a"]
         opt_b = lead["opt_b"]
@@ -1158,10 +1178,12 @@ def register_entry_gate_filtered_option(
     direction_name: str,
     accept_threshold: float,
     leg: str = None,
-    shadow_signals_file: str = SHADOW_SIGNALS_FILE,
+    shadow_signals_file: str = None,
     now: str = None,
 ) -> bool:
     """Track one rejected leg from an otherwise live-eligible setup."""
+    if shadow_signals_file is None:
+        shadow_signals_file = get_shadow_signals_file()
     signal_id = f"{sig_key}_{leg}" if leg else sig_key
     return register_shadow_candidate(
         sig_key=signal_id,
@@ -1181,12 +1203,14 @@ def register_entry_gate_filtered_option(
 
 def process_existing_shadow_outcomes(
     timeframes_data: dict,
-    shadow_signals_file: str = SHADOW_SIGNALS_FILE,
+    shadow_signals_file: str = None,
     shadow_labeled_data_path: str = None,
     now: str = None,
     trigger_retrain: bool = True,
 ) -> dict:
     """Resolve previously tracked shadow signals using the latest fetched candles."""
+    if shadow_signals_file is None:
+        shadow_signals_file = get_shadow_signals_file()
     kwargs = {
         "shadow_signals_file": shadow_signals_file,
         "now": now,

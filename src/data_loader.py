@@ -34,7 +34,65 @@ def connect_mt5() -> bool:
             print("[MT5 Connection] Invalid MT5_LOGIN format in .env, must be an integer.")
             return False
             
+    save_active_account_info()
     return True
+
+
+def get_current_account_login() -> int | None:
+    """Query the currently logged in MT5 account number, returning None if not connected."""
+    try:
+        acc = mt5.account_info()
+        if acc is not None:
+            login = getattr(acc, "login", None)
+            if login:
+                return int(login)
+    except Exception:
+        pass
+    return None
+
+
+def get_active_account_login() -> int | None:
+    """Get the active login ID: either from active connection or from data/active_account.json."""
+    login = get_current_account_login()
+    if login:
+        return login
+    
+    # Try reading from active_account.json
+    try:
+        path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "active_account.json")
+        if os.path.exists(path):
+            import json
+            with open(path, "r") as f:
+                info = json.load(f)
+                return info.get("login")
+    except Exception:
+        pass
+    return None
+
+
+def save_active_account_info():
+    """Query current MT5 account info and write it to data/active_account.json."""
+    import json
+    try:
+        acc = mt5.account_info()
+        if acc is not None:
+            info = {
+                "login": getattr(acc, "login", None),
+                "name": getattr(acc, "name", None),
+                "server": getattr(acc, "server", None),
+                "trade_mode": getattr(acc, "trade_mode", None), # 0 = DEMO, 1 = CONTEST, 2 = REAL
+                "balance": getattr(acc, "balance", 0.0),
+                "currency": getattr(acc, "currency", "USD"),
+            }
+            info["is_real"] = getattr(acc, "trade_mode", 0) == 2 or "real" in str(getattr(acc, "server", "")).lower()
+            
+            path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "active_account.json")
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w") as f:
+                json.dump(info, f, indent=4)
+            print(f"[MT5 Connection] Logged active account info: {info['login']} ({'REAL' if info['is_real'] else 'DEMO'})")
+    except Exception as e:
+        print(f"[MT5 Connection] Failed to log active account info: {e}")
 
 def fetch_historical_data(symbol: str, timeframe: int, num_candles: int) -> pd.DataFrame:
     """

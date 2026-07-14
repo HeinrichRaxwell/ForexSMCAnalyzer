@@ -10,6 +10,28 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_SHADOW_SIGNALS_FILE = os.path.join(BASE_DIR, "data", "shadow_signals.json")
 DEFAULT_SHADOW_LABELED_DATA_FILE = os.path.join(BASE_DIR, "data", "shadow_labeled_setups.csv")
 
+def get_current_account_login() -> int | None:
+    try:
+        import MetaTrader5 as mt5
+        acc = mt5.account_info()
+        if acc is not None:
+            login = getattr(acc, "login", None)
+            if login:
+                return int(login)
+    except Exception:
+        pass
+    return None
+
+def get_shadow_signals_file() -> str:
+    login = get_current_account_login()
+    filename = f"shadow_signals_{login}.json" if login else "shadow_signals.json"
+    return os.path.join(BASE_DIR, "data", filename)
+
+def get_shadow_labeled_data_file() -> str:
+    login = get_current_account_login()
+    filename = f"shadow_labeled_setups_{login}.csv" if login else "shadow_labeled_setups.csv"
+    return os.path.join(BASE_DIR, "data", filename)
+
 
 def _resolve_path(path: str) -> str:
     if os.path.isabs(path):
@@ -66,7 +88,9 @@ def should_shadow_signal(probability: float, accept_threshold: float, min_confid
     return min_conf <= prob < threshold
 
 
-def load_shadow_signals(shadow_signals_file: str = DEFAULT_SHADOW_SIGNALS_FILE) -> dict:
+def load_shadow_signals(shadow_signals_file: str = None) -> dict:
+    if shadow_signals_file is None:
+        shadow_signals_file = get_shadow_signals_file()
     path = _resolve_path(shadow_signals_file)
     if not os.path.exists(path):
         return {}
@@ -78,7 +102,9 @@ def load_shadow_signals(shadow_signals_file: str = DEFAULT_SHADOW_SIGNALS_FILE) 
     return data if isinstance(data, dict) else {}
 
 
-def save_shadow_signals(shadow_signals: dict, shadow_signals_file: str = DEFAULT_SHADOW_SIGNALS_FILE):
+def save_shadow_signals(shadow_signals: dict, shadow_signals_file: str = None):
+    if shadow_signals_file is None:
+        shadow_signals_file = get_shadow_signals_file()
     path = _resolve_path(shadow_signals_file)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
@@ -198,8 +224,10 @@ def build_shadow_signal_records(
     return records
 
 
-def upsert_shadow_signals(records: list, shadow_signals_file: str = DEFAULT_SHADOW_SIGNALS_FILE) -> bool:
+def upsert_shadow_signals(records: list, shadow_signals_file: str = None) -> bool:
     """Insert or refresh shadow records by signal_id without overwriting resolved outcomes."""
+    if shadow_signals_file is None:
+        shadow_signals_file = get_shadow_signals_file()
     shadow_signals = load_shadow_signals(shadow_signals_file)
     changed = False
 
@@ -481,11 +509,15 @@ def append_shadow_labeled_rows(rows: list, shadow_labeled_data_path: str = DEFAU
 
 def process_shadow_signal_outcomes(
     candles_by_timeframe: dict,
-    shadow_signals_file: str = DEFAULT_SHADOW_SIGNALS_FILE,
-    shadow_labeled_data_path: str = DEFAULT_SHADOW_LABELED_DATA_FILE,
+    shadow_signals_file: str = None,
+    shadow_labeled_data_path: str = None,
     max_bars: int = None,
     now: str = None,
 ) -> dict:
+    if shadow_signals_file is None:
+        shadow_signals_file = get_shadow_signals_file()
+    if shadow_labeled_data_path is None:
+        shadow_labeled_data_path = get_shadow_labeled_data_file()
     shadow_signals = load_shadow_signals(shadow_signals_file)
     if not shadow_signals:
         return {"resolved_count": 0, "expired_count": 0, "labeled_rows_appended": 0}
