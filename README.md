@@ -358,22 +358,22 @@ python -m src.backtester
 
 ## 11. Analisis Winrate WatchZone & Integrasi Pivot MT5
 
-### A. Laporan Kinerja WatchZone (Periode 10 Juli s.d. 14 Juli 2026 - Diupdate Tiap Hari)
-Analisis riwayat trading riil (sejak rilis 10 Juli s.d. hari ini 14 Juli 2026) menunjukkan hasil sebagai berikut:
+### A. Laporan Kinerja WatchZone (Periode 10 Juli s.d. 15 Juli 2026 - Diupdate Tiap Hari)
+Analisis riwayat trading riil (sejak rilis 10 Juli s.d. hari ini 15 Juli 2026) menunjukkan hasil sebagai berikut:
 
 | Tipe Eksekusi | Total Trades | Winrate | Net Profit | Karakteristik & Rekomendasi |
 | :--- | :---: | :---: | :---: | :--- |
-| **Standard Limit (Pending)** | 27 | **62.96%** | **+$102.38** | Sangat stabil karena antri pasif di level Fib presisi. |
-| **WatchZone (Instant Market)** | 249 | **54.21%** | **-$108.07** | Frekuensi sangat tinggi. Sangat gacor pada OB, namun terseret pada FVG. |
+| **Standard Limit (Pending)** | 34 | **58.82%** | **+$84.46** | Sangat stabil karena antri pasif di level Fib presisi. |
+| **WatchZone (Instant Market)** | 280 | **54.64%** | **-$153.17** | Frekuensi sangat tinggi. Sangat gacor pada OB, namun terseret pada FVG. |
 
 #### **Breakdown Performa WatchZone Berdasarkan Timeframe & Strategi:**
 * **Order Block (OB) via WatchZone (Super Gacor):**
-  * **M30 OB**: Winrate **93.33%** (15 Trades | Profit +$150.65)
-  * **H1 OB**: Winrate **77.78%** (9 Trades | Profit +$65.65)
+  * **M30 OB**: Winrate **86.67%** (15 Trades | Profit +$113.03)
+  * **H1 OB**: Winrate **68.75%** (16 Trades | Profit +$78.87)
   * *Rekomendasi*: OB terbukti memiliki akurasi pantulan instan tertinggi saat disentuh harga.
 * **Fair Value Gap (FVG) via WatchZone (Risiko Tinggi):**
-  * **M30 FVG**: Winrate **51.85%** (Profit -$203.13)
-  * **H1 FVG**: Winrate **41.02%** (Profit -$85.65)
+  * **M30 FVG**: Winrate **53.57%** (56 Trades | Profit -$167.25)
+  * **H1 FVG**: Winrate **38.46%** (39 Trades | Profit -$98.40)
   * *Penyebab*: FVG sering langsung ditembus dalam saat market *trending* kuat atau *news*.
 * **Daily Timeframe (D1) via WatchZone (Tidak Akurat):**
   * Winrate **39.43%** (71 Trades | Profit -$17.24) karena zona D1 terlalu lebar untuk eksekusi instan tanpa konfirmasi.
