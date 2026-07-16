@@ -67,8 +67,10 @@ from src.shadow_tracker import (
 )
 from src.price_watch_zones import (
     WatchZoneHit,
+    build_watch_zone_execution_setup,
     check_price_in_watch_zones,
     get_active_zone_count,
+    mark_zone_execution_attempt,
     mark_zone_triggered,
     save_watch_zones,
 )
@@ -390,8 +392,8 @@ def assert_rollout_ready_for_live(threshold: float, *, report_path: str = "data/
 def _scanner_lock_file(symbol: str, magic: int, lock_dir: str = None) -> str:
     if lock_dir is None:
         lock_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
-    clean_symbol = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(symbol or "UNKNOWN"))
-    return os.path.join(lock_dir, f"scanner_{clean_symbol}_{int(magic)}.lock")
+    # One magic number owns one account-level execution budget; separate symbol workers must not multiply exposure.
+    return os.path.join(lock_dir, f"scanner_magic_{int(magic)}.lock")
 
 
 def _pid_is_running(pid: int) -> bool:
@@ -899,6 +901,53 @@ def should_place_pending_setup(
         setup["pending_entry_blocked_reason"] = "immediate_emergency_reversal"
         return False
     return True
+
+
+def get_watch_zone_reversal_context(symbol: str, timeframe: str) -> dict:
+    """Load fresh closed candles only when a WatchZone is about to enter market."""
+    mt5_timeframes = {
+        "M30": mt5.TIMEFRAME_M30,
+        "H1": mt5.TIMEFRAME_H1,
+        "H4": mt5.TIMEFRAME_H4,
+        "D1": mt5.TIMEFRAME_D1,
+    }
+    context = {}
+    for tf in dict.fromkeys((timeframe, "H1", "H4")):
+        mt5_timeframe = mt5_timeframes.get(tf)
+        if mt5_timeframe is None:
+            continue
+        try:
+            frame = fetch_historical_data(symbol, mt5_timeframe, 80)
+            if frame is not None and not frame.empty:
+                context[tf] = apply_smc_detectors(frame, symbol=symbol, closed_only=True)
+        except Exception as exc:
+            print(f"[WatchZones] Could not refresh {tf} reversal guard: {exc}")
+    return context
+
+
+def refresh_watch_zone_rejection(symbol: str, setup: dict) -> tuple[bool, str]:
+    """Confirm the selected WatchZone leg from fresh lower-timeframe candles."""
+    checks = (
+        ("M5", mt5.TIMEFRAME_M5, 120, 30),
+        ("M1", mt5.TIMEFRAME_M1, 180, 90),
+        ("M15", mt5.TIMEFRAME_M15, 80, 15),
+    )
+    for source, mt5_timeframe, candles, lookback in checks:
+        if source == "M15" and setup.get("timeframe") == "M15":
+            continue
+        try:
+            frame = fetch_historical_data(symbol, mt5_timeframe, candles)
+            if frame is not None and not frame.empty and detect_rejection_at_level(
+                frame,
+                float(setup["entry_price"]),
+                int(setup["direction"]),
+                lookback=lookback,
+                symbol=symbol,
+            ):
+                return True, source
+        except Exception as exc:
+            print(f"[WatchZones] Could not refresh {source} rejection guard: {exc}")
+    return False, "None"
 
 
 def choose_recovery_execution_mode(
@@ -3318,19 +3367,51 @@ def main():
                                                         )
                                                         continue
 
-                                                    # Build a minimal setup dict for execution
-                                                    setup_dict = {
-                                                        "timeframe": zone.timeframe,
-                                                        "strategy": zone.strategy,
-                                                        "direction": zone.direction,
-                                                        "entry_price": zone.entry_price,
-                                                        "sl_price": zone.sl_price,
-                                                        "tp_price": zone.tp_price,
-                                                        "option_name": "WatchZone 0.5",
-                                                        "probability": zone.probability,
-                                                        "rejection_confirmed": zone.rejection_confirmed,
-                                                        "htf_prioritized": zone.htf_prioritized,
-                                                    }
+                                                    setup_dict = build_watch_zone_execution_setup(
+                                                        zone, hit.current_price
+                                                    )
+                                                    if setup_dict["probability"] < confidence_threshold:
+                                                        reason = (
+                                                            f"selected WatchZone leg confidence "
+                                                            f"{setup_dict['probability']:.1%} below threshold"
+                                                        )
+                                                        mark_zone_execution_attempt(sym, zone.zone_id, reason)
+                                                        print(f"[WatchZones] Zone hit but {reason}")
+                                                        continue
+                                                    rejection_confirmed, rejection_source = refresh_watch_zone_rejection(
+                                                        sym, setup_dict
+                                                    )
+                                                    setup_dict["rejection_confirmed"] = rejection_confirmed
+                                                    setup_dict["rejection_source"] = rejection_source
+                                                    watch_zone_context = get_watch_zone_reversal_context(
+                                                        sym, zone.timeframe
+                                                    )
+                                                    if not should_market_enter_setup(
+                                                        setup_dict,
+                                                        hit.current_price,
+                                                        timeframe=zone.timeframe,
+                                                        timeframes_data=watch_zone_context,
+                                                    ):
+                                                        reason = "waiting for rejection confirmation or valid entry range"
+                                                        mark_zone_execution_attempt(sym, zone.zone_id, reason)
+                                                        print(
+                                                            f"[WatchZones] Zone hit but market guard deferred: {reason} "
+                                                            f"({zone.timeframe} {zone.strategy})"
+                                                        )
+                                                        continue
+
+                                                    # Keep diagnostics current without restoring the entry gate as
+                                                    # a live-execution blocker.
+                                                    evaluate_live_entry_gate(
+                                                        setup_dict,
+                                                        strategy=zone.strategy,
+                                                        probability=setup_dict["probability"],
+                                                        accept_threshold=confidence_threshold,
+                                                        symbol=sym,
+                                                        timeframe=zone.timeframe,
+                                                        timeframes_data=watch_zone_context,
+                                                    )
+                                                    mark_zone_execution_attempt(sym, zone.zone_id)
                                                     # Immediately attempt market order at current price
                                                     ticket_id, exec_msg = execute_market_order_for_setup(setup_dict, sym)
                                                     if ticket_id is not None:

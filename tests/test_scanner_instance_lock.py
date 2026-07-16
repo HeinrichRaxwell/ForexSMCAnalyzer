@@ -36,3 +36,10 @@ def test_scanner_instance_lock_replaces_stale_dead_pid_lock(tmp_path):
             assert lock_file.read().strip() == str(os.getpid())
 
     assert not os.path.exists(lock_path)
+
+
+def test_scanner_instance_lock_blocks_second_worker_for_same_magic_different_symbol(tmp_path):
+    with scanner_instance_lock("XAUUSD", 202606, lock_dir=str(tmp_path)):
+        with pytest.raises(RuntimeError, match="already running"):
+            with scanner_instance_lock("XAUUSDm", 202606, lock_dir=str(tmp_path)):
+                pass

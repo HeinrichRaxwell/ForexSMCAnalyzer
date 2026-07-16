@@ -404,7 +404,7 @@ def test_pending_buy_order_adds_live_spread_to_entry_price(mock_mt5, _mock_valid
     mock_mt5.TRADE_RETCODE_PLACED = 10008
     mock_mt5.TRADE_RETCODE_DONE = 10009
     mock_mt5.symbol_info.side_effect = lambda symbol: SimpleNamespace(digits=3, point=0.001)
-    mock_mt5.symbol_info_tick.return_value = SimpleNamespace(ask=3999.900, bid=3999.640)
+    mock_mt5.symbol_info_tick.return_value = SimpleNamespace(ask=4001.000, bid=4000.740)
     mock_mt5.orders_get.return_value = []
     mock_mt5.positions_get.return_value = []
     mock_mt5.order_send.return_value = SimpleNamespace(retcode=mock_mt5.TRADE_RETCODE_PLACED, order=12345)
@@ -419,6 +419,7 @@ def test_pending_buy_order_adds_live_spread_to_entry_price(mock_mt5, _mock_valid
     ticket, _message = execute_trade_for_setup(_pending_setup(timeframe="M30", direction=1), "XAUUSD")
 
     assert ticket == 12345
+    _mock_validate.assert_not_called()
     request = mock_mt5.order_send.call_args.args[0]
     assert request["price"] == pytest.approx(4000.260)
     assert request["tp"] == pytest.approx(4010.0)
@@ -434,7 +435,7 @@ def test_pending_buy_order_caps_far_tp_to_default_150_pips(mock_mt5, _mock_valid
     mock_mt5.TRADE_RETCODE_PLACED = 10008
     mock_mt5.TRADE_RETCODE_DONE = 10009
     mock_mt5.symbol_info.side_effect = lambda symbol: SimpleNamespace(digits=3, point=0.001)
-    mock_mt5.symbol_info_tick.return_value = SimpleNamespace(ask=3999.900, bid=3999.640)
+    mock_mt5.symbol_info_tick.return_value = SimpleNamespace(ask=4001.000, bid=4000.740)
     mock_mt5.orders_get.return_value = []
     mock_mt5.positions_get.return_value = []
     mock_mt5.order_send.return_value = SimpleNamespace(retcode=mock_mt5.TRADE_RETCODE_PLACED, order=12345)
@@ -452,9 +453,67 @@ def test_pending_buy_order_caps_far_tp_to_default_150_pips(mock_mt5, _mock_valid
     )
 
     assert ticket == 12345
+    _mock_validate.assert_not_called()
     request = mock_mt5.order_send.call_args.args[0]
     assert request["price"] == pytest.approx(4000.260)
     assert request["tp"] == pytest.approx(4015.260)
+
+
+def test_order_comment_preserves_timeframe_and_strategy_for_fvg_market_and_pending():
+    from src.execution import _order_comment, _parse_order_comment
+
+    setup = {"timeframe": "M30", "strategy": "FVG", "option_name": "Option B (Golden Pocket)"}
+
+    assert _parse_order_comment(_order_comment(setup)) == ("M30", "FVG")
+    assert _parse_order_comment(_order_comment(setup, market=True)) == ("M30", "FVG")
+
+
+@patch("src.execution.validate_market_indicators", return_value=(True, "ok"))
+@patch("src.execution.mt5")
+def test_pending_buy_limit_is_not_sent_when_spread_adjusted_entry_is_at_or_above_ask(
+    mock_mt5, _mock_validate, monkeypatch
+):
+    from src.execution import execute_trade_for_setup
+
+    monkeypatch.setenv("MT5_EXECUTE_TRADES", "True")
+    monkeypatch.setenv("MT5_ALLOWED_TIMEFRAMES", "M30,H1,H4,D1")
+    mock_mt5.symbol_info.side_effect = lambda symbol: SimpleNamespace(digits=3, point=0.001)
+    mock_mt5.symbol_info_tick.return_value = SimpleNamespace(ask=3999.900, bid=3999.640)
+    mock_mt5.orders_get.return_value = []
+    mock_mt5.positions_get.return_value = []
+    mock_mt5.ORDER_TYPE_BUY_LIMIT = 2
+    mock_mt5.ORDER_TYPE_SELL_LIMIT = 3
+
+    ticket, message = execute_trade_for_setup(
+        _pending_setup(timeframe="M30", direction=1), "XAUUSD"
+    )
+
+    assert ticket is None
+    assert "not below current ask" in message
+    mock_mt5.order_send.assert_not_called()
+
+
+@patch("src.execution.validate_market_indicators", return_value=(False, "abnormal volume spike"))
+@patch("src.execution.mt5")
+def test_market_order_blocks_abnormal_volume_spike(mock_mt5, _mock_validate, monkeypatch):
+    from src.execution import execute_market_order_for_setup
+
+    monkeypatch.setenv("MT5_EXECUTE_TRADES", "True")
+    monkeypatch.setenv("MT5_ALLOWED_TIMEFRAMES", "M30,H1,H4,D1")
+    mock_mt5.symbol_info.side_effect = lambda symbol: SimpleNamespace(digits=3, point=0.001)
+    mock_mt5.symbol_info_tick.return_value = SimpleNamespace(ask=4000.260, bid=4000.000)
+    mock_mt5.orders_get.return_value = []
+    mock_mt5.positions_get.return_value = []
+    mock_mt5.ORDER_TYPE_BUY = 0
+    mock_mt5.ORDER_TYPE_SELL = 1
+
+    ticket, message = execute_market_order_for_setup(
+        _pending_setup(timeframe="M30", direction=1), "XAUUSD"
+    )
+
+    assert ticket is None
+    assert "Market indicators check failed" in message
+    mock_mt5.order_send.assert_not_called()
 
 
 @patch("src.execution.mt5")
@@ -479,7 +538,7 @@ def test_pending_order_respects_max_concurrent_trades(mock_mt5, monkeypatch):
     monkeypatch.setenv("MT5_ALLOWED_TIMEFRAMES", "M30,H1,H4,D1")
     monkeypatch.setenv("MT5_MAX_CONCURRENT_TRADES", "1")
     mock_mt5.symbol_info.return_value = SimpleNamespace(digits=3, point=0.001)
-    mock_mt5.symbol_info_tick.return_value = SimpleNamespace(ask=3999.900, bid=3999.640)
+    mock_mt5.symbol_info_tick.return_value = SimpleNamespace(ask=4001.000, bid=4000.740)
     mock_mt5.orders_get.return_value = [SimpleNamespace(ticket=111, magic=202606)]
     mock_mt5.positions_get.return_value = []
     mock_mt5.ORDER_TYPE_BUY_LIMIT = 2
@@ -503,7 +562,7 @@ def test_pending_order_has_no_concurrent_trade_limit_by_default(mock_mt5, _mock_
     mock_mt5.TRADE_RETCODE_PLACED = 10008
     mock_mt5.TRADE_RETCODE_DONE = 10009
     mock_mt5.symbol_info.side_effect = lambda symbol: SimpleNamespace(digits=3, point=0.001)
-    mock_mt5.symbol_info_tick.return_value = SimpleNamespace(ask=3999.900, bid=3999.640)
+    mock_mt5.symbol_info_tick.return_value = SimpleNamespace(ask=4001.000, bid=4000.740)
     mock_mt5.orders_get.return_value = [
         SimpleNamespace(ticket=111, magic=202606, price_open=3990.0),
         SimpleNamespace(ticket=112, magic=202606, price_open=3985.0),
@@ -540,7 +599,7 @@ def test_pending_order_continues_after_daily_runner_target(mock_mt5, _mock_valid
     mock_mt5.DEAL_TYPE_BUY = 0
     mock_mt5.DEAL_TYPE_SELL = 1
     mock_mt5.symbol_info.return_value = SimpleNamespace(digits=3, point=0.001)
-    mock_mt5.symbol_info_tick.return_value = SimpleNamespace(ask=3999.900, bid=3999.640)
+    mock_mt5.symbol_info_tick.return_value = SimpleNamespace(ask=4001.000, bid=4000.740)
     mock_mt5.orders_get.return_value = []
     mock_mt5.positions_get.return_value = []
     mock_mt5.history_deals_get.return_value = [
@@ -636,7 +695,7 @@ def test_pending_sell_order_subtracts_live_spread_from_entry_price(mock_mt5, _mo
     mock_mt5.TRADE_RETCODE_PLACED = 10008
     mock_mt5.TRADE_RETCODE_DONE = 10009
     mock_mt5.symbol_info.side_effect = lambda symbol: SimpleNamespace(digits=3, point=0.001)
-    mock_mt5.symbol_info_tick.return_value = SimpleNamespace(ask=4000.260, bid=4000.000)
+    mock_mt5.symbol_info_tick.return_value = SimpleNamespace(ask=3999.760, bid=3999.500)
     mock_mt5.orders_get.return_value = []
     mock_mt5.positions_get.return_value = []
     mock_mt5.order_send.return_value = SimpleNamespace(retcode=mock_mt5.TRADE_RETCODE_PLACED, order=12346)
@@ -663,9 +722,10 @@ def test_pending_order_respects_max_pending_orders(mock_mt5, _mock_validate, mon
     monkeypatch.setenv("MT5_EXECUTE_TRADES", "True")
     monkeypatch.setenv("MT5_ALLOWED_TIMEFRAMES", "M30,H1,H4,D1")
     monkeypatch.setenv("MT5_MAX_PENDING_ORDERS", "2")
+    monkeypatch.setenv("MT5_MAX_SAME_DIRECTION_TRADES", "0")
     monkeypatch.setenv("MT5_PENDING_PROXIMITY_PIPS", "0.0")  # Disable proximity check
     mock_mt5.symbol_info.side_effect = lambda symbol: SimpleNamespace(digits=3, point=0.001)
-    mock_mt5.symbol_info_tick.return_value = SimpleNamespace(ask=3999.900, bid=3999.640)
+    mock_mt5.symbol_info_tick.return_value = SimpleNamespace(ask=4001.000, bid=4000.740)
     mock_mt5.orders_get.return_value = [
         SimpleNamespace(ticket=111, magic=202606, price_open=3980.0, comment="SMC M30 FVG Option A", type=2),
         SimpleNamespace(ticket=112, magic=202606, price_open=3975.0, comment="SMC M30 FVG Option B", type=2),
@@ -689,13 +749,14 @@ def test_pending_order_blocks_mixed_strategies_on_same_tf(mock_mt5, _mock_valida
     monkeypatch.setenv("MT5_EXECUTE_TRADES", "True")
     monkeypatch.setenv("MT5_ALLOWED_TIMEFRAMES", "M30,H1,H4,D1")
     monkeypatch.setenv("MT5_MAX_PENDING_ORDERS", "5")
+    monkeypatch.setenv("MT5_MAX_SAME_DIRECTION_TRADES", "0")
     monkeypatch.setenv("MT5_ALLOW_MIXED_STRATEGIES_PER_TF", "False")
     monkeypatch.setenv("MT5_PENDING_PROXIMITY_PIPS", "0.0")  # Disable proximity check
     
     mock_mt5.TRADE_RETCODE_PLACED = 10008
     mock_mt5.TRADE_RETCODE_DONE = 10009
     mock_mt5.symbol_info.side_effect = lambda symbol: SimpleNamespace(digits=3, point=0.001)
-    mock_mt5.symbol_info_tick.return_value = SimpleNamespace(ask=3999.900, bid=3999.640)
+    mock_mt5.symbol_info_tick.return_value = SimpleNamespace(ask=4001.000, bid=4000.740)
     
     # We already have an FVG pending order on M30
     mock_mt5.orders_get.return_value = [
@@ -735,6 +796,7 @@ def test_pending_order_proximity_block(mock_mt5, _mock_validate, monkeypatch):
     monkeypatch.setenv("MT5_EXECUTE_TRADES", "True")
     monkeypatch.setenv("MT5_ALLOWED_TIMEFRAMES", "M30,H1,H4,D1")
     monkeypatch.setenv("MT5_MAX_PENDING_ORDERS", "0")  # Disabled
+    monkeypatch.setenv("MT5_MAX_SAME_DIRECTION_TRADES", "0")
     monkeypatch.setenv("MT5_PENDING_PROXIMITY_PIPS", "15.0")
     
     mock_mt5.TRADE_RETCODE_PLACED = 10008
@@ -862,3 +924,111 @@ def test_prune_pending_orders_cancels_when_sl_violated(
 
     # Order should be canceled
     mock_order_send.assert_called_once()
+
+
+@patch("src.execution.mt5")
+def test_same_direction_exposure_cap_blocks_second_buy(mock_mt5, monkeypatch):
+    from src.execution import _max_same_direction_trade_message
+
+    monkeypatch.setenv("MT5_MAX_SAME_DIRECTION_TRADES", "1")
+    mock_mt5.POSITION_TYPE_BUY = 0
+    mock_mt5.POSITION_TYPE_SELL = 1
+    mock_mt5.ORDER_TYPE_BUY_LIMIT = 2
+    mock_mt5.ORDER_TYPE_BUY_STOP = 4
+    mock_mt5.ORDER_TYPE_BUY_STOP_LIMIT = 6
+    mock_mt5.ORDER_TYPE_SELL_LIMIT = 3
+    mock_mt5.ORDER_TYPE_SELL_STOP = 5
+    mock_mt5.ORDER_TYPE_SELL_STOP_LIMIT = 7
+    mock_mt5.positions_get.return_value = [SimpleNamespace(magic=202606, type=0)]
+    mock_mt5.orders_get.return_value = []
+
+    message = _max_same_direction_trade_message("XAUUSD", 202606, 1)
+
+    assert message == "max same-direction exposure reached for buy (1/1)"
+
+
+def _market_safety_frame(*, direction=1, closed_volume=100.0, running_volume=100.0):
+    closes = list(range(100, 140)) if direction == 1 else list(range(140, 100, -1))
+    frame = pd.DataFrame(
+        {
+            "Open": closes,
+            "High": [value + 0.5 for value in closes],
+            "Low": [value - 0.5 for value in closes],
+            "Close": closes,
+            "Volume": [100.0] * 38 + [closed_volume, running_volume],
+        }
+    )
+    frame.attrs["has_running_candle"] = True
+    return frame
+
+
+@patch("src.execution.mt5")
+def test_market_safety_ignores_running_candle_volume(mock_mt5, monkeypatch):
+    from src.execution import validate_market_indicators
+
+    monkeypatch.setenv("MT5_HARD_OSCILLATOR_SAFETY_ENABLED", "False")
+    mock_mt5.TIMEFRAME_M15 = "M15"
+    mock_mt5.TIMEFRAME_M30 = "M30"
+    mock_mt5.TIMEFRAME_H1 = "H1"
+    mock_mt5.TIMEFRAME_H4 = "H4"
+    mock_mt5.TIMEFRAME_D1 = "D1"
+
+    with patch("src.data_loader.fetch_historical_data", return_value=_market_safety_frame(running_volume=10000.0)):
+        allowed, reason = validate_market_indicators("XAUUSD", "M30", 1)
+
+    assert allowed is True
+    assert "closed" in reason
+
+
+@patch("src.execution.mt5")
+def test_market_safety_blocks_closed_bar_volume_spike(mock_mt5, monkeypatch):
+    from src.execution import validate_market_indicators
+
+    monkeypatch.setenv("MT5_HARD_OSCILLATOR_SAFETY_ENABLED", "False")
+    mock_mt5.TIMEFRAME_M15 = "M15"
+    mock_mt5.TIMEFRAME_M30 = "M30"
+    mock_mt5.TIMEFRAME_H1 = "H1"
+    mock_mt5.TIMEFRAME_H4 = "H4"
+    mock_mt5.TIMEFRAME_D1 = "D1"
+
+    with patch("src.data_loader.fetch_historical_data", return_value=_market_safety_frame(closed_volume=400.0)):
+        allowed, reason = validate_market_indicators("XAUUSD", "M30", 1)
+
+    assert allowed is False
+    assert "volume spike" in reason
+
+
+@patch("src.execution.mt5")
+def test_market_safety_blocks_buy_when_closed_oscillator_is_overbought(mock_mt5):
+    from src.execution import validate_market_indicators
+
+    mock_mt5.TIMEFRAME_M15 = "M15"
+    mock_mt5.TIMEFRAME_M30 = "M30"
+    mock_mt5.TIMEFRAME_H1 = "H1"
+    mock_mt5.TIMEFRAME_H4 = "H4"
+    mock_mt5.TIMEFRAME_D1 = "D1"
+
+    with patch("src.data_loader.fetch_historical_data", return_value=_market_safety_frame()):
+        allowed, reason = validate_market_indicators("XAUUSD", "M30", 1)
+
+    assert allowed is False
+    assert "overbought oscillator" in reason
+
+
+@patch("src.execution.mt5")
+def test_market_safety_blocks_multi_timeframe_oscillator_opposition(mock_mt5, monkeypatch):
+    from src.execution import validate_market_indicators
+
+    monkeypatch.setenv("MT5_HARD_BUY_OVERBOUGHT_RSI8", "101")
+    monkeypatch.setenv("MT5_HARD_BUY_OVERBOUGHT_STOCH", "101")
+    mock_mt5.TIMEFRAME_M15 = "M15"
+    mock_mt5.TIMEFRAME_M30 = "M30"
+    mock_mt5.TIMEFRAME_H1 = "H1"
+    mock_mt5.TIMEFRAME_H4 = "H4"
+    mock_mt5.TIMEFRAME_D1 = "D1"
+
+    with patch("src.data_loader.fetch_historical_data", return_value=_market_safety_frame()):
+        allowed, reason = validate_market_indicators("XAUUSD", "M30", 1)
+
+    assert allowed is False
+    assert "M30/H1" in reason

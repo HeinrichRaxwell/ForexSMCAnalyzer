@@ -435,6 +435,30 @@ def _max_concurrent_trade_message(symbol: str, magic: int) -> str | None:
     return None
 
 
+def _max_same_direction_trade_message(symbol: str, magic: int, direction: int) -> str | None:
+    """Limit live exposure in one direction across positions and pending orders."""
+    max_same_direction = _read_int_env("MT5_MAX_SAME_DIRECTION_TRADES", 0)
+    if max_same_direction <= 0:
+        return None
+
+    if int(direction) == 1:
+        position_types = (mt5.POSITION_TYPE_BUY,)
+        order_types = (mt5.ORDER_TYPE_BUY_LIMIT, mt5.ORDER_TYPE_BUY_STOP, mt5.ORDER_TYPE_BUY_STOP_LIMIT)
+        direction_name = "buy"
+    else:
+        position_types = (mt5.POSITION_TYPE_SELL,)
+        order_types = (mt5.ORDER_TYPE_SELL_LIMIT, mt5.ORDER_TYPE_SELL_STOP, mt5.ORDER_TYPE_SELL_STOP_LIMIT)
+        direction_name = "sell"
+
+    positions = _positions_for_symbol_magic(symbol, magic)
+    orders = _orders_for_symbol_magic(symbol, magic)
+    exposure_count = sum(1 for position in positions if getattr(position, "type", None) in position_types)
+    exposure_count += sum(1 for order in orders if getattr(order, "type", None) in order_types)
+    if exposure_count >= max_same_direction:
+        return f"max same-direction exposure reached for {direction_name} ({exposure_count}/{max_same_direction})"
+    return None
+
+
 def _daily_risk_governor_message(symbol: str, magic: int) -> str | None:
     if not _read_bool_env("MT5_DAILY_GOVERNOR_ENABLED", False):
         return None
@@ -469,12 +493,39 @@ def _parse_order_comment(comment: str) -> tuple[str | None, str | None]:
     parts = comment.split(" ")
     if len(parts) < 3:
         return None, None
-    timeframe = parts[1]
-    strategy_part = parts[2]
+    if parts[1].lower() in {"mkt", "market"}:
+        if len(parts) < 4:
+            return None, None
+        timeframe = parts[2]
+        strategy_part = parts[3]
+    else:
+        timeframe = parts[1]
+        strategy_part = parts[2]
     for strat in ["FVG", "OB", "IC", "Swapzone", "BPR", "Breaker", "SND", "Pivot"]:
         if strat in strategy_part:
             return timeframe, strat
     return timeframe, None
+
+
+def _strategy_from_setup(setup: dict) -> str:
+    strategy = str(setup.get("strategy", "")).strip()
+    if strategy:
+        return strategy
+
+    option_name = str(setup.get("option_name", ""))
+    for candidate in ["OB", "BPR", "IC", "Swapzone", "Swap", "Breaker", "SND", "Pivot"]:
+        if candidate in option_name:
+            return "Swapzone" if candidate == "Swap" else candidate
+    return "FVG"
+
+
+def _order_comment(setup: dict, *, market: bool = False) -> str:
+    timeframe = str(setup.get("timeframe", "M15"))
+    strategy = _strategy_from_setup(setup)
+    option_name = str(setup.get("option_name", ""))
+    option = "B" if any(value in option_name for value in ("Option B", "0.618", "GoldenPocket")) else "A"
+    mode = " Mkt" if market else ""
+    return f"SMC {timeframe} {strategy}{mode} {option}"[:31]
 
 
 def _max_pending_orders_message(symbol: str, magic: int, setup: dict, broker_entry_price: float) -> str | None:
@@ -509,11 +560,7 @@ def _max_pending_orders_message(symbol: str, magic: int, setup: dict, broker_ent
     tf = setup.get("timeframe", "M15")
     opt_name = setup.get("option_name", "")
     
-    candidate_strategy = "FVG"
-    for strat in ["OB", "BPR", "IC", "Swap", "Breaker", "SND", "Pivot"]:
-        if strat in opt_name:
-            candidate_strategy = "Swapzone" if strat == "Swap" else strat
-            break
+    candidate_strategy = _strategy_from_setup(setup)
 
     # Same TF + same strategy setups from consecutive scan cycles can still stack up.
     # Apply a second, configurable proximity limit specifically for those pairs.
@@ -582,75 +629,87 @@ def _max_pending_orders_message(symbol: str, magic: int, setup: dict, broker_ent
     return None
 
 
-def validate_market_indicators(symbol: str, tf_str: str, direction: int) -> tuple:
-    """
-    Validate current market indicators (RSI, Stoch RSI, EMA, Volume) before placing a trade.
-    Returns:
-        (bool, str): (is_valid, reason)
-    """
-    from src.data_loader import fetch_historical_data
-    
-    # 1. Map timeframe string to MT5 timeframe
-    mapping = {
-        'M15': mt5.TIMEFRAME_M15,
-        'M30': mt5.TIMEFRAME_M30,
-        'H1': mt5.TIMEFRAME_H1,
-        'H4': mt5.TIMEFRAME_H4,
-        'D1': mt5.TIMEFRAME_D1
-    }
-    tf = mapping.get(tf_str, mt5.TIMEFRAME_M15)
-    
-    # 2. Fetch history (recent 100 candles)
-    df = fetch_historical_data(symbol, tf, 100)
-    if df is None or df.empty or len(df) < 30:
-        return True, "Insufficient historical data to validate indicators"
-        
-    close = df['Close']
-    
-    # 3. Calculate RSI (14)
-    delta = close.diff()
-    gain = delta.clip(lower=0)
-    loss = -delta.clip(upper=0)
-    avg_gain = gain.rolling(window=14).mean()
-    avg_loss = loss.rolling(window=14).mean()
-    rs = avg_gain / avg_loss.replace(0, 0.00001)
-    rsi = 100 - (100 / (1 + rs))
-    curr_rsi = rsi.iloc[-1]
-    
-    # 4. Calculate Stochastic RSI (14)
-    rsi_min = rsi.rolling(window=14).min()
-    rsi_max = rsi.rolling(window=14).max()
-    stoch_rsi = (rsi - rsi_min) / (rsi_max - rsi_min).replace(0, 0.00001)
-    curr_stoch_rsi = stoch_rsi.iloc[-1]
-    
-    # 5. Volume check
-    curr_vol = df['Volume'].iloc[-1]
-    avg_vol = df['Volume'].rolling(window=20).mean().iloc[-1]
-    
-    # Validation checks
-    # A. Volume spike check (market reaction too violent)
-    if curr_vol > 3.5 * avg_vol:
-        return False, f"Abnormal volume spike detected ({curr_vol:.0f} > 3.5x avg {avg_vol:.0f})"
-        
-    # B. RSI & Stoch RSI Extreme checks (Disabled for pending limit orders)
-    # if direction == 1:  # Buy
-    #     if curr_rsi < 20.0:
-    #         return False, f"RSI is extremely oversold ({curr_rsi:.1f} < 20), price dumping too fast"
-    #     if curr_rsi > 70.0:
-    #         return False, f"RSI is overbought ({curr_rsi:.1f} > 70)"
-    #     if curr_stoch_rsi > 0.85:
-    #         return False, f"Stoch RSI is overbought ({curr_stoch_rsi:.2f} > 0.85)"
-    # else:  # Sell
-    #     if curr_rsi > 80.0:
-    #         return False, f"RSI is extremely overbought ({curr_rsi:.1f} > 80), price pumping too fast"
-    #     if curr_rsi < 30.0:
-    #         return False, f"RSI is oversold ({curr_rsi:.1f} < 30)"
-    #     if curr_stoch_rsi < 0.15:
-    #         return False, f"Stoch RSI is oversold ({curr_stoch_rsi:.2f} < 0.15)"
-    pass
-            
-    return True, f"Indicators valid: RSI={curr_rsi:.1f}, StochRSI={curr_stoch_rsi:.2f}, Volume={curr_vol:.0f}"
+def _closed_candles_only(df: pd.DataFrame | None) -> pd.DataFrame | None:
+    """Remove MT5's in-progress final bar before making a trade decision."""
+    if df is None or df.empty:
+        return df
+    if bool(getattr(df, "attrs", {}).get("has_running_candle", False)) and len(df) > 1:
+        return df.iloc[:-1].copy()
+    return df
 
+
+def _oscillator_opposes_direction(oscillator, direction: int) -> bool:
+    label = str(getattr(oscillator, "signal_label", "WAIT") or "WAIT")
+    return (int(direction) == 1 and label in {"SELL", "RESELL"}) or (
+        int(direction) == -1 and label in {"BUY", "REBUY"}
+    )
+
+
+def _higher_market_safety_timeframe(tf_str: str) -> str | None:
+    """Nearest higher timeframe used only to confirm a strong oscillator conflict."""
+    return {"M15": "H1", "M30": "H1", "H1": "H4", "H4": "D1"}.get(str(tf_str).upper())
+
+
+def validate_market_indicators(symbol: str, tf_str: str, direction: int) -> tuple:
+    """Block unsafe market entries using completed candle data only."""
+    from src.data_loader import fetch_historical_data
+    from src.entry_quality_gate import build_oscillator_context
+
+    mapping = {
+        "M15": mt5.TIMEFRAME_M15,
+        "M30": mt5.TIMEFRAME_M30,
+        "H1": mt5.TIMEFRAME_H1,
+        "H4": mt5.TIMEFRAME_H4,
+        "D1": mt5.TIMEFRAME_D1,
+    }
+    normalized_tf = str(tf_str).upper()
+    try:
+        df = _closed_candles_only(fetch_historical_data(symbol, mapping.get(normalized_tf, mt5.TIMEFRAME_M15), 100))
+    except Exception as exc:
+        return True, f"Market safety data unavailable: {exc}"
+    if df is None or df.empty or len(df) < 30:
+        return True, "Insufficient closed-candle data for market safety"
+
+    if "Volume" in df.columns:
+        volumes = pd.to_numeric(df["Volume"], errors="coerce").dropna()
+        if len(volumes) >= 21:
+            current_volume = float(volumes.iloc[-1])
+            average_volume = float(volumes.iloc[-21:-1].mean())
+            volume_multiple = _read_float_env("MT5_HARD_VOLUME_SPIKE_MULTIPLIER", 3.5)
+            if average_volume > 0 and current_volume > volume_multiple * average_volume:
+                return False, f"abnormal closed-bar volume spike ({current_volume:.0f} > {volume_multiple:.1f}x avg {average_volume:.0f})"
+
+    oscillator = build_oscillator_context(df)
+    if not _read_bool_env("MT5_HARD_OSCILLATOR_SAFETY_ENABLED", True):
+        return True, "Market safety valid: closed-bar volume checked; oscillator guard disabled"
+
+    rsi_8 = oscillator.rsi_8
+    stoch_k = oscillator.stoch_k
+    if rsi_8 is not None and stoch_k is not None:
+        if int(direction) == 1:
+            max_rsi = _read_float_env("MT5_HARD_BUY_OVERBOUGHT_RSI8", 68.0)
+            min_stoch = _read_float_env("MT5_HARD_BUY_OVERBOUGHT_STOCH", 80.0)
+            if rsi_8 >= max_rsi and stoch_k >= min_stoch:
+                return False, f"buy blocked by closed-bar overbought oscillator (RSI8={rsi_8:.1f}, StochK={stoch_k:.1f})"
+        else:
+            min_rsi = _read_float_env("MT5_HARD_SELL_OVERSOLD_RSI8", 32.0)
+            max_stoch = _read_float_env("MT5_HARD_SELL_OVERSOLD_STOCH", 20.0)
+            if rsi_8 <= min_rsi and stoch_k <= max_stoch:
+                return False, f"sell blocked by closed-bar oversold oscillator (RSI8={rsi_8:.1f}, StochK={stoch_k:.1f})"
+
+    higher_tf = _higher_market_safety_timeframe(normalized_tf)
+    if higher_tf and _read_bool_env("MT5_HARD_OSCILLATOR_REQUIRE_ALIGNMENT", True) and _oscillator_opposes_direction(oscillator, direction):
+        try:
+            higher_df = _closed_candles_only(fetch_historical_data(symbol, mapping[higher_tf], 100))
+        except Exception:
+            higher_df = None
+        if higher_df is not None and len(higher_df) >= 30:
+            if _oscillator_opposes_direction(build_oscillator_context(higher_df), direction):
+                return False, f"{normalized_tf}/{higher_tf} closed-bar oscillator opposition to {'buy' if int(direction) == 1 else 'sell'}"
+
+    rsi_text = f"{rsi_8:.1f}" if rsi_8 is not None else "n/a"
+    stoch_text = f"{stoch_k:.1f}" if stoch_k is not None else "n/a"
+    return True, f"Market safety valid: closed RSI8={rsi_text}, StochK={stoch_text}"
 def try_evict_lowest_confidence_pending_order(symbol: str, magic: int, new_setup: dict, limit_type: str, broker_entry_price: float = None) -> bool:
     """
     Finds the lowest confidence pending order for the given symbol/magic.
@@ -829,6 +888,7 @@ def execute_trade_for_setup(setup: dict, base_symbol: str = "XAUUSD") -> tuple:
     # Get active broker symbol
     symbol = get_active_broker_symbol(base_symbol)
     magic = int(os.getenv("MT5_MAGIC_NUMBER", "202606"))
+    direction = int(setup.get("direction", 1))
     
     concurrent_message = _max_concurrent_trade_message(symbol, magic)
     if concurrent_message:
@@ -839,6 +899,10 @@ def execute_trade_for_setup(setup: dict, base_symbol: str = "XAUUSD") -> tuple:
         if concurrent_message:
             return None, concurrent_message
             
+    same_direction_message = _max_same_direction_trade_message(symbol, magic, direction)
+    if same_direction_message:
+        return None, same_direction_message
+
     governor_message = _daily_risk_governor_message(symbol, magic)
     if governor_message:
         return None, governor_message
@@ -905,11 +969,6 @@ def execute_trade_for_setup(setup: dict, base_symbol: str = "XAUUSD") -> tuple:
         if price_diff_pips > max_dist_pips:
             return None, f"price is too far from market ({price_diff_pips:.1f} pips > {max_dist_pips} pips limit)"
             
-        # Price is close! Now check current market indicators before placing order
-        is_valid_mkt, mkt_reason = validate_market_indicators(symbol, tf, direction)
-        if not is_valid_mkt:
-            return None, f"Market indicators check failed: {mkt_reason}"
-            
     # Get symbol info for digit formatting
     symbol_info = mt5.symbol_info(symbol)
     if symbol_info is None:
@@ -918,6 +977,17 @@ def execute_trade_for_setup(setup: dict, base_symbol: str = "XAUUSD") -> tuple:
     digits = symbol_info.digits
     
     entry_price = round(float(broker_entry_price), digits)
+    if tick is not None:
+        if int(direction) == 1 and entry_price >= float(tick.ask):
+            return None, (
+                f"buy limit entry {entry_price:.3f} is not below current ask {float(tick.ask):.3f}; "
+                "waiting for a valid retracement"
+            )
+        if int(direction) == -1 and entry_price <= float(tick.bid):
+            return None, (
+                f"sell limit entry {entry_price:.3f} is not above current bid {float(tick.bid):.3f}; "
+                "waiting for a valid retracement"
+            )
     sl_price = round(float(setup["sl_price"]), digits)
     
     # Keep the broker-side hard target at the primary Fibo-0/TP1 level.
@@ -925,7 +995,7 @@ def execute_trade_for_setup(setup: dict, base_symbol: str = "XAUUSD") -> tuple:
     safety_tp_price = _server_take_profit_price(setup, entry_price, direction, symbol)
     tp_price = round(float(safety_tp_price), digits)
 
-    comment = f"SMC {setup.get('timeframe', 'M15')} {opt_name[:15]}"
+    comment = _order_comment(setup)
     
     # Try different filling types (RETURN, IOC, FOK)
     filling_types = [
@@ -977,11 +1047,7 @@ def _check_market_proximity_message(symbol: str, magic: int, setup: dict, curren
     opt_name = setup.get("option_name", "")
     direction = setup.get("direction", 1)
     
-    candidate_strategy = "FVG"
-    for strat in ["OB", "BPR", "IC", "Swap", "Breaker", "SND", "Pivot"]:
-        if strat in opt_name:
-            candidate_strategy = "Swapzone" if strat == "Swap" else strat
-            break
+    candidate_strategy = _strategy_from_setup(setup)
 
     same_tf_proximity_pips = _read_float_env("MT5_SAME_TF_PROXIMITY_PIPS", 30.0)
     same_tf_limit = same_tf_proximity_pips * pip_multiplier if pip_multiplier > 0 else same_tf_proximity_pips
@@ -1041,6 +1107,7 @@ def execute_market_order_for_setup(setup: dict, base_symbol: str = "XAUUSD") -> 
     # Get active broker symbol
     symbol = get_active_broker_symbol(base_symbol)
     magic = int(os.getenv("MT5_MAGIC_NUMBER", "202606"))
+    direction = int(setup.get("direction", 1))
     concurrent_message = _max_concurrent_trade_message(symbol, magic)
     if concurrent_message:
         # Try to evict a lower-confidence pending order
@@ -1049,6 +1116,10 @@ def execute_market_order_for_setup(setup: dict, base_symbol: str = "XAUUSD") -> 
             
         if concurrent_message:
             return None, concurrent_message
+    same_direction_message = _max_same_direction_trade_message(symbol, magic, direction)
+    if same_direction_message:
+        return None, same_direction_message
+
     governor_message = _daily_risk_governor_message(symbol, magic)
     if governor_message:
         return None, governor_message
@@ -1074,6 +1145,10 @@ def execute_market_order_for_setup(setup: dict, base_symbol: str = "XAUUSD") -> 
     else:
         order_type = mt5.ORDER_TYPE_SELL
         price = tick.bid
+
+    is_valid_mkt, mkt_reason = validate_market_indicators(symbol, tf, direction)
+    if not is_valid_mkt:
+        return None, f"Market indicators check failed: {mkt_reason}"
         
     # Get symbol info for digit formatting
     symbol_info = mt5.symbol_info(symbol)
@@ -1093,7 +1168,7 @@ def execute_market_order_for_setup(setup: dict, base_symbol: str = "XAUUSD") -> 
     safety_tp_price = _server_take_profit_price(setup, price_formatted, direction, symbol)
     tp_price = round(float(safety_tp_price), digits)
     
-    comment = f"SMC Mkt {setup.get('timeframe', 'M15')} {opt_name[:12]}"
+    comment = _order_comment(setup, market=True)
     
     # Try different filling types (RETURN, IOC, FOK)
     filling_types = [

@@ -1,0 +1,11 @@
+{
+  "generated_at": "2026-07-16 12:00:48 WIB",
+  "standard_limit_rows": 35,
+  "forward_closed_trades": 314,
+  "forward_signal_level_matches": 36,
+  "sources": {
+    "standard_limit": "data\\real_tick_standard_limit_may2026_all_tf.csv",
+    "positions": "scratch\\bot_positions_ss_matched_full.csv",
+    "deals": "scratch\\raw_deals_july.csv"
+  }
+}

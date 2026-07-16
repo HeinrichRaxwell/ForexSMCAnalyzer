@@ -252,7 +252,7 @@ MT5_DYNAMIC_LOT_MAX=0.10               # Maksimal lot
 **Risk management:**
 ```env
 MT5_MAX_CONCURRENT_TRADES=6    # Maksimal trade aktif bersamaan
-MT5_MAX_PENDING_ORDERS=8       # Maksimal pending order
+MT5_MAX_PENDING_ORDERS=6       # Maksimal pending order; harus <= MT5_MAX_CONCURRENT_TRADES
 MT5_ALLOWED_TIMEFRAMES=M30,H1,H4,D1   # Timeframe yang diizinkan eksekusi
 ```
 
@@ -356,31 +356,60 @@ python -m src.backtester
 
 ---
 
-## 11. Analisis Winrate WatchZone & Integrasi Pivot MT5
+## 11. Performance Evidence And Downloads
 
-### A. Laporan Kinerja WatchZone (Periode 10 Juli s.d. 15 Juli 2026 - Diupdate Tiap Hari)
-Analisis riwayat trading riil (sejak rilis 10 Juli s.d. hari ini 15 Juli 2026) menunjukkan hasil sebagai berikut:
+This repository publishes downloadable, reproducible performance evidence in
+[`reports/`](reports/README.md). It does not treat historical results as a
+profit guarantee.
 
-| Tipe Eksekusi | Total Trades | Winrate | Net Profit | Karakteristik & Rekomendasi |
-| :--- | :---: | :---: | :---: | :--- |
-| **Standard Limit (Pending)** | 34 | **58.82%** | **+$84.46** | Sangat stabil karena antri pasif di level Fib presisi. |
-| **WatchZone (Instant Market)** | 280 | **54.64%** | **-$153.17** | Frekuensi sangat tinggi. Sangat gacor pada OB, namun terseret pada FVG. |
+### Standard Limit Real-Tick Replay
 
-#### **Breakdown Performa WatchZone Berdasarkan Timeframe & Strategi:**
-* **Order Block (OB) via WatchZone (Super Gacor):**
-  * **M30 OB**: Winrate **86.67%** (15 Trades | Profit +$113.03)
-  * **H1 OB**: Winrate **68.75%** (16 Trades | Profit +$78.87)
-  * *Rekomendasi*: OB terbukti memiliki akurasi pantulan instan tertinggi saat disentuh harga.
-* **Fair Value Gap (FVG) via WatchZone (Risiko Tinggi):**
-  * **M30 FVG**: Winrate **53.57%** (56 Trades | Profit -$167.25)
-  * **H1 FVG**: Winrate **38.46%** (39 Trades | Profit -$98.40)
-  * *Penyebab*: FVG sering langsung ditembus dalam saat market *trending* kuat atau *news*.
-* **Daily Timeframe (D1) via WatchZone (Tidak Akurat):**
-  * Winrate **39.43%** (71 Trades | Profit -$17.24) karena zona D1 terlalu lebar untuk eksekusi instan tanpa konfirmasi.
+[`standard_limit_real_tick_may2026.csv`](reports/standard_limit_real_tick_may2026.csv)
+contains a MT5 bid/ask tick replay for XAUUSDm from 1 May through 7 June 2026.
+The run used a 0.50 model threshold, weighted A/B sizing, and one concurrent
+structure. All report rows have 100% required tick-day coverage.
+
+The result is a historical test of **standard pending-limit** execution. A
+winrate is calculated only from resolved trades; skipped setups are recorded in
+the `missed` field and must not be interpreted as wins. The CSV carries the
+timeframe, strategy, wins, losses, drawdown, and coverage fields for independent
+review.
+
+### WatchZone Forward Evidence
+
+[`forward_test_trades.csv`](reports/forward_test_trades.csv) is the trade-level
+export from closed MT5 forward-test positions. It includes open/close time in
+WIB, entry/exit price, exit comment, PnL, result, and the planned SL/TP only when
+the ticket can be matched to a saved source signal. Blank planned levels mean
+the source signal was not retained, not that the trade had no protection.
+
+[`forward_test_summary.csv`](reports/forward_test_summary.csv) aggregates those
+trades by entry type, timeframe, and strategy. WatchZone evidence is **real
+forward-test history**, not yet a reconstructed real-tick backtest: an exact
+replay needs historical zone registration, first tick hit, and fresh M1/M5
+rejection confirmation for each event.
+
+For spreadsheet users, download
+[`forward_test_report.xlsx`](reports/forward_test_report.xlsx). It contains an
+overview, the standard-limit real-tick matrix, forward trades, and forward
+summary in separate sheets.
+
+### Daily Publication
+
+On the machine that refreshes the local MT5 exports, run:
+
+```powershell
+.\scripts\publish_daily_reports.ps1
+```
+
+The command rebuilds the files in `reports/`, commits only public report
+artifacts and supporting documentation, then pushes to `main`. It deliberately
+does not publish `.env`, account state, raw signal state, raw tick cache, or
+the local `scratch/` source exports.
 
 ---
 
-### B. Integrasi Visualisasi Pivot & SnR di MT5
+## 12. Integrasi Visualisasi Pivot & SnR di MT5
 Sistem visualisasi garis SnR dan Pivot di MetaTrader 5 bekerja dengan cara berikut:
 1. **Python Bot**: Menghitung level Pivot Point (PP), Support (S1-S4), dan Resistance (R1-R4) secara periodik dari data D1.
 2. **File Ekspor**: Data level ditulis sebagai file terenkripsi JSON ke direktori global MT5 Common:
@@ -390,16 +419,16 @@ Sistem visualisasi garis SnR dan Pivot di MetaTrader 5 bekerja dengan cara berik
 
 ---
 
-### C. Update Pengamanan & Aturan Main Baru (Juli 2026)
+### Update Pengamanan & Aturan Main Baru (Juli 2026)
 Untuk mengunci profit dan meminimalkan kerugian saat terjadi fluktuasi news, pengamanan berikut telah diimplementasikan:
 
-1. **WatchZone Terbatas Khusus OB & BPR**:
-   * Sistem WatchZone sekarang **hanya diizinkan** melakukan entri instan untuk strategi **OB** (Order Block) dan **BPR** (Balanced Price Range) karena akurasinya yang sangat tinggi.
-   * Strategi **FVG** hanya diizinkan melalui **Standard Limit (Pending Order)** agar bot mendapatkan harga diskon terdalam (Fib 0.5/0.618) dan membatasi risiko SL.
+1. **WatchZone untuk OB, BPR, dan FVG**:
+   * Sistem WatchZone mengizinkan entri instan untuk **OB**, **BPR**, **FVG**, dan Pivot sesuai live policy. Setiap entry tetap memerlukan rejection confirmation, reversal guard, dan market safety dari closed-bar volume, RSI8, dan Stochastic sebelum market order dikirim.
+   * FVG juga tetap dapat menggunakan **Standard Limit (Pending Order)** saat rejection belum terkonfirmasi, sehingga entry dapat menunggu retracement ke Fib 0.5/0.618.
 2. **Enforcement Kebijakan Strategi**:
    * WatchZone sekarang mendeteksi dan memblokir strategi yang masuk daftar hitam di `.env` (seperti `IC`, `SND`, `Swapzone`, `Pivot`).
 3. **Proteksi Clustering & Over-exposure**:
-   * Menambahkan pemeriksaan jarak posisi aktif searah. Bot tidak akan membuka posisi baru jika sudah ada transaksi aktif dalam rentang **30 pips** untuk timeframe yang sama (`MT5_SAME_TF_PROXIMITY_PIPS`) atau **15 pips** secara umum (`MT5_PENDING_PROXIMITY_PIPS`).
+   * Satu magic number hanya boleh memiliki satu eksposur searah gabungan (posisi dan pending order) lewat `MT5_MAX_SAME_DIRECTION_TRADES=1`. Scanner juga memakai lock per magic agar worker simbol berbeda tidak menggandakan eksposur.
 4. **D1 Dinonaktifkan**:
    * Timeframe `D1` telah dihapus dari daftar trading (`MT5_ALLOWED_TIMEFRAMES=M30,H1,H4`) untuk menghindari entri berskala besar yang lambat dan berisiko tinggi.
 
@@ -410,3 +439,4 @@ Untuk mengunci profit dan meminimalkan kerugian saat terjadi fluktuasi news, pen
 - Bot ini dibuat untuk XAUUSD (Gold). Bisa dipakai untuk pair lain tapi parameter pip multiplier dan trailing stop belum dioptimalkan untuk pair lain.
 - Model ML yang disertakan sudah dilatih dengan data nyata. Makin banyak trade yang masuk, makin pintar modelnya (self-learning otomatis).
 - Jangan lupa set `MT5_EXECUTE_TRADES=False` dulu saat pertama coba, pantau sinyal dulu beberapa hari sebelum aktifkan trading.
+- Backtest dan forward test adalah bukti historis, bukan jaminan profit atau rekomendasi trading.

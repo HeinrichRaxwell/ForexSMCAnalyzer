@@ -43,7 +43,8 @@ _DATA_DIR = os.path.join(
 # Default: 120 minutes. A zone is NOT removed just because it hasn't been hit
 # within this time — it is removed when MITIGATED (price closes through it) or
 # when this hard cap is reached. Set to 0 to disable time-based expiry entirely.
-_ZONE_TTL_MINUTES = int(os.getenv("WATCH_ZONE_TTL_MINUTES", "120"))
+# Default 0 keeps zones active until mitigation; positive values opt into expiry.
+_ZONE_TTL_MINUTES = int(os.getenv("WATCH_ZONE_TTL_MINUTES", "0"))
 
 # Maximum number of active watch zones kept in memory / disk per symbol.
 # Increased to 100 since zones persist until mitigated, not just 2 hrs.
@@ -56,6 +57,10 @@ _ZONE_APPROACH_BUFFER = float(os.getenv("WATCH_ZONE_APPROACH_BUFFER", "0.30"))
 # For XAUUSD, pip_multiplier = 0.10, so 5 pips = $0.50 beyond zone edge.
 _ZONE_MITIGATION_BUFFER_PIPS = float(os.getenv("WATCH_ZONE_MITIGATION_BUFFER_PIPS", "5.0"))
 _ZONE_MITIGATION_PIP_MULT = float(os.getenv("WATCH_ZONE_MITIGATION_PIP_MULT", "0.10"))  # XAUUSD default
+_ZONE_EXECUTION_RETRY_SECONDS = max(
+    1.0,
+    float(os.getenv("WATCH_ZONE_EXECUTION_RETRY_SECONDS", "30")),
+)
 
 # Maximum allowed distance between zone midpoint and current market price, expressed
 # as a percentage of current price. Zones farther than this are unreachable in the
@@ -97,6 +102,9 @@ class WatchZone:
     mitigated_at: str = ""  # ISO timestamp when zone was declared mitigated
     htf_prioritized: bool = False
     rejection_confirmed: bool = False
+    rejection_confirmed_b: bool = False
+    last_execution_attempt: str = ""
+    last_execution_message: str = ""
 
 
 @dataclass
@@ -174,6 +182,11 @@ def _zone_from_dict(d: dict) -> WatchZone:
         mitigated_at=d.get("mitigated_at", ""),
         htf_prioritized=bool(d.get("htf_prioritized", False)),
         rejection_confirmed=bool(d.get("rejection_confirmed", False)),
+        rejection_confirmed_b=bool(
+            d.get("rejection_confirmed_b", d.get("rejection_confirmed", False))
+        ),
+        last_execution_attempt=d.get("last_execution_attempt", ""),
+        last_execution_message=d.get("last_execution_message", ""),
     )
 
 
@@ -284,6 +297,7 @@ def save_watch_zones(
             existing_zone["probability_b"] = zone.probability_b
             existing_zone["oscillator_label"] = zone.oscillator_label
             existing_zone["rejection_confirmed"] = zone.rejection_confirmed
+            existing_zone["rejection_confirmed_b"] = zone.rejection_confirmed_b
             existing_zone["htf_prioritized"] = zone.htf_prioritized
             existing_zone["features"] = zone.features
             existing_zone["features_b"] = zone.features_b
@@ -397,6 +411,9 @@ def check_price_in_watch_zones(
             )
             continue
 
+        if not _execution_retry_elapsed(zd, now):
+            continue
+
         if not in_zone:
             continue
 
@@ -431,6 +448,15 @@ def mark_zone_triggered(symbol: str, zone_id: str) -> None:
     if zone_id in zones_data:
         zones_data[zone_id]["triggered"] = True
         zones_data[zone_id]["triggered_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        _save_zones(symbol, zones_data)
+
+
+def mark_zone_execution_attempt(symbol: str, zone_id: str, message: str = "") -> None:
+    """Persist an execution attempt so failures are not retried on every tick."""
+    zones_data = _load_zones(symbol)
+    if zone_id in zones_data:
+        zones_data[zone_id]["last_execution_attempt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        zones_data[zone_id]["last_execution_message"] = str(message or "")[:240]
         _save_zones(symbol, zones_data)
 
 
@@ -470,6 +496,17 @@ def _is_hard_expired(zone_dict: dict, now: datetime) -> bool:
         return now > exp_dt
     except (ValueError, TypeError):
         return False
+
+
+def _execution_retry_elapsed(zone_dict: dict, now: datetime) -> bool:
+    last_attempt = zone_dict.get("last_execution_attempt", "")
+    if not last_attempt:
+        return True
+    try:
+        attempted_at = datetime.strptime(str(last_attempt)[:19], "%Y-%m-%d %H:%M:%S")
+    except (ValueError, TypeError):
+        return True
+    return (now - attempted_at).total_seconds() >= _ZONE_EXECUTION_RETRY_SECONDS
 
 
 def _is_price_mitigated(
@@ -637,7 +674,43 @@ def _build_zone_from_dual(
         expires_at=exp_str,
         htf_prioritized=bool(opt_a.get("htf_prioritized", False)),
         rejection_confirmed=bool(opt_a.get("rejection_confirmed", False)),
+        rejection_confirmed_b=bool(opt_b.get("rejection_confirmed", False)),
     )
+
+
+def build_watch_zone_execution_setup(zone: WatchZone, current_price: float) -> dict:
+    """Build the correct execution leg for a WatchZone hit."""
+    use_option_b = bool(zone.is_dual) and (
+        abs(float(current_price) - zone.entry_price_b)
+        < abs(float(current_price) - zone.entry_price)
+    )
+    if use_option_b:
+        entry_price = zone.entry_price_b
+        sl_price = zone.sl_price_b
+        tp_price = zone.tp_price_b
+        probability = zone.probability_b
+        rejection_confirmed = zone.rejection_confirmed_b
+        option_label = "Option B 0.618"
+    else:
+        entry_price = zone.entry_price
+        sl_price = zone.sl_price
+        tp_price = zone.tp_price
+        probability = zone.probability
+        rejection_confirmed = zone.rejection_confirmed
+        option_label = "Option A 0.5"
+
+    return {
+        "timeframe": zone.timeframe,
+        "strategy": zone.strategy,
+        "direction": zone.direction,
+        "entry_price": entry_price,
+        "sl_price": sl_price,
+        "tp_price": tp_price,
+        "option_name": f"{zone.strategy} WatchZone {option_label}",
+        "probability": probability,
+        "rejection_confirmed": rejection_confirmed,
+        "htf_prioritized": zone.htf_prioritized,
+    }
 
 
 def _zone_within_price_range(zone_dict: dict, current_price: float, max_dist: float) -> bool:

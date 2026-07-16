@@ -107,6 +107,21 @@ def test_should_market_enter_rejects_price_outside_entry_zone():
     assert should_market_enter_setup(setup, current_price=90.0) is False
 
 
+def test_watch_zone_refresh_rejection_uses_fresh_m5_confirmation(monkeypatch):
+    import src.scanner_worker as scanner_worker
+
+    fresh_frame = pd.DataFrame({"Open": [100.0], "High": [101.0], "Low": [99.0], "Close": [100.5]})
+    monkeypatch.setattr(scanner_worker, "fetch_historical_data", lambda *args: fresh_frame)
+    monkeypatch.setattr(scanner_worker, "detect_rejection_at_level", lambda *args, **kwargs: True)
+
+    confirmed, source = scanner_worker.refresh_watch_zone_rejection(
+        "XAUUSD", _setup(timeframe="M30")
+    )
+
+    assert confirmed is True
+    assert source == "M5"
+
+
 def test_should_market_enter_waits_for_reclaim_after_deep_sweep():
     setup = _setup(direction=1, entry_price=4079.34189, sl_price=4073.562)
 

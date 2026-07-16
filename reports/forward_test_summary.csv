@@ -1,0 +1,22 @@
+entry_type,timeframe,strategy,trades,wins,losses,winrate_pct,net_profit_usd
+Standard Limit,H1,FVG,9,6,3,66.67,0.28999999999999915
+Standard Limit,H1,OB,5,2,3,40.0,-0.1899999999999995
+Standard Limit,H4,FVG,3,3,0,100.0,13.64
+Standard Limit,H4,IC,1,1,0,100.0,14.29
+Standard Limit,H4,OB,2,0,2,0.0,-35.17
+Standard Limit,M30,FVG,5,3,2,60.0,17.769999999999996
+Standard Limit,M30,IC,5,2,3,40.0,39.980000000000004
+Standard Limit,M30,OB,4,3,1,75.0,33.85
+WatchZone,D1,Unknown,71,28,43,39.44,-17.239999999999995
+WatchZone,H1,FVG,39,15,24,38.46,-98.39999999999999
+WatchZone,H1,IC,29,20,9,68.97,-63.989999999999995
+WatchZone,H1,OB,16,11,5,68.75,78.87
+WatchZone,H4,FVG,8,6,2,75.0,10.870000000000001
+WatchZone,H4,IC,2,1,1,50.0,0.74
+WatchZone,H4,OB,6,2,4,33.33,-20.12
+WatchZone,H4,SND,3,3,0,100.0,15.4
+WatchZone,H4,Unknown,13,8,5,61.54,-32.44
+WatchZone,M30,BPR,1,1,0,100.0,9.64
+WatchZone,M30,FVG,56,30,26,53.57,-167.25
+WatchZone,M30,IC,21,15,6,71.43,17.72
+WatchZone,M30,OB,15,13,2,86.67,113.03
