@@ -11,10 +11,7 @@ This directory contains files intended for download and independent review.
 
 The WatchZone rows are **actual forward-test trades**, not a reconstructed real-tick backtest. The repository does not yet contain an event-replay engine that reproduces WatchZone registration, first tick hit, and fresh M1/M5 rejection confirmation historically.
 
-Run this daily on the machine that has refreshed MT5 exports:
-
-```powershell
-.\scripts\publish_daily_reports.ps1
-```
-
-The script stages and pushes only the public report artifacts, README, and report tooling. It does not publish `.env`, account state, scanner state, raw tick cache, or raw scratch data.
+Reports are generated from local MT5 exports by `scripts/update_public_reports.py`.
+The maintainer workflow `scripts/publish_daily_reports.ps1` stages and pushes
+only public report artifacts, README, and report tooling. `.env`, account state,
+scanner state, raw tick cache, and raw scratch data are excluded.

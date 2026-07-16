@@ -403,9 +403,9 @@ rejection confirmation for each event.
 MT5 comments identify the execution compactly: pending limits use
 `SMC <TF> <Strategy> <A/B>` and instant WatchZone entries use
 `SMC <TF> <Strategy> Mkt <A/B>`. Telegram WatchZone alerts include zone, hit
-price, entry, SL, TP, confidence, and ticket. Enable
-`TELEGRAM_EVENT_LOG_ENABLED=True` to export future secret-free alert delivery
-events to [`telegram_delivery_events.csv`](reports/telegram_delivery_events.csv).
+price, entry, SL, TP, confidence, and ticket. When
+`TELEGRAM_EVENT_LOG_ENABLED=True`, future secret-free alert delivery events are
+exported to [`telegram_delivery_events.csv`](reports/telegram_delivery_events.csv).
 
 | Timeframe | Strategy | Closed Trades | Winrate | Net PnL (USD) |
 | --- | --- | ---: | ---: | ---: |
@@ -427,23 +427,17 @@ There are no closed M15 WatchZone trades in the current public export. `Unknown`
 means the historical trade could not be matched back to its saved source signal;
 it is retained instead of being silently assigned to a strategy.
 
-For spreadsheet users, download
-[`forward_test_report.xlsx`](reports/forward_test_report.xlsx). It contains an
-overview, the standard-limit real-tick matrix, forward trades, and forward
-summary in separate sheets.
+[`forward_test_report.xlsx`](reports/forward_test_report.xlsx) contains an
+overview, the standard-limit real-tick matrix, forward trades, forward summary,
+and Telegram delivery events in separate sheets.
 
-### Daily Publication
+### Report Refresh
 
-On the machine that refreshes the local MT5 exports, run:
-
-```powershell
-.\scripts\publish_daily_reports.ps1
-```
-
-The command rebuilds the files in `reports/`, commits only public report
-artifacts and supporting documentation, then pushes to `main`. It deliberately
-does not publish `.env`, account state, raw signal state, raw tick cache, or
-the local `scratch/` source exports.
+Public reports are built from local MT5 exports by
+`scripts/update_public_reports.py`. The maintainer publication workflow uses
+`scripts/publish_daily_reports.ps1`; it commits only public report artifacts and
+supporting documentation. `.env`, account state, raw signal state, raw tick
+cache, and local `scratch/` source exports are intentionally excluded.
 
 ---
 
