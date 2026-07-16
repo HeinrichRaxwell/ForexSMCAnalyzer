@@ -264,6 +264,70 @@ def is_price_too_far_execution(message) -> bool:
     return PRICE_TOO_FAR_MARKER in str(message or "").lower()
 
 
+def recovery_failure_action(message) -> str:
+    """Classify a failed order so recovery only retries meaningful failures."""
+    text = str(message or "").strip().lower()
+    if is_price_too_far_execution(text):
+        return "price_watch"
+    if any(
+        marker in text
+        for marker in (
+            "auto-execution disabled",
+            "live strategy policy blocked",
+            "strategy_not_allowlisted",
+            "strategy_blocked",
+            "entry_policy_",
+            "timeframe ",
+            "immediate emergency reversal",
+        )
+    ) and ("disabled" in text or "blocked" in text or "entry_policy_" in text or "emergency reversal" in text):
+        return "blocked"
+    if any(
+        marker in text
+        for marker in (
+            "max concurrent trades reached",
+            "max same-direction trades reached",
+            "max pending orders reached",
+            "daily risk governor",
+            "daily governor unavailable",
+            "blocked mixed strategy",
+            "proximity",
+            "market indicators check failed",
+        )
+    ):
+        return "deferred"
+    return "retry"
+
+
+def record_recovery_failure(
+    sig_data: dict,
+    message,
+    retries: int,
+    max_retries: int,
+    *,
+    message_key: str,
+    retries_key: str,
+    outcome_key: str,
+) -> str:
+    """Persist a recovery result without consuming retries for deferred states."""
+    action = recovery_failure_action(message)
+    sig_data[message_key] = message
+    if action == "price_watch":
+        sig_data.update(_price_watch_metadata(message))
+    elif action == "blocked":
+        sig_data[outcome_key] = True
+        sig_data["watch_status"] = "execution_blocked"
+    elif action == "deferred":
+        sig_data["watch_status"] = "execution_deferred"
+    else:
+        next_retries = retries + 1
+        sig_data[retries_key] = next_retries
+        if next_retries >= max_retries:
+            sig_data[outcome_key] = True
+            sig_data["watch_status"] = "execution_retry_exhausted"
+    return action
+
+
 def should_retry_unfilled_watch_record(sig_data: dict, ticket_fields, outcome_fields=None) -> bool:
     """Return True for accepted live records waiting for price to return near entry."""
     if not isinstance(sig_data, dict) or sig_data.get("is_low_confidence", False):
@@ -2382,16 +2446,26 @@ def run_scan(symbol: str, confidence_threshold: float):
                                     )
                                 except Exception:
                                     pass
-                            elif is_price_too_far_execution(exec_msg_a):
-                                sig_data.update(_price_watch_metadata(exec_msg_a))
-                                sig_data['watch_last_execution_message_0.5'] = exec_msg_a
                             else:
-                                sig_data['watch_last_execution_message_0.5'] = exec_msg_a
-                                print(f"[Recovery Engine] Option A (0.5) placement failed: {exec_msg_a}")
-                                sig_data['execution_retries_0.5'] = retries_a + 1
-                                if retries_a + 1 >= max_retries:
+                                failure_action = record_recovery_failure(
+                                    sig_data,
+                                    exec_msg_a,
+                                    retries_a,
+                                    max_retries,
+                                    message_key='watch_last_execution_message_0.5',
+                                    retries_key='execution_retries_0.5',
+                                    outcome_key='outcome_a_recorded',
+                                )
+                                if failure_action == "price_watch":
+                                    pass
+                                elif failure_action == "deferred":
+                                    print(f"[Recovery Engine] Option A (0.5) execution deferred: {exec_msg_a}")
+                                elif failure_action == "blocked":
+                                    print(f"[Recovery Engine] Option A (0.5) recovery stopped: {exec_msg_a}")
+                                else:
+                                    print(f"[Recovery Engine] Option A (0.5) placement failed: {exec_msg_a}")
+                                if failure_action == "retry" and retries_a + 1 >= max_retries:
                                     print(f"[Recovery Engine] Option A (0.5) reached max retry limit ({max_retries}) for {symbol}. Disabling further retries.")
-                                    sig_data['outcome_a_recorded'] = True
                                     
                         retry_watch_b = should_retry_unfilled_watch_record(
                             sig_data,
@@ -2498,16 +2572,26 @@ def run_scan(symbol: str, confidence_threshold: float):
                                     )
                                 except Exception:
                                     pass
-                            elif is_price_too_far_execution(exec_msg_b):
-                                sig_data.update(_price_watch_metadata(exec_msg_b))
-                                sig_data['watch_last_execution_message_0.618'] = exec_msg_b
                             else:
-                                sig_data['watch_last_execution_message_0.618'] = exec_msg_b
-                                print(f"[Recovery Engine] Option B (0.618) placement failed: {exec_msg_b}")
-                                sig_data['execution_retries_0.618'] = retries_b + 1
-                                if retries_b + 1 >= max_retries:
+                                failure_action = record_recovery_failure(
+                                    sig_data,
+                                    exec_msg_b,
+                                    retries_b,
+                                    max_retries,
+                                    message_key='watch_last_execution_message_0.618',
+                                    retries_key='execution_retries_0.618',
+                                    outcome_key='outcome_b_recorded',
+                                )
+                                if failure_action == "price_watch":
+                                    pass
+                                elif failure_action == "deferred":
+                                    print(f"[Recovery Engine] Option B (0.618) execution deferred: {exec_msg_b}")
+                                elif failure_action == "blocked":
+                                    print(f"[Recovery Engine] Option B (0.618) recovery stopped: {exec_msg_b}")
+                                else:
+                                    print(f"[Recovery Engine] Option B (0.618) placement failed: {exec_msg_b}")
+                                if failure_action == "retry" and retries_b + 1 >= max_retries:
                                     print(f"[Recovery Engine] Option B (0.618) reached max retry limit ({max_retries}) for {symbol}. Disabling further retries.")
-                                    sig_data['outcome_b_recorded'] = True
                                     
                     # Mark as active to protect from pruning, then continue
                     active_high_confidence.append(opt_a)
@@ -2931,16 +3015,26 @@ def run_scan(symbol: str, confidence_threshold: float):
                                     )
                                 except Exception:
                                     pass
-                            elif is_price_too_far_execution(exec_msg):
-                                sig_data.update(_price_watch_metadata(exec_msg))
-                                sig_data['watch_last_execution_message'] = exec_msg
                             else:
-                                sig_data['watch_last_execution_message'] = exec_msg
-                                print(f"[Recovery Engine] Single setup placement failed: {exec_msg}")
-                                sig_data['execution_retries'] = retries + 1
-                                if retries + 1 >= max_retries:
+                                failure_action = record_recovery_failure(
+                                    sig_data,
+                                    exec_msg,
+                                    retries,
+                                    max_retries,
+                                    message_key='watch_last_execution_message',
+                                    retries_key='execution_retries',
+                                    outcome_key='outcome_recorded',
+                                )
+                                if failure_action == "price_watch":
+                                    pass
+                                elif failure_action == "deferred":
+                                    print(f"[Recovery Engine] Single execution deferred: {exec_msg}")
+                                elif failure_action == "blocked":
+                                    print(f"[Recovery Engine] Single recovery stopped: {exec_msg}")
+                                else:
+                                    print(f"[Recovery Engine] Single setup placement failed: {exec_msg}")
+                                if failure_action == "retry" and retries + 1 >= max_retries:
                                     print(f"[Recovery Engine] Single reached max retry limit ({max_retries}) for {symbol}. Disabling further retries.")
-                                    sig_data['outcome_recorded'] = True
                                 registry_changed = True
                                     
                     # Mark as active to protect from pruning, then continue

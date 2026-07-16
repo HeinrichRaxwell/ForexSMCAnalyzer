@@ -161,7 +161,7 @@ Important controls:
 | `MT5_REQUIRE_ROLLOUT_READY` | `False` | Requires a passing rollout gate when enabled. |
 | `MT5_ALLOWED_TIMEFRAMES` | `M30,H1,H4` | Limits order execution to the listed timeframes. |
 | `MT5_MAX_CONCURRENT_TRADES` | `6` | Caps positions plus pending orders for this magic number. |
-| `MT5_MAX_SAME_DIRECTION_TRADES` | `1` | Caps combined same-direction exposure. |
+| `MT5_MAX_SAME_DIRECTION_TRADES` | `6` | Caps combined same-direction exposure; the total concurrent cap still applies. |
 | `MT5_DAILY_GOVERNOR_ENABLED` | `False` | Enables daily target/loss and consecutive-loss controls. |
 | `MT5_ENFORCE_ENTRY_GATE` | `False` | Enables the legacy quality gate; leave off to keep it observer-only. |
 | `MT5_ENFORCE_SPREAD_FILTER` | `True` | Rejects entries when live spread is too large relative to risk. |

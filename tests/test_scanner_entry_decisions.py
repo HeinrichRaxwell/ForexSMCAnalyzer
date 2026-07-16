@@ -9,6 +9,8 @@ from src.scanner_worker import (
     choose_dual_recovery_execution_mode,
     evaluate_live_entry_gate,
     is_price_too_far_execution,
+    recovery_failure_action,
+    record_recovery_failure,
     is_live_entry_timeframe,
     choose_recovery_execution_mode,
     send_recovery_alert_with_chart,
@@ -192,6 +194,47 @@ def test_price_too_far_execution_message_is_detected_for_watch_retry():
         "price is too far from market (123.63 USD > 30.0 USD limit)"
     ) is True
     assert is_price_too_far_execution("Market indicators check failed") is False
+
+
+def test_recovery_failure_classifies_permanent_and_deferred_execution_states():
+    assert recovery_failure_action("Auto-execution disabled (MT5_EXECUTE_TRADES=False in .env)") == "blocked"
+    assert recovery_failure_action("Live strategy policy blocked pending order: entry_policy_not_allowlisted:WatchZone:M30:FVG") == "blocked"
+    assert recovery_failure_action("max same-direction trades reached (1/1) for XAUUSDm") == "deferred"
+    assert recovery_failure_action("price is too far from market (300 pips > 200 pips limit)") == "price_watch"
+    assert recovery_failure_action("MT5 order failed: retcode=10030") == "retry"
+
+
+def test_recovery_failure_does_not_consume_retries_for_deferred_or_blocked_states():
+    record = {}
+    action = record_recovery_failure(
+        record,
+        "max concurrent trades reached (6/6) for XAUUSDm",
+        1,
+        2,
+        message_key="message",
+        retries_key="retries",
+        outcome_key="done",
+    )
+
+    assert action == "deferred"
+    assert record == {
+        "message": "max concurrent trades reached (6/6) for XAUUSDm",
+        "watch_status": "execution_deferred",
+    }
+
+    action = record_recovery_failure(
+        record,
+        "Live strategy policy blocked pending order: entry_policy_not_allowlisted:WatchZone:M30:FVG",
+        1,
+        2,
+        message_key="message",
+        retries_key="retries",
+        outcome_key="done",
+    )
+
+    assert action == "blocked"
+    assert record["done"] is True
+    assert record["watch_status"] == "execution_blocked"
 
 
 def test_price_too_far_watch_record_can_retry_until_ticket_or_outcome_exists():
