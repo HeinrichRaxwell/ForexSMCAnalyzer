@@ -468,6 +468,51 @@ def test_order_comment_preserves_timeframe_and_strategy_for_fvg_market_and_pendi
     assert _parse_order_comment(_order_comment(setup, market=True)) == ("M30", "FVG")
 
 
+def test_order_comment_uses_strategy_type_when_strategy_is_not_present():
+    from src.execution import _order_comment, _parse_order_comment
+
+    setup = {"timeframe": "M30", "strategy_type": "IC", "option_name": "Option A"}
+
+    assert _parse_order_comment(_order_comment(setup)) == ("M30", "IC")
+
+
+@patch("src.execution.mt5")
+def test_pending_order_cannot_bypass_standard_limit_strategy_policy(mock_mt5, monkeypatch):
+    from src.execution import execute_trade_for_setup
+
+    monkeypatch.setenv("MT5_EXECUTE_TRADES", "True")
+    monkeypatch.setenv("MT5_ALLOWED_TIMEFRAMES", "M30")
+    monkeypatch.setenv("MT5_LIVE_STRATEGY_ALLOWLIST", "BB")
+    monkeypatch.setenv("MT5_LIVE_STRATEGY_BLOCKLIST", "")
+    monkeypatch.setenv("MT5_STANDARD_LIMIT_STRATEGY_BLOCKLIST", "*:BB")
+
+    ticket, message = execute_trade_for_setup(
+        _pending_setup(timeframe="M30", strategy="BB", option_name="BB Option A"), "XAUUSD"
+    )
+
+    assert ticket is None
+    assert "entry_policy_blocked:Standard Limit:M30:BB" in message
+    mock_mt5.order_send.assert_not_called()
+
+
+@patch("src.execution.mt5")
+def test_market_order_cannot_bypass_watch_zone_strategy_policy(mock_mt5, monkeypatch):
+    from src.execution import execute_market_order_for_setup
+
+    monkeypatch.setenv("MT5_EXECUTE_TRADES", "True")
+    monkeypatch.setenv("MT5_ALLOWED_TIMEFRAMES", "M30")
+    monkeypatch.setenv("MT5_LIVE_STRATEGY_BLOCKLIST", "")
+    monkeypatch.setenv("MT5_WATCH_ZONE_STRATEGY_ALLOWLIST", "M30:OB,H1:OB")
+
+    ticket, message = execute_market_order_for_setup(
+        _pending_setup(timeframe="M30", strategy="FVG", entry_type="WatchZone"), "XAUUSD"
+    )
+
+    assert ticket is None
+    assert "entry_policy_not_allowlisted:WatchZone:M30:FVG" in message
+    mock_mt5.order_send.assert_not_called()
+
+
 @patch("src.execution.validate_market_indicators", return_value=(True, "ok"))
 @patch("src.execution.mt5")
 def test_pending_buy_limit_is_not_sent_when_spread_adjusted_entry_is_at_or_above_ask(

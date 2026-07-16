@@ -2189,6 +2189,7 @@ def run_scan(symbol: str, confidence_threshold: float):
                 lead_opt,
                 probability=lead['max_prob'],
                 timeframe=tf,
+                entry_type="Standard Limit",
             )
             if not strategy_allowed:
                 lead_opt['filtered_reason'] = strategy_reason
@@ -3346,6 +3347,7 @@ def main():
                                                         None,
                                                         probability=zone.probability,
                                                         timeframe=zone.timeframe,
+                                                        entry_type="WatchZone",
                                                     )
                                                     if not strategy_allowed:
                                                         # Mark it triggered/disabled so it won't keep checking it

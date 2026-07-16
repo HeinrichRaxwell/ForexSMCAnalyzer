@@ -700,6 +700,7 @@ def build_watch_zone_execution_setup(zone: WatchZone, current_price: float) -> d
         option_label = "Option A 0.5"
 
     return {
+        "entry_type": "WatchZone",
         "timeframe": zone.timeframe,
         "strategy": zone.strategy,
         "direction": zone.direction,

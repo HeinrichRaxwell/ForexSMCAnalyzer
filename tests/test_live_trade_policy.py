@@ -7,6 +7,10 @@ from src.live_trade_policy import normalize_strategy_name, should_allow_live_str
 def clear_env(monkeypatch):
     monkeypatch.delenv("MT5_LIVE_STRATEGY_ALLOWLIST", raising=False)
     monkeypatch.delenv("MT5_LIVE_STRATEGY_BLOCKLIST", raising=False)
+    monkeypatch.delenv("MT5_WATCH_ZONE_STRATEGY_ALLOWLIST", raising=False)
+    monkeypatch.delenv("MT5_WATCH_ZONE_STRATEGY_BLOCKLIST", raising=False)
+    monkeypatch.delenv("MT5_STANDARD_LIMIT_STRATEGY_ALLOWLIST", raising=False)
+    monkeypatch.delenv("MT5_STANDARD_LIMIT_STRATEGY_BLOCKLIST", raising=False)
 
 
 def test_reaction_pivot_setup_is_normalized_separately_from_legacy_pivot():
@@ -85,6 +89,48 @@ def test_h1_ic_low_confidence_trend_aligned_is_not_vetoed_by_m15_rule():
     }
 
     assert should_allow_live_strategy("IC", setup, probability=0.45461783439490444, timeframe="H1") == (
+        True,
+        "strategy_allowed:OB_OR_SWAPZONE_IC_SND",
+    )
+
+
+def test_watch_zone_policy_blocks_m30_fvg_but_keeps_m30_ob_candidate(monkeypatch):
+    monkeypatch.setenv("MT5_LIVE_STRATEGY_BLOCKLIST", "")
+    monkeypatch.setenv("MT5_WATCH_ZONE_STRATEGY_ALLOWLIST", "M30:OB,H1:OB")
+
+    assert should_allow_live_strategy("FVG", timeframe="M30", entry_type="WatchZone") == (
+        False,
+        "entry_policy_not_allowlisted:WatchZone:M30:FVG",
+    )
+    assert should_allow_live_strategy("OB", timeframe="M30", entry_type="WatchZone") == (
+        True,
+        "strategy_allowed:OB_OR_SWAPZONE_IC_SND",
+    )
+
+
+def test_watch_zone_policy_does_not_block_standard_limit(monkeypatch):
+    monkeypatch.setenv("MT5_LIVE_STRATEGY_BLOCKLIST", "")
+    monkeypatch.setenv("MT5_WATCH_ZONE_STRATEGY_ALLOWLIST", "M30:OB,H1:OB")
+
+    assert should_allow_live_strategy("FVG", timeframe="M30", entry_type="Standard Limit") == (
+        True,
+        "strategy_allowed:FVG_OR_BPR",
+    )
+
+
+def test_standard_limit_policy_blocks_bb_and_h4_ob(monkeypatch):
+    monkeypatch.setenv("MT5_LIVE_STRATEGY_BLOCKLIST", "")
+    monkeypatch.setenv("MT5_STANDARD_LIMIT_STRATEGY_BLOCKLIST", "*:BB,H4:OB")
+
+    assert should_allow_live_strategy("BB", timeframe="M30", entry_type="Standard Limit") == (
+        False,
+        "entry_policy_blocked:Standard Limit:M30:BB",
+    )
+    assert should_allow_live_strategy("OB", timeframe="H4", entry_type="Standard Limit") == (
+        False,
+        "entry_policy_blocked:Standard Limit:H4:OB",
+    )
+    assert should_allow_live_strategy("OB", timeframe="M30", entry_type="Standard Limit") == (
         True,
         "strategy_allowed:OB_OR_SWAPZONE_IC_SND",
     )

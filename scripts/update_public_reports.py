@@ -130,15 +130,87 @@ def build_forward_trades(positions_path: Path, deals_path: Path) -> pd.DataFrame
 
 def build_forward_summary(forward_trades: pd.DataFrame) -> pd.DataFrame:
     if forward_trades.empty:
-        return pd.DataFrame(columns=["entry_type", "timeframe", "strategy", "trades", "wins", "losses", "winrate_pct", "net_profit_usd"])
+        return pd.DataFrame(columns=[
+            "entry_type", "timeframe", "strategy", "trades", "wins", "losses", "winrate_pct",
+            "gross_profit_usd", "gross_loss_usd", "profit_factor", "avg_win_usd", "avg_loss_usd",
+            "payoff_ratio", "net_profit_usd",
+        ])
     summary = forward_trades.groupby(["entry_type", "timeframe", "strategy"], dropna=False).agg(
         trades=("outcome", "size"),
         wins=("outcome", lambda values: int((values == "WIN").sum())),
         losses=("outcome", lambda values: int((values == "LOSS").sum())),
         winrate_pct=("outcome", lambda values: round(float((values == "WIN").mean() * 100), 2)),
+        gross_profit_usd=("net_profit_usd", lambda values: float(values[values > 0].sum())),
+        gross_loss_usd=("net_profit_usd", lambda values: float(-values[values < 0].sum())),
+        avg_win_usd=("net_profit_usd", lambda values: float(values[values > 0].mean()) if (values > 0).any() else None),
+        avg_loss_usd=("net_profit_usd", lambda values: float(-values[values < 0].mean()) if (values < 0).any() else None),
         net_profit_usd=("net_profit_usd", "sum"),
     ).reset_index()
+    summary["profit_factor"] = summary.apply(
+        lambda row: None if row["gross_loss_usd"] == 0 else row["gross_profit_usd"] / row["gross_loss_usd"],
+        axis=1,
+    )
+    summary["payoff_ratio"] = summary.apply(
+        lambda row: None if not row["avg_loss_usd"] else row["avg_win_usd"] / row["avg_loss_usd"],
+        axis=1,
+    )
+    numeric_columns = [
+        "gross_profit_usd", "gross_loss_usd", "profit_factor", "avg_win_usd", "avg_loss_usd",
+        "payoff_ratio", "net_profit_usd",
+    ]
+    summary[numeric_columns] = summary[numeric_columns].round(2)
     return summary.sort_values(["entry_type", "timeframe", "strategy"], kind="mergesort")
+
+
+def _exit_category(comment) -> str:
+    text = str(comment or "").strip().lower()
+    if "soft tp" in text:
+        return "SOFT_TP"
+    if text.startswith("[tp"):
+        return "TAKE_PROFIT"
+    if text.startswith("[sl"):
+        return "STOP_LOSS"
+    return "OTHER_OR_UNKNOWN"
+
+
+def build_forward_exit_summary(forward_trades: pd.DataFrame) -> pd.DataFrame:
+    columns = ["entry_type", "timeframe", "strategy", "exit_type", "trades", "net_profit_usd"]
+    if forward_trades.empty:
+        return pd.DataFrame(columns=columns)
+    exits = forward_trades.copy()
+    exits["exit_type"] = exits["mt5_exit_comment"].map(_exit_category)
+    return exits.groupby(["entry_type", "timeframe", "strategy", "exit_type"], dropna=False).agg(
+        trades=("position_id", "size"),
+        net_profit_usd=("net_profit_usd", "sum"),
+    ).reset_index().sort_values(columns[:4], kind="mergesort")
+
+
+def build_strategy_policy_report(forward_summary: pd.DataFrame) -> pd.DataFrame:
+    """State the data-driven deployment policy without treating it as a forecast."""
+    report = forward_summary.copy()
+    if report.empty:
+        return report.assign(deployment_status=pd.Series(dtype=str), policy_reason=pd.Series(dtype=str))
+
+    def policy(row) -> tuple[str, str]:
+        entry_type, timeframe, strategy = row["entry_type"], row["timeframe"], row["strategy"]
+        if entry_type == "WatchZone":
+            if (timeframe, strategy) not in {("M30", "OB"), ("H1", "OB")}:
+                return "BLOCKED", "Instant WatchZone is limited to the forward-positive OB M30/H1 candidates."
+            if row["trades"] < 30:
+                return "CANDIDATE", "Restricted candidate needs at least 30 resolved forward trades before promotion."
+            if pd.isna(row["profit_factor"]) or row["profit_factor"] < 1.30:
+                return "CANDIDATE", "Restricted candidate needs profit factor of at least 1.30 before promotion."
+            return "PROMOTE", "Meets the minimum forward sample and profit-factor policy."
+        if strategy == "BB":
+            return "BLOCKED", "Real-tick replay win rate is materially below acceptable levels."
+        if timeframe == "H4" and strategy == "OB":
+            return "BLOCKED", "Forward sample is small and currently negative; replay is required before reconsideration."
+        return "MONITOR", "No automatic promotion; keep evaluating forward profit factor and payoff ratio."
+
+    policy_values = report.apply(policy, axis=1, result_type="expand")
+    report["deployment_status"] = policy_values[0]
+    report["policy_reason"] = policy_values[1]
+    return report
 
 
 def load_telegram_delivery_events(path: Path) -> pd.DataFrame:
@@ -170,7 +242,7 @@ def _write_frame(worksheet, frame: pd.DataFrame) -> None:
         worksheet.column_dimensions[get_column_letter(column_cells[0].column)].width = width
 
 
-def write_workbook(path: Path, standard_limit: pd.DataFrame, forward_trades: pd.DataFrame, forward_summary: pd.DataFrame, telegram_events: pd.DataFrame, generated_at: str) -> None:
+def write_workbook(path: Path, standard_limit: pd.DataFrame, forward_trades: pd.DataFrame, forward_summary: pd.DataFrame, exit_summary: pd.DataFrame, policy_report: pd.DataFrame, telegram_events: pd.DataFrame, generated_at: str) -> None:
     workbook = Workbook()
     overview = workbook.active
     overview.title = "Overview"
@@ -178,6 +250,8 @@ def write_workbook(path: Path, standard_limit: pd.DataFrame, forward_trades: pd.
     overview.append(["Generated", generated_at])
     overview.append(["Standard-limit evidence", "MT5 bid/ask real-tick replay; coverage is stored per row."])
     overview.append(["Forward evidence", "Closed MT5 trades include raw MT5 entry and exit comments. Planned SL/TP is blank when no source signal can be matched."])
+    overview.append(["Strategy policy", "Deployment status is based on the published forward evidence and configured entry-path policy."])
+    overview.append(["Exit evidence", "Soft TP, server TP, SL, and unmatched exit comments are summarized separately for payoff review."])
     overview.append(["Telegram evidence", "Delivery journal is populated only after TELEGRAM_EVENT_LOG_ENABLED is enabled locally."])
     overview.append(["Warning", "Results are historical evidence, not a profit guarantee or trading recommendation."])
     overview.column_dimensions["A"].width = 30
@@ -186,6 +260,8 @@ def write_workbook(path: Path, standard_limit: pd.DataFrame, forward_trades: pd.
     _write_frame(workbook.create_sheet("Standard Limit Real Tick"), standard_limit)
     _write_frame(workbook.create_sheet("Forward Trades"), forward_trades)
     _write_frame(workbook.create_sheet("Forward Summary"), forward_summary)
+    _write_frame(workbook.create_sheet("Forward Exit Summary"), exit_summary)
+    _write_frame(workbook.create_sheet("Strategy Policy"), policy_report)
     _write_frame(workbook.create_sheet("Telegram Delivery"), telegram_events)
     workbook.save(path)
 
@@ -209,19 +285,34 @@ def main() -> int:
     standard_limit = pd.read_csv(args.standard_limit)
     forward_trades = build_forward_trades(args.positions, args.deals)
     forward_summary = build_forward_summary(forward_trades)
+    exit_summary = build_forward_exit_summary(forward_trades)
+    policy_report = build_strategy_policy_report(forward_summary)
     telegram_events = load_telegram_delivery_events(args.telegram_events)
 
     standard_limit.to_csv(args.output_dir / "standard_limit_real_tick_may2026.csv", index=False)
     forward_trades.to_csv(args.output_dir / "forward_test_trades.csv", index=False)
     forward_summary.to_csv(args.output_dir / "forward_test_summary.csv", index=False)
+    exit_summary.to_csv(args.output_dir / "forward_exit_summary.csv", index=False)
+    policy_report.to_csv(args.output_dir / "strategy_policy_report.csv", index=False)
     telegram_events.to_csv(args.output_dir / "telegram_delivery_events.csv", index=False)
-    write_workbook(args.output_dir / "forward_test_report.xlsx", standard_limit, forward_trades, forward_summary, telegram_events, generated_at)
+    write_workbook(
+        args.output_dir / "forward_test_report.xlsx",
+        standard_limit,
+        forward_trades,
+        forward_summary,
+        exit_summary,
+        policy_report,
+        telegram_events,
+        generated_at,
+    )
 
     metadata = {
         "generated_at": generated_at,
         "standard_limit_rows": int(len(standard_limit)),
         "forward_closed_trades": int(len(forward_trades)),
         "forward_signal_level_matches": int((forward_trades["planned_levels_status"] == "matched signal").sum()),
+        "forward_exit_summary_rows": int(len(exit_summary)),
+        "strategy_policy_rows": int(len(policy_report)),
         "telegram_delivery_events": int(len(telegram_events)),
         "sources": {
             "standard_limit": str(args.standard_limit.relative_to(BASE_DIR)),

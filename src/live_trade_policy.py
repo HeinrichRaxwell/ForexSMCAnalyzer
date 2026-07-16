@@ -11,6 +11,60 @@ def _csv_set(value: str | None) -> set[str]:
     return {item.strip() for item in value.split(",") if item.strip()}
 
 
+def _entry_policy_prefix(entry_type: str | None) -> str | None:
+    """Return the environment-variable prefix for an execution path."""
+    normalized = " ".join(str(entry_type or "").strip().upper().split())
+    return {
+        "WATCHZONE": "MT5_WATCH_ZONE",
+        "WATCH ZONE": "MT5_WATCH_ZONE",
+        "STANDARD LIMIT": "MT5_STANDARD_LIMIT",
+    }.get(normalized)
+
+
+def _matches_scoped_strategy_rule(
+    rule: str,
+    *,
+    raw_strategy: str,
+    normalized_strategy: str,
+    timeframe: str | None,
+) -> bool:
+    """Match a policy rule written as ``TIMEFRAME:STRATEGY``.
+
+    ``*`` matches any timeframe or strategy. A strategy-only rule remains
+    supported for concise all-timeframe blocks.
+    """
+    item = str(rule or "").strip()
+    if not item:
+        return False
+    if ":" in item:
+        rule_timeframe, rule_strategy = (part.strip() for part in item.split(":", 1))
+    else:
+        rule_timeframe, rule_strategy = "*", item
+
+    actual_timeframe = str(timeframe or "").strip().upper()
+    timeframe_matches = rule_timeframe in {"", "*"} or rule_timeframe.upper() == actual_timeframe
+    strategy_matches = rule_strategy in {"", "*"} or rule_strategy in {raw_strategy, normalized_strategy}
+    return timeframe_matches and strategy_matches
+
+
+def _matches_scoped_strategy_rules(
+    rules: set[str],
+    *,
+    raw_strategy: str,
+    normalized_strategy: str,
+    timeframe: str | None,
+) -> bool:
+    return any(
+        _matches_scoped_strategy_rule(
+            rule,
+            raw_strategy=raw_strategy,
+            normalized_strategy=normalized_strategy,
+            timeframe=timeframe,
+        )
+        for rule in rules
+    )
+
+
 def _read_float_env(name: str, default: float) -> float:
     raw_value = os.getenv(name)
     if raw_value is None:
@@ -154,11 +208,13 @@ def should_allow_live_strategy(
     *,
     probability: float | None = None,
     timeframe: str | None = None,
+    entry_type: str | None = None,
 ) -> tuple[bool, str]:
     raw_name = str(strategy or "").strip()
     normalized = normalize_strategy_name(strategy, setup)
     allowlist = _csv_set(os.getenv("MT5_LIVE_STRATEGY_ALLOWLIST"))
-    blocklist = _csv_set(os.getenv("MT5_LIVE_STRATEGY_BLOCKLIST")) or DEFAULT_BLOCKED_STRATEGIES
+    configured_blocklist = os.getenv("MT5_LIVE_STRATEGY_BLOCKLIST")
+    blocklist = DEFAULT_BLOCKED_STRATEGIES if configured_blocklist is None else _csv_set(configured_blocklist)
 
     if allowlist and normalized not in allowlist and raw_name not in allowlist:
         return False, f"strategy_not_allowlisted:{normalized}"
@@ -166,6 +222,27 @@ def should_allow_live_strategy(
         return False, f"strategy_blocked:{raw_name}"
     if normalized in blocklist:
         return False, f"strategy_blocked:{normalized}"
+
+    prefix = _entry_policy_prefix(entry_type)
+    if prefix:
+        scoped_allowlist = _csv_set(os.getenv(f"{prefix}_STRATEGY_ALLOWLIST"))
+        scoped_blocklist = _csv_set(os.getenv(f"{prefix}_STRATEGY_BLOCKLIST"))
+        policy_context = f"{entry_type}:{str(timeframe or '').upper()}:{raw_name}"
+        if scoped_allowlist and not _matches_scoped_strategy_rules(
+            scoped_allowlist,
+            raw_strategy=raw_name,
+            normalized_strategy=normalized,
+            timeframe=timeframe,
+        ):
+            return False, f"entry_policy_not_allowlisted:{policy_context}"
+        if _matches_scoped_strategy_rules(
+            scoped_blocklist,
+            raw_strategy=raw_name,
+            normalized_strategy=normalized,
+            timeframe=timeframe,
+        ):
+            return False, f"entry_policy_blocked:{policy_context}"
+
     if _is_countertrend_knn_ic_trap(raw_name, setup, probability=probability, timeframe=timeframe):
         return False, "execution_veto:m15_ic_countertrend_knn_opposition"
     return True, f"strategy_allowed:{normalized}"

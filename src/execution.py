@@ -508,7 +508,7 @@ def _parse_order_comment(comment: str) -> tuple[str | None, str | None]:
 
 
 def _strategy_from_setup(setup: dict) -> str:
-    strategy = str(setup.get("strategy", "")).strip()
+    strategy = str(setup.get("strategy") or setup.get("strategy_type") or "").strip()
     if strategy:
         return strategy
 
@@ -884,6 +884,19 @@ def execute_trade_for_setup(setup: dict, base_symbol: str = "XAUUSD") -> tuple:
     tf = setup.get("timeframe", "M15")
     if tf not in allowed_tfs:
         return None, f"Timeframe {tf} disabled in .env"
+
+    from src.live_trade_policy import should_allow_live_strategy
+
+    strategy = _strategy_from_setup(setup)
+    strategy_allowed, strategy_reason = should_allow_live_strategy(
+        strategy,
+        setup,
+        probability=setup.get("probability"),
+        timeframe=tf,
+        entry_type=setup.get("entry_type", "Standard Limit"),
+    )
+    if not strategy_allowed:
+        return None, f"Live strategy policy blocked pending order: {strategy_reason}"
         
     # Get active broker symbol
     symbol = get_active_broker_symbol(base_symbol)
@@ -1103,6 +1116,19 @@ def execute_market_order_for_setup(setup: dict, base_symbol: str = "XAUUSD") -> 
     tf = setup.get("timeframe", "M15")
     if tf not in allowed_tfs:
         return None, f"Timeframe {tf} disabled in .env"
+
+    from src.live_trade_policy import should_allow_live_strategy
+
+    strategy = _strategy_from_setup(setup)
+    strategy_allowed, strategy_reason = should_allow_live_strategy(
+        strategy,
+        setup,
+        probability=setup.get("probability"),
+        timeframe=tf,
+        entry_type=setup.get("entry_type", "Standard Limit"),
+    )
+    if not strategy_allowed:
+        return None, f"Live strategy policy blocked market order: {strategy_reason}"
         
     # Get active broker symbol
     symbol = get_active_broker_symbol(base_symbol)
