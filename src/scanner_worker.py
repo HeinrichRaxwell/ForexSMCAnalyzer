@@ -302,6 +302,7 @@ def recovery_failure_action(message) -> str:
         for marker in (
             "max concurrent trades reached",
             "max same-direction trades reached",
+            "max same-direction exposure reached",
             "max pending orders reached",
             "daily risk governor",
             "daily governor unavailable",

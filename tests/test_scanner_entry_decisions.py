@@ -201,7 +201,7 @@ def test_price_too_far_execution_message_is_detected_for_watch_retry():
 def test_recovery_failure_classifies_permanent_and_deferred_execution_states():
     assert recovery_failure_action("Auto-execution disabled (MT5_EXECUTE_TRADES=False in .env)") == "blocked"
     assert recovery_failure_action("Live strategy policy blocked pending order: entry_policy_not_allowlisted:WatchZone:M30:FVG") == "blocked"
-    assert recovery_failure_action("max same-direction trades reached (1/1) for XAUUSDm") == "deferred"
+    assert recovery_failure_action("max same-direction exposure reached for sell (6/6)") == "deferred"
     assert recovery_failure_action("price is too far from market (300 pips > 200 pips limit)") == "price_watch"
     assert recovery_failure_action("MT5 order failed: retcode=10030") == "retry"
 
