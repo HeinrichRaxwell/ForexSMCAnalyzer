@@ -13,6 +13,7 @@ from src.scanner_worker import (
     record_recovery_failure,
     is_live_entry_timeframe,
     choose_recovery_execution_mode,
+    configure_console_encoding,
     send_recovery_alert_with_chart,
     should_place_pending_setup,
     should_promote_low_confidence_record,
@@ -235,6 +236,23 @@ def test_recovery_failure_does_not_consume_retries_for_deferred_or_blocked_state
     assert action == "blocked"
     assert record["done"] is True
     assert record["watch_status"] == "execution_blocked"
+
+
+def test_console_encoding_configuration_never_requires_utf8_console_support():
+    class ReconfigurableStream:
+        def __init__(self):
+            self.arguments = None
+
+        def reconfigure(self, **kwargs):
+            self.arguments = kwargs
+
+    class PlainStream:
+        pass
+
+    stream = ReconfigurableStream()
+
+    assert configure_console_encoding((stream, PlainStream())) == 1
+    assert stream.arguments == {"errors": "backslashreplace"}
 
 
 def test_price_too_far_watch_record_can_retry_until_ticket_or_outcome_exists():

@@ -95,6 +95,21 @@ PRICE_TOO_FAR_MARKER = "price is too far from market"
 PRICE_TOO_FAR_WATCH_REASON = "watch_price_too_far"
 
 
+def configure_console_encoding(streams=None) -> int:
+    """Prevent Windows console encodings from crashing scanner logging."""
+    configured = 0
+    for stream in streams or (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if not callable(reconfigure):
+            continue
+        try:
+            reconfigure(errors="backslashreplace")
+            configured += 1
+        except (OSError, ValueError):
+            continue
+    return configured
+
+
 LAST_KNOWN_LOGIN = None
 
 def check_and_sync_active_account():
@@ -3323,6 +3338,7 @@ def run_scan(symbol: str, confidence_threshold: float):
     print("--- Scan Cycle Finished ---")
 
 def main():
+    configure_console_encoding()
     parser = argparse.ArgumentParser(description="Forex SMC Scanner background worker with Telegram Alerts.")
     parser.add_argument("--symbol", type=str, default="XAUUSD", help="Trading symbol or comma-separated list of symbols, or 'all'/'marketwatch' (default: XAUUSD)")
     parser.add_argument("--threshold", type=float, default=None, help="Confidence threshold to alert/order (default: ML_ACCEPT_THRESHOLD or 0.50)")
