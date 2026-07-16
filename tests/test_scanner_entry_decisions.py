@@ -14,6 +14,7 @@ from src.scanner_worker import (
     is_live_entry_timeframe,
     choose_recovery_execution_mode,
     configure_console_encoding,
+    enforce_recovery_strategy_policy,
     send_recovery_alert_with_chart,
     should_place_pending_setup,
     should_promote_low_confidence_record,
@@ -253,6 +254,29 @@ def test_console_encoding_configuration_never_requires_utf8_console_support():
 
     assert configure_console_encoding((stream, PlainStream())) == 1
     assert stream.arguments == {"errors": "backslashreplace"}
+
+
+def test_recovery_rechecks_current_strategy_policy(monkeypatch):
+    monkeypatch.setenv("MT5_LIVE_STRATEGY_BLOCKLIST", "")
+    monkeypatch.setenv("MT5_STANDARD_LIMIT_STRATEGY_BLOCKLIST", "H4:OB")
+    record = {}
+
+    allowed, reason = enforce_recovery_strategy_policy(
+        record,
+        strategy="OB",
+        setup={"strategy": "OB", "timeframe": "H4"},
+        probability=0.60,
+        timeframe="H4",
+        outcome_keys=("outcome_a_recorded", "outcome_b_recorded", "outcome_recorded"),
+        message_keys=("watch_last_execution_message_0.5", "watch_last_execution_message_0.618"),
+    )
+
+    assert allowed is False
+    assert "entry_policy_blocked:Standard Limit:H4:OB" in reason
+    assert record["watch_status"] == "execution_blocked"
+    assert record["outcome_a_recorded"] is True
+    assert record["outcome_b_recorded"] is True
+    assert record["outcome_recorded"] is True
 
 
 def test_price_too_far_watch_record_can_retry_until_ticket_or_outcome_exists():

@@ -343,6 +343,35 @@ def record_recovery_failure(
     return action
 
 
+def enforce_recovery_strategy_policy(
+    sig_data: dict,
+    *,
+    strategy: str,
+    setup: dict,
+    probability: float,
+    timeframe: str,
+    outcome_keys: tuple[str, ...],
+    message_keys: tuple[str, ...],
+) -> tuple[bool, str]:
+    """Apply the current policy before a historical signal can be recovered."""
+    allowed, reason = should_allow_live_strategy(
+        strategy,
+        setup,
+        probability=probability,
+        timeframe=timeframe,
+        entry_type="Standard Limit",
+    )
+    if allowed:
+        return True, reason
+
+    sig_data["watch_status"] = "execution_blocked"
+    for key in outcome_keys:
+        sig_data[key] = True
+    for key in message_keys:
+        sig_data[key] = f"Recovery blocked by live strategy policy: {reason}"
+    return False, reason
+
+
 def should_retry_unfilled_watch_record(sig_data: dict, ticket_fields, outcome_fields=None) -> bool:
     """Return True for accepted live records waiting for price to return near entry."""
     if not isinstance(sig_data, dict) or sig_data.get("is_low_confidence", False):
@@ -2349,6 +2378,19 @@ def run_scan(symbol: str, confidence_threshold: float):
                             
                         ticket_a = sig_data.get('ticket_a')
                         ticket_b = sig_data.get('ticket_b')
+                        recovery_allowed, recovery_reason = enforce_recovery_strategy_policy(
+                            sig_data,
+                            strategy=strat,
+                            setup=opt_a,
+                            probability=lead['max_prob'],
+                            timeframe=tf,
+                            outcome_keys=('outcome_a_recorded', 'outcome_b_recorded', 'outcome_recorded'),
+                            message_keys=('watch_last_execution_message_0.5', 'watch_last_execution_message_0.618'),
+                        )
+                        if not recovery_allowed:
+                            print(f"[Recovery Engine] {tf} {strat} recovery blocked by live policy: {recovery_reason}")
+                            registry_changed = True
+                            continue
                         
                         ignore_outcome_rec = (ticket_a is None and ticket_b is None)
                         
@@ -2472,7 +2514,7 @@ def run_scan(symbol: str, confidence_threshold: float):
                                     outcome_key='outcome_a_recorded',
                                 )
                                 if failure_action == "price_watch":
-                                    pass
+                                    print(f"[Recovery Engine] Option A (0.5) waiting for price: {exec_msg_a}")
                                 elif failure_action == "deferred":
                                     print(f"[Recovery Engine] Option A (0.5) execution deferred: {exec_msg_a}")
                                 elif failure_action == "blocked":
@@ -2598,7 +2640,7 @@ def run_scan(symbol: str, confidence_threshold: float):
                                     outcome_key='outcome_b_recorded',
                                 )
                                 if failure_action == "price_watch":
-                                    pass
+                                    print(f"[Recovery Engine] Option B (0.618) waiting for price: {exec_msg_b}")
                                 elif failure_action == "deferred":
                                     print(f"[Recovery Engine] Option B (0.618) execution deferred: {exec_msg_b}")
                                 elif failure_action == "blocked":
@@ -2933,6 +2975,19 @@ def run_scan(symbol: str, confidence_threshold: float):
                             max_retries = 3
 
                         ticket_id = sig_data.get('ticket_id')
+                        recovery_allowed, recovery_reason = enforce_recovery_strategy_policy(
+                            sig_data,
+                            strategy=strat,
+                            setup=opt,
+                            probability=prob,
+                            timeframe=tf,
+                            outcome_keys=('outcome_recorded',),
+                            message_keys=('watch_last_execution_message',),
+                        )
+                        if not recovery_allowed:
+                            print(f"[Recovery Engine] {tf} {strat} recovery blocked by live policy: {recovery_reason}")
+                            registry_changed = True
+                            continue
                         retry_watch = should_retry_unfilled_watch_record(
                             sig_data,
                             ("ticket_id",),
@@ -3041,7 +3096,7 @@ def run_scan(symbol: str, confidence_threshold: float):
                                     outcome_key='outcome_recorded',
                                 )
                                 if failure_action == "price_watch":
-                                    pass
+                                    print(f"[Recovery Engine] Single waiting for price: {exec_msg}")
                                 elif failure_action == "deferred":
                                     print(f"[Recovery Engine] Single execution deferred: {exec_msg}")
                                 elif failure_action == "blocked":
