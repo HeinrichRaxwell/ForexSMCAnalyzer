@@ -24,6 +24,7 @@ REPORTS_DIR = BASE_DIR / "reports"
 DEFAULT_POSITIONS = BASE_DIR / "scratch" / "bot_positions_ss_matched_full.csv"
 DEFAULT_DEALS = BASE_DIR / "scratch" / "raw_deals_july.csv"
 DEFAULT_STANDARD_LIMIT = BASE_DIR / "data" / "real_tick_standard_limit_may2026_all_tf.csv"
+DEFAULT_TELEGRAM_EVENTS = BASE_DIR / "data" / "telegram_delivery_events.jsonl"
 
 
 def _as_int(value) -> int | None:
@@ -102,6 +103,7 @@ def build_forward_trades(positions_path: Path, deals_path: Path) -> pd.DataFrame
                 "timeframe": position.get("timeframe", ""),
                 "strategy": position.get("actual_strategy", position.get("strategy", "")),
                 "direction": "BUY" if entry is not None and int(entry.get("type", 0)) == 0 else "SELL",
+                "mt5_entry_comment": entry.get("comment", "") if entry is not None else position.get("comment", ""),
                 "opened_at_wib": _format_time(entry.get("time") if entry is not None else position.get("time_open")),
                 "closed_at_wib": _format_time(exit_deal.get("time") if exit_deal is not None else None),
                 "entry_price": entry.get("price") if entry is not None else None,
@@ -109,7 +111,7 @@ def build_forward_trades(positions_path: Path, deals_path: Path) -> pd.DataFrame
                 "planned_sl": signal.get("planned_sl"),
                 "planned_tp": signal.get("planned_tp"),
                 "exit_price": exit_deal.get("price") if exit_deal is not None else None,
-                "exit_reason": exit_deal.get("comment", "") if exit_deal is not None else "",
+                "mt5_exit_comment": exit_deal.get("comment", "") if exit_deal is not None else "",
                 "net_profit_usd": net_profit,
                 "outcome": "WIN" if is_win else "LOSS",
                 "signal_probability": signal.get("signal_probability"),
@@ -118,9 +120,9 @@ def build_forward_trades(positions_path: Path, deals_path: Path) -> pd.DataFrame
         )
 
     columns = [
-        "position_id", "symbol", "entry_type", "timeframe", "strategy", "direction",
+        "position_id", "symbol", "entry_type", "timeframe", "strategy", "direction", "mt5_entry_comment",
         "opened_at_wib", "closed_at_wib", "entry_price", "planned_entry", "planned_sl",
-        "planned_tp", "exit_price", "exit_reason", "net_profit_usd", "outcome",
+        "planned_tp", "exit_price", "mt5_exit_comment", "net_profit_usd", "outcome",
         "signal_probability", "planned_levels_status",
     ]
     return pd.DataFrame(records, columns=columns).sort_values("opened_at_wib", kind="mergesort")
@@ -139,6 +141,20 @@ def build_forward_summary(forward_trades: pd.DataFrame) -> pd.DataFrame:
     return summary.sort_values(["entry_type", "timeframe", "strategy"], kind="mergesort")
 
 
+def load_telegram_delivery_events(path: Path) -> pd.DataFrame:
+    columns = ["sent_at_wib", "channel", "delivered", "message"]
+    if not path.exists():
+        return pd.DataFrame(columns=columns)
+    records = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        records.append({column: record.get(column, "") for column in columns})
+    return pd.DataFrame(records, columns=columns)
+
+
 def _write_frame(worksheet, frame: pd.DataFrame) -> None:
     worksheet.append(list(frame.columns))
     for row in frame.itertuples(index=False, name=None):
@@ -154,14 +170,15 @@ def _write_frame(worksheet, frame: pd.DataFrame) -> None:
         worksheet.column_dimensions[get_column_letter(column_cells[0].column)].width = width
 
 
-def write_workbook(path: Path, standard_limit: pd.DataFrame, forward_trades: pd.DataFrame, forward_summary: pd.DataFrame, generated_at: str) -> None:
+def write_workbook(path: Path, standard_limit: pd.DataFrame, forward_trades: pd.DataFrame, forward_summary: pd.DataFrame, telegram_events: pd.DataFrame, generated_at: str) -> None:
     workbook = Workbook()
     overview = workbook.active
     overview.title = "Overview"
     overview.append(["Forex SMC Analyzer Public Evidence"])
     overview.append(["Generated", generated_at])
     overview.append(["Standard-limit evidence", "MT5 bid/ask real-tick replay; coverage is stored per row."])
-    overview.append(["Forward evidence", "Closed MT5 trades only. Planned SL/TP is blank when no source signal can be matched."])
+    overview.append(["Forward evidence", "Closed MT5 trades include raw MT5 entry and exit comments. Planned SL/TP is blank when no source signal can be matched."])
+    overview.append(["Telegram evidence", "Delivery journal is populated only after TELEGRAM_EVENT_LOG_ENABLED is enabled locally."])
     overview.append(["Warning", "Results are historical evidence, not a profit guarantee or trading recommendation."])
     overview.column_dimensions["A"].width = 30
     overview.column_dimensions["B"].width = 105
@@ -169,6 +186,7 @@ def write_workbook(path: Path, standard_limit: pd.DataFrame, forward_trades: pd.
     _write_frame(workbook.create_sheet("Standard Limit Real Tick"), standard_limit)
     _write_frame(workbook.create_sheet("Forward Trades"), forward_trades)
     _write_frame(workbook.create_sheet("Forward Summary"), forward_summary)
+    _write_frame(workbook.create_sheet("Telegram Delivery"), telegram_events)
     workbook.save(path)
 
 
@@ -177,6 +195,7 @@ def main() -> int:
     parser.add_argument("--positions", type=Path, default=DEFAULT_POSITIONS)
     parser.add_argument("--deals", type=Path, default=DEFAULT_DEALS)
     parser.add_argument("--standard-limit", type=Path, default=DEFAULT_STANDARD_LIMIT)
+    parser.add_argument("--telegram-events", type=Path, default=DEFAULT_TELEGRAM_EVENTS)
     parser.add_argument("--output-dir", type=Path, default=REPORTS_DIR)
     args = parser.parse_args()
 
@@ -190,17 +209,20 @@ def main() -> int:
     standard_limit = pd.read_csv(args.standard_limit)
     forward_trades = build_forward_trades(args.positions, args.deals)
     forward_summary = build_forward_summary(forward_trades)
+    telegram_events = load_telegram_delivery_events(args.telegram_events)
 
     standard_limit.to_csv(args.output_dir / "standard_limit_real_tick_may2026.csv", index=False)
     forward_trades.to_csv(args.output_dir / "forward_test_trades.csv", index=False)
     forward_summary.to_csv(args.output_dir / "forward_test_summary.csv", index=False)
-    write_workbook(args.output_dir / "forward_test_report.xlsx", standard_limit, forward_trades, forward_summary, generated_at)
+    telegram_events.to_csv(args.output_dir / "telegram_delivery_events.csv", index=False)
+    write_workbook(args.output_dir / "forward_test_report.xlsx", standard_limit, forward_trades, forward_summary, telegram_events, generated_at)
 
     metadata = {
         "generated_at": generated_at,
         "standard_limit_rows": int(len(standard_limit)),
         "forward_closed_trades": int(len(forward_trades)),
         "forward_signal_level_matches": int((forward_trades["planned_levels_status"] == "matched signal").sum()),
+        "telegram_delivery_events": int(len(telegram_events)),
         "sources": {
             "standard_limit": str(args.standard_limit.relative_to(BASE_DIR)),
             "positions": str(args.positions.relative_to(BASE_DIR)),

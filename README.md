@@ -375,11 +375,22 @@ the `missed` field and must not be interpreted as wins. The CSV carries the
 timeframe, strategy, wins, losses, drawdown, and coverage fields for independent
 review.
 
+| Timeframe | FVG | OB | BB | Swapzone | BPR | IC | Combined |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| M15 | 80.65% (75W/18L) | 81.61% (71W/16L) | 10.00% (1W/9L) | 57.07% (109W/82L) | 77.50% (31W/9L) | 92.69% (203W/16L) | 85.33% (285W/49L) |
+| M30 | 72.22% (39W/15L) | 73.47% (36W/13L) | 16.67% (1W/5L) | 52.00% (52W/48L) | 62.50% (10W/6L) | 87.80% (108W/15L) | 76.30% (132W/41L) |
+| H1 | 77.78% (21W/6L) | 76.00% (19W/6L) | n/a | 54.00% (27W/23L) | 85.71% (6W/1L) | 84.21% (64W/12L) | 78.35% (76W/21L) |
+| H4 | 72.73% (8W/3L) | 75.00% (3W/1L) | 0.00% (0W/1L) | 88.89% (8W/1L) | 0.00% (0W/2L) | 75.00% (12W/4L) | 73.08% (19W/7L) |
+| D1 | 50.00% (2W/2L) | n/a | n/a | 66.67% (2W/1L) | 100.00% (1W/0L) | 100.00% (1W/0L) | 57.14% (4W/3L) |
+
+`n/a` means no resolved trade, not a zero-loss or zero-profit result. Small
+samples, especially H4 and D1, are not sufficient to establish reliability.
+
 ### WatchZone Forward Evidence
 
 [`forward_test_trades.csv`](reports/forward_test_trades.csv) is the trade-level
 export from closed MT5 forward-test positions. It includes open/close time in
-WIB, entry/exit price, exit comment, PnL, result, and the planned SL/TP only when
+WIB, raw MT5 entry/exit comments, entry/exit price, PnL, result, and the planned SL/TP only when
 the ticket can be matched to a saved source signal. Blank planned levels mean
 the source signal was not retained, not that the trade had no protection.
 
@@ -388,6 +399,33 @@ trades by entry type, timeframe, and strategy. WatchZone evidence is **real
 forward-test history**, not yet a reconstructed real-tick backtest: an exact
 replay needs historical zone registration, first tick hit, and fresh M1/M5
 rejection confirmation for each event.
+
+MT5 comments identify the execution compactly: pending limits use
+`SMC <TF> <Strategy> <A/B>` and instant WatchZone entries use
+`SMC <TF> <Strategy> Mkt <A/B>`. Telegram WatchZone alerts include zone, hit
+price, entry, SL, TP, confidence, and ticket. Enable
+`TELEGRAM_EVENT_LOG_ENABLED=True` to export future secret-free alert delivery
+events to [`telegram_delivery_events.csv`](reports/telegram_delivery_events.csv).
+
+| Timeframe | Strategy | Closed Trades | Winrate | Net PnL (USD) |
+| --- | --- | ---: | ---: | ---: |
+| M30 | BPR | 1 (1W/0L) | 100.00% | +9.64 |
+| M30 | FVG | 56 (30W/26L) | 53.57% | -167.25 |
+| M30 | IC | 21 (15W/6L) | 71.43% | +17.72 |
+| M30 | OB | 15 (13W/2L) | 86.67% | +113.03 |
+| H1 | FVG | 39 (15W/24L) | 38.46% | -98.40 |
+| H1 | IC | 29 (20W/9L) | 68.97% | -63.99 |
+| H1 | OB | 16 (11W/5L) | 68.75% | +78.87 |
+| H4 | FVG | 8 (6W/2L) | 75.00% | +10.87 |
+| H4 | IC | 2 (1W/1L) | 50.00% | +0.74 |
+| H4 | OB | 6 (2W/4L) | 33.33% | -20.12 |
+| H4 | SND | 3 (3W/0L) | 100.00% | +15.40 |
+| H4 | Unknown | 13 (8W/5L) | 61.54% | -32.44 |
+| D1 | Unknown | 71 (28W/43L) | 39.44% | -17.24 |
+
+There are no closed M15 WatchZone trades in the current public export. `Unknown`
+means the historical trade could not be matched back to its saved source signal;
+it is retained instead of being silently assigned to a strategy.
 
 For spreadsheet users, download
 [`forward_test_report.xlsx`](reports/forward_test_report.xlsx). It contains an

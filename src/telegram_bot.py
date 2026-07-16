@@ -1,4 +1,8 @@
 import os
+import json
+from datetime import datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
 import requests
 from dotenv import load_dotenv
 
@@ -12,6 +16,26 @@ PHOTO_ALERT_CAPTION = (
     "Chart snapshot attached. Full signal details follow below."
 )
 LONG_ALERT_PHOTO_CAPTION = PHOTO_ALERT_CAPTION
+
+
+def _record_delivery_event(message: str, channel: str, delivered: bool) -> None:
+    """Keep a local, secret-free audit trail of alert delivery for reports."""
+    if os.getenv("TELEGRAM_EVENT_LOG_ENABLED", "False").strip().lower() not in {"1", "true", "yes", "on"}:
+        return
+    default_path = Path(__file__).resolve().parents[1] / "data" / "telegram_delivery_events.jsonl"
+    path = Path(os.getenv("TELEGRAM_EVENT_LOG_PATH", str(default_path)))
+    event = {
+        "sent_at_wib": datetime.now(ZoneInfo("Asia/Jakarta")).isoformat(timespec="seconds"),
+        "channel": channel,
+        "delivered": bool(delivered),
+        "message": str(message),
+    }
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(event, ensure_ascii=False) + "\n")
+    except OSError as exc:
+        print(f"[Telegram Bot] Could not write delivery journal: {exc}")
 
 def _split_message(message: str, max_len: int = TELEGRAM_MAX_MESSAGE_LEN) -> list:
     if len(message) <= max_len:
@@ -99,11 +123,15 @@ def send_telegram_alert(message: str, image_path: str = None) -> bool:
                 res = requests.post(url, data=data, files=files, timeout=20)
                 if res.status_code == 200:
                     print("[Telegram Bot] Alert sent successfully with chart image.")
-                    return _send_text_messages(token, chat_id, message)
+                    delivered = _send_text_messages(token, chat_id, message)
+                    _record_delivery_event(message, "photo_and_text", delivered)
+                    return delivered
                 else:
                     print(f"[Telegram Bot] Error sending photo (HTTP {res.status_code}): {res.text}")
         except Exception as e:
             print(f"[Telegram Bot] Exception sending photo: {e}")
             
     # Fallback to plain text message if no image is provided or sending image failed
-    return _send_text_messages(token, chat_id, message)
+    delivered = _send_text_messages(token, chat_id, message)
+    _record_delivery_event(message, "text", delivered)
+    return delivered

@@ -22,3 +22,4 @@ data/ticks/
 data/*_backup_*.json
 data/*_bak.*
 data/real_tick_*.pid
+data/telegram_delivery_events.jsonl

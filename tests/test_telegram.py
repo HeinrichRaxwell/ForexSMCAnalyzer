@@ -8,6 +8,31 @@ from src.telegram_bot import (
     TELEGRAM_MAX_MESSAGE_LEN,
 )
 
+
+@pytest.fixture(autouse=True)
+def disable_delivery_journal(monkeypatch):
+    """Keep unit-test alert fixtures out of the local runtime audit journal."""
+    monkeypatch.setenv("TELEGRAM_EVENT_LOG_ENABLED", "False")
+    monkeypatch.delenv("TELEGRAM_EVENT_LOG_PATH", raising=False)
+
+
+@patch('src.telegram_bot.requests.post')
+def test_telegram_alert_records_secret_free_delivery_event(mock_post, monkeypatch, tmp_path):
+    mock_post.return_value = MagicMock(status_code=200)
+    journal = tmp_path / "telegram_delivery_events.jsonl"
+    monkeypatch.setenv("TELEGRAM_EVENT_LOG_ENABLED", "True")
+    monkeypatch.setenv("TELEGRAM_EVENT_LOG_PATH", str(journal))
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "12345:abcde")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "98765")
+
+    assert send_telegram_alert("<b>WatchZone</b> Ticket #1") is True
+
+    event = __import__("json").loads(journal.read_text(encoding="utf-8"))
+    assert event["channel"] == "text"
+    assert event["delivered"] is True
+    assert event["message"] == "<b>WatchZone</b> Ticket #1"
+    assert "12345:abcde" not in journal.read_text(encoding="utf-8")
+
 def test_telegram_alert_placeholder_fails():
     """Verify that using placeholder token/chat_id returns False and warns user."""
     with patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "YOUR_TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID": "YOUR_CHAT_ID"}):
