@@ -1,5 +1,28 @@
+import os
 import numpy as np
 import pandas as pd
+
+def _get_sl_buffer_pips(strategy_name: str) -> float:
+    """Gets the Stop Loss buffer in pips for a given strategy from environment variables,
+    with a default fallback.
+    """
+    env_name = f"MT5_{strategy_name.upper()}_SL_BUFFER_PIPS"
+    default_map = {
+        "OB": 20.0,
+        "FVG": 20.0,
+        "SWAP": 20.0,
+        "BPR": 20.0,
+        "IC": 20.0,
+        "SND": 20.0,
+    }
+    fallback = default_map.get(strategy_name.upper(), 20.0)
+    try:
+        val = os.getenv(env_name)
+        if val is not None:
+            return float(val)
+    except (ValueError, TypeError):
+        pass
+    return fallback
 
 def is_running_candle(df: pd.DataFrame, idx: int) -> bool:
     """
@@ -206,7 +229,7 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
                 
                 # Always draw Fibo on Candle 2 wicks (middle candle)
                 pip_multiplier = get_pip_multiplier(symbol)
-                buffer = 20 * pip_multiplier
+                buffer = _get_sl_buffer_pips("FVG") * pip_multiplier
                 
                 fibo_1_0 = df['Low'].iloc[i-1]
                 fibo_0_0 = df['High'].iloc[i-1]
@@ -229,7 +252,7 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
                 
                 # Always draw Fibo on Candle 2 wicks (middle candle)
                 pip_multiplier = get_pip_multiplier(symbol)
-                buffer = 20 * pip_multiplier
+                buffer = _get_sl_buffer_pips("FVG") * pip_multiplier
                 
                 fibo_1_0 = df['High'].iloc[i-1]
                 fibo_0_0 = df['Low'].iloc[i-1]
@@ -260,7 +283,7 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
                 if ob_idx is not None:
                     ob_top = float(df['High'].iloc[ob_idx])
                     ob_bottom = float(df['Low'].iloc[ob_idx])
-                    buffer = 20 * get_pip_multiplier(symbol)
+                    buffer = _get_sl_buffer_pips("OB") * get_pip_multiplier(symbol)
                     
                     fibo_0_0 = float(df['High'].iloc[i])
                     fibo_1_0 = ob_bottom
@@ -294,7 +317,7 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
                 if ob_idx is not None:
                     ob_top = float(df['High'].iloc[ob_idx])
                     ob_bottom = float(df['Low'].iloc[ob_idx])
-                    buffer = 20 * get_pip_multiplier(symbol)
+                    buffer = _get_sl_buffer_pips("OB") * get_pip_multiplier(symbol)
                     
                     fibo_0_0 = float(df['Low'].iloc[i])
                     fibo_1_0 = ob_top
@@ -434,7 +457,7 @@ def detect_snr_and_swapzones(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.Dat
                 if close_val > res:
                     swap_high = res_dict['high']
                     swap_low = res_dict['low']
-                    buffer = 20 * get_pip_multiplier(symbol)
+                    buffer = _get_sl_buffer_pips("SWAP") * get_pip_multiplier(symbol)
                     
                     if not recorded_any:
                         df.at[df.index[i], 'Swap_Type'] = 'SUPPORT' # Swap Support
@@ -476,7 +499,7 @@ def detect_snr_and_swapzones(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.Dat
                 if close_val < sup:
                     swap_high = sup_dict['high']
                     swap_low = sup_dict['low']
-                    buffer = 20 * get_pip_multiplier(symbol)
+                    buffer = _get_sl_buffer_pips("SWAP") * get_pip_multiplier(symbol)
                     
                     if not recorded_any_sup:
                         df.at[df.index[i], 'Swap_Type'] = 'RESISTANCE' # Swap Resistance
@@ -593,7 +616,7 @@ def detect_bpr(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
                             df.at[df.index[i], 'BPR_Bottom'] = overlap_bottom
                             
                             pip_multiplier = get_pip_multiplier(symbol)
-                            buffer = 20 * pip_multiplier
+                            buffer = _get_sl_buffer_pips("BPR") * pip_multiplier
                             
                             # BPR entries use the displacement candle that formed the current FVG,
                             # matching FVG fibs instead of pulling fibs across the overlap zone.
@@ -672,7 +695,7 @@ def detect_indecision_candles(df: pd.DataFrame, body_ratio: float = 0.25, symbol
     df['IC_Mitigated'] = False
     
     pip_multiplier = get_pip_multiplier(symbol)
-    buffer = 20 * pip_multiplier
+    buffer = _get_sl_buffer_pips("IC") * pip_multiplier
     
     active_ics = [] # list of dicts: {'index', 'type', 'top', 'bottom'}
     
@@ -845,7 +868,7 @@ def detect_supply_demand_zones(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.D
                 top_val = float(df['High'].iloc[i-1])
                 bottom_val = float(df['Low'].iloc[i-1])
                 
-                buffer = 20 * get_pip_multiplier(symbol)
+                buffer = _get_sl_buffer_pips("SND") * get_pip_multiplier(symbol)
                 
                 if 'DEMAND' in sd_type:
                     # Demand Zone: Fibo calculation
