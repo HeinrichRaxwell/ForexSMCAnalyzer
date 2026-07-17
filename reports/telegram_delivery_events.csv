@@ -1,3 +1,1642 @@
 sent_at_wib,channel,delivered,message
 2026-07-16T13:25:59+07:00,text,True,"🧹 <b>[Risk Management] Cleaned up 1 zombie pending orders:</b>
 • Order #66666 (SL violated)"
+2026-07-16T13:27:28+07:00,text,True,"🧹 <b>[Risk Management] Cleaned up 1 zombie pending orders:</b>
+• Order #66666 (SL violated)"
+2026-07-16T13:27:52+07:00,text,True,"🧹 <b>[Risk Management] Cleaned up 1 zombie pending orders:</b>
+• Order #66666 (SL violated)"
+2026-07-16T13:28:18+07:00,text,True,"🧹 <b>[Risk Management] Cleaned up 1 zombie pending orders:</b>
+• Order #66666 (SL violated)"
+2026-07-16T13:28:39+07:00,text,True,"🧹 <b>[Risk Management] Cleaned up 1 zombie pending orders:</b>
+• Order #66666 (SL violated)"
+2026-07-16T13:38:22+07:00,text,True,"🧹 <b>[Risk Management] Cleaned up 1 zombie pending orders:</b>
+• Order #66666 (SL violated)"
+2026-07-16T14:09:45+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>D1</code>
+Direction: <b>SELL / Short</b>
+Setup: Supply/Demand Zone (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>58.33%</code>
+0.618 entry (0.01 lot): <code>55.52%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (D1): RSI8=43.8 %K=32.0 %D=34.3 🟡[WAIT]
+Signal (D1): RSI8=43.8 %K=32.0 %D=34.3 🟡[WAIT]
+LTF (H4): RSI8=43.8 %K=37.7 %D=41.2 🟡[WAIT]
+Confluence: 0/3 layers align | Net Conf 0%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Not confirmed on current LTF touch
+Order 0.500: Monitoring only (MT5_EXECUTE_TRADES disabled)
+Order 0.618: Monitoring only (MT5_EXECUTE_TRADES disabled)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>4532.047</code>
+Entry 0.618 (0.01 lot): <code>4535.279</code>
+Stop Loss: <code>4547.740</code>
+TP1: <code>4447.501</code>
+TP2 dynamic: <code>4484.968</code>
+TP3 extension: <code>4469.275</code>
+
+<b>Confluence</b>
+1. Supply/Demand Zone D1 (Model confidence: 58.3%)
+2. Supported by FLOOP Pro Trend Filter (moderate strength=7)
+3. Oscillator MTF neutral (0/3 layers align, net 0% conf) — HTF(D1): RSI8=43.8 %K=32.0 [WAIT] | Sig(D1): RSI8=43.8 %K=32.0 [WAIT] | LTF(H4): RSI8=43.8 %K=37.7 [WAIT]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-16T14:09:49+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>H1</code>
+Direction: <b>SELL / Short</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>58.33%</code>
+0.618 entry (0.01 lot): <code>58.33%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (H4): RSI8=43.8 %K=37.7 %D=41.2 🟡[WAIT]
+Signal (H1): RSI8=37.8 %K=16.8 %D=18.4 🟩[REBUY] ⚠
+LTF (M15): RSI8=46.6 %K=46.8 %D=43.1 🟡[WAIT]
+Confluence: 0/3 layers align | Net Conf -1%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Not confirmed on current LTF touch
+Order 0.500: Pending order placed (ticket #4385188931)
+Order 0.618: Failed (max same-direction exposure reached for sell (1/1))
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>4079.677</code>
+Entry 0.618 (0.01 lot): <code>4081.794</code>
+Stop Loss: <code>4090.647</code>
+TP1: <code>4070.707</code>
+TP2 dynamic: <code>4036.158</code>
+TP3 extension: <code>4035.797</code>
+
+<b>Confluence</b>
+1. Indecision Candle H1 (Model confidence: 58.3%)
+2. Entry zone near Psychological Round Level (ends in 0 or 5)
+3. KNN Classifier mild directional bias: 53.4%
+4. Oscillator MTF caution (0/3 layers align, net -1% conf) — HTF(H4): RSI8=43.8 %K=37.7 [WAIT] | Sig(H1): RSI8=37.8 %K=16.8 [REBUY] [OPPOSE] | LTF(M15): RSI8=46.6 %K=46.8 [WAIT]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-16T14:09:54+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>D1</code>
+Direction: <b>SELL / Short</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>55.52%</code>
+0.618 entry (0.01 lot): <code>48.03%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (D1): RSI8=43.8 %K=32.0 %D=34.3 🟡[WAIT]
+Signal (D1): RSI8=43.8 %K=32.0 %D=34.3 🟡[WAIT]
+LTF (H4): RSI8=43.8 %K=37.7 %D=41.2 🟡[WAIT]
+Confluence: 0/3 layers align | Net Conf 0%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Not confirmed on current LTF touch
+Order 0.500: Monitoring only (MT5_EXECUTE_TRADES disabled)
+Order 0.618: Monitoring only (MT5_EXECUTE_TRADES disabled)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>4529.662</code>
+Entry 0.618 (0.01 lot): <code>4539.405</code>
+Stop Loss: <code>4572.947</code>
+TP1: <code>4488.377</code>
+TP2 dynamic: <code>4399.807</code>
+TP3 extension: <code>4356.522</code>
+
+<b>Confluence</b>
+1. Indecision Candle D1 (Model confidence: 55.5%)
+2. Supply/Demand Zone H4 (Model confidence: 55.5%)
+3. Entry zone near Psychological Round Level (ends in 0 or 5)
+4. Supported by FLOOP Pro Trend Filter (moderate strength=8)
+5. Oscillator MTF neutral (0/3 layers align, net 0% conf) — HTF(D1): RSI8=43.8 %K=32.0 [WAIT] | Sig(D1): RSI8=43.8 %K=32.0 [WAIT] | LTF(H4): RSI8=43.8 %K=37.7 [WAIT]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-16T14:09:57+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>D1</code>
+Direction: <b>SELL / Short</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>55.52%</code>
+0.618 entry (0.01 lot): <code>55.52%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (D1): RSI8=43.8 %K=32.0 %D=34.3 🟡[WAIT]
+Signal (D1): RSI8=43.8 %K=32.0 %D=34.3 🟡[WAIT]
+LTF (H4): RSI8=43.8 %K=37.7 %D=41.2 🟡[WAIT]
+Confluence: 0/3 layers align | Net Conf 0%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Not confirmed on current LTF touch
+Order 0.500: Monitoring only (MT5_EXECUTE_TRADES disabled)
+Order 0.618: Monitoring only (MT5_EXECUTE_TRADES disabled)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>4501.936</code>
+Entry 0.618 (0.01 lot): <code>4511.296</code>
+Stop Loss: <code>4543.595</code>
+TP1: <code>4462.278</code>
+TP2 dynamic: <code>4376.961</code>
+TP3 extension: <code>4335.302</code>
+
+<b>Confluence</b>
+1. Indecision Candle D1 (Model confidence: 55.5%)
+2. Supported by FLOOP Pro Trend Filter (moderate strength=8)
+3. Oscillator MTF neutral (0/3 layers align, net 0% conf) — HTF(D1): RSI8=43.8 %K=32.0 [WAIT] | Sig(D1): RSI8=43.8 %K=32.0 [WAIT] | LTF(H4): RSI8=43.8 %K=37.7 [WAIT]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-16T14:10:02+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>D1</code>
+Direction: <b>BUY / Long</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>55.52%</code>
+0.618 entry (0.01 lot): <code>48.03%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (D1): RSI8=43.8 %K=32.0 %D=34.3 🟡[WAIT]
+Signal (D1): RSI8=43.8 %K=32.0 %D=34.3 🟡[WAIT]
+LTF (H4): RSI8=43.8 %K=37.7 %D=41.2 🟡[WAIT]
+Confluence: 0/3 layers align | Net Conf 0%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Not confirmed on current LTF touch
+Order 0.500: Monitoring only (MT5_EXECUTE_TRADES disabled)
+Order 0.618: Monitoring only (MT5_EXECUTE_TRADES disabled)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>4037.861</code>
+Entry 0.618 (0.01 lot): <code>4019.483</code>
+Stop Loss: <code>3957.987</code>
+TP1: <code>4115.736</code>
+TP2 dynamic: <code>4054.046</code>
+TP3 extension: <code>4357.359</code>
+
+<b>Confluence</b>
+1. Indecision Candle D1 (Model confidence: 55.5%)
+2. Swapzone (SBR/RBS) M30 (Model confidence: 42.5%)
+3. Wick Rejection touch confirmed on M15
+4. Supported by FLOOP Pro Trend Filter (mild strength=4)
+5. Oscillator MTF neutral (0/3 layers align, net 0% conf) — HTF(D1): RSI8=43.8 %K=32.0 [WAIT] | Sig(D1): RSI8=43.8 %K=32.0 [WAIT] | LTF(H4): RSI8=43.8 %K=37.7 [WAIT]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-16T14:10:05+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>D1</code>
+Direction: <b>SELL / Short</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>55.52%</code>
+0.618 entry (0.01 lot): <code>55.52%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (D1): RSI8=43.8 %K=32.0 %D=34.3 🟡[WAIT]
+Signal (D1): RSI8=43.8 %K=32.0 %D=34.3 🟡[WAIT]
+LTF (H4): RSI8=43.8 %K=37.7 %D=41.2 🟡[WAIT]
+Confluence: 0/3 layers align | Net Conf 0%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Not confirmed on current LTF touch
+Order 0.500: Monitoring only (MT5_EXECUTE_TRADES disabled)
+Order 0.618: Monitoring only (MT5_EXECUTE_TRADES disabled)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>4187.690</code>
+Entry 0.618 (0.01 lot): <code>4191.112</code>
+Stop Loss: <code>4204.190</code>
+TP1: <code>4173.191</code>
+TP2 dynamic: <code>4138.192</code>
+TP3 extension: <code>4121.693</code>
+
+<b>Confluence</b>
+1. Indecision Candle D1 (Model confidence: 55.5%)
+2. Order Block H4 (Model confidence: 55.5%)
+3. Indecision Candle H4 (Model confidence: 55.5%)
+4. Order Block H1 (Model confidence: 55.5%)
+5. Indecision Candle H1 (Model confidence: 55.5%)
+6. Oscillator MTF neutral (0/3 layers align, net 0% conf) — HTF(D1): RSI8=43.8 %K=32.0 [WAIT] | Sig(D1): RSI8=43.8 %K=32.0 [WAIT] | LTF(H4): RSI8=43.8 %K=37.7 [WAIT]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-16T14:10:09+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>D1</code>
+Direction: <b>SELL / Short</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>55.52%</code>
+0.618 entry (0.01 lot): <code>55.52%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (D1): RSI8=43.8 %K=32.0 %D=34.3 🟡[WAIT]
+Signal (D1): RSI8=43.8 %K=32.0 %D=34.3 🟡[WAIT]
+LTF (H4): RSI8=43.8 %K=37.7 %D=41.2 🟡[WAIT]
+Confluence: 0/3 layers align | Net Conf 0%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Not confirmed on current LTF touch
+Order 0.500: Monitoring only (MT5_EXECUTE_TRADES disabled)
+Order 0.618: Monitoring only (MT5_EXECUTE_TRADES disabled)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>4103.798</code>
+Entry 0.618 (0.01 lot): <code>4111.116</code>
+Stop Loss: <code>4136.804</code>
+TP1: <code>4072.793</code>
+TP2 dynamic: <code>4004.782</code>
+TP3 extension: <code>3971.776</code>
+
+<b>Confluence</b>
+1. Indecision Candle D1 (Model confidence: 55.5%)
+2. Supported by FLOOP Pro Trend Filter (strong strength=12)
+3. Oscillator MTF neutral (0/3 layers align, net 0% conf) — HTF(D1): RSI8=43.8 %K=32.0 [WAIT] | Sig(D1): RSI8=43.8 %K=32.0 [WAIT] | LTF(H4): RSI8=43.8 %K=37.7 [WAIT]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-16T14:10:13+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>H1</code>
+Direction: <b>BUY / Long</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>55.52%</code>
+0.618 entry (0.01 lot): <code>55.52%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (H4): RSI8=43.8 %K=37.7 %D=41.2 🟡[WAIT]
+Signal (H1): RSI8=37.8 %K=16.8 %D=18.4 🟩[REBUY] ✔
+LTF (M15): RSI8=46.6 %K=46.8 %D=43.1 🟡[WAIT]
+Confluence: 1/3 layers align | Net Conf +1%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Confirmed
+LTF rejection: Not confirmed on current LTF touch
+Order 0.500: Pending order placed (ticket #4385189897)
+Order 0.618: Failed (max same-direction exposure reached for buy (1/1))
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>3996.969</code>
+Entry 0.618 (0.01 lot): <code>3995.781</code>
+Stop Loss: <code>3989.935</code>
+TP1: <code>4002.003</code>
+TP2 dynamic: <code>4040.185</code>
+TP3 extension: <code>4025.105</code>
+
+<b>Confluence</b>
+1. Indecision Candle H1 (Model confidence: 55.5%)
+2. Order Block H1 (Model confidence: 43.1%)
+3. Indecision Candle H1 (Model confidence: 42.5%)
+4. Aligned inside active Higher Timeframe (HTF) structure
+5. Oscillator MTF (1/3 layers align, net +1% conf) — HTF(H4): RSI8=43.8 %K=37.7 [WAIT] | Sig(H1): RSI8=37.8 %K=16.8 [REBUY] [ALIGN] | LTF(M15): RSI8=46.6 %K=46.8 [WAIT]
+<b>HTF Match</b>
+- <code>H4</code> FVG <code>3982.884</code>-<code>4012.764</code>
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-16T14:10:17+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>D1</code>
+Direction: <b>SELL / Short</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>51.31%</code>
+0.618 entry (0.01 lot): <code>51.31%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (D1): RSI8=43.8 %K=32.0 %D=34.3 🟡[WAIT]
+Signal (D1): RSI8=43.8 %K=32.0 %D=34.3 🟡[WAIT]
+LTF (H4): RSI8=43.8 %K=37.7 %D=41.2 🟡[WAIT]
+Confluence: 0/3 layers align | Net Conf 0%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Not confirmed on current LTF touch
+Order 0.500: Monitoring only (MT5_EXECUTE_TRADES disabled)
+Order 0.618: Monitoring only (MT5_EXECUTE_TRADES disabled)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>4565.328</code>
+Entry 0.618 (0.01 lot): <code>4568.870</code>
+Stop Loss: <code>4582.336</code>
+TP1: <code>4550.320</code>
+TP2 dynamic: <code>4514.304</code>
+TP3 extension: <code>4497.296</code>
+
+<b>Confluence</b>
+1. Indecision Candle D1 (Model confidence: 51.3%)
+2. Entry zone near Psychological Round Level (ends in 0 or 5)
+3. Supported by FLOOP Pro Trend Filter (mild strength=5)
+4. Oscillator MTF neutral (0/3 layers align, net 0% conf) — HTF(D1): RSI8=43.8 %K=32.0 [WAIT] | Sig(D1): RSI8=43.8 %K=32.0 [WAIT] | LTF(H4): RSI8=43.8 %K=37.7 [WAIT]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-16T14:17:44+07:00,text,False,"🧹 <b>[Risk Management] Cleaned up 1 zombie pending orders:</b>
+• Order #66666 (SL violated)"
+2026-07-16T14:18:35+07:00,text,True,"🧹 <b>[Risk Management] Cleaned up 1 zombie pending orders:</b>
+• Order #66666 (SL violated)"
+2026-07-16T14:23:16+07:00,text,False,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>H1</code>
+Direction: <b>SELL / Short</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>58.33%</code>
+0.618 entry (0.01 lot): <code>55.52%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (H4): RSI8=43.8 %K=37.7 %D=41.2 🟡[WAIT]
+Signal (H1): RSI8=37.8 %K=16.8 %D=18.4 🟩[REBUY] ⚠
+LTF (M15): RSI8=39.0 %K=35.9 %D=39.5 🟡[WAIT]
+Confluence: 0/3 layers align | Net Conf -1%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Not confirmed on current LTF touch
+Order 0.500: Pending order placed (ticket #4385257030)
+Order 0.618: Pending order placed (ticket #4385257031)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>4059.535</code>
+Entry 0.618 (0.01 lot): <code>4061.066</code>
+Stop Loss: <code>4068.019</code>
+TP1: <code>4053.052</code>
+TP2 dynamic: <code>4036.158</code>
+TP3 extension: <code>4025.602</code>
+
+<b>Confluence</b>
+1. Indecision Candle H1 (Model confidence: 58.3%)
+2. Indecision Candle H4 (Model confidence: 43.8%)
+3. Entry zone near Psychological Round Level (ends in 0 or 5)
+4. Supported by FLOOP Pro Trend Filter (strong strength=10)
+5. KNN Classifier mild directional bias: 53.4%
+6. Oscillator MTF caution (0/3 layers align, net -1% conf) — HTF(H4): RSI8=43.8 %K=37.7 [WAIT] | Sig(H1): RSI8=37.8 %K=16.8 [REBUY] [OPPOSE] | LTF(M15): RSI8=39.0 %K=35.9 [WAIT]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-16T14:23:19+07:00,text,False,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>H4</code>
+Direction: <b>SELL / Short</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>55.52%</code>
+0.618 entry (0.01 lot): <code>51.31%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (D1): RSI8=43.8 %K=32.0 %D=34.3 🟡[WAIT]
+Signal (H4): RSI8=43.8 %K=37.7 %D=41.2 🟡[WAIT]
+LTF (H1): RSI8=37.8 %K=16.8 %D=18.4 🟩[REBUY] ⚠
+Confluence: 0/3 layers align | Net Conf 0%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Not confirmed on current LTF touch
+Order 0.500: Pending order placed (ticket #4385257879)
+Order 0.618: Watching price return (will retry when closer)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>4124.331</code>
+Entry 0.618 (0.01 lot): <code>4126.631</code>
+Stop Loss: <code>4136.080</code>
+TP1: <code>4114.581</code>
+TP2 dynamic: <code>4013.371</code>
+TP3 extension: <code>4077.333</code>
+
+<b>Confluence</b>
+1. Indecision Candle H4 (Model confidence: 55.5%)
+2. Supply/Demand Zone H4 (Model confidence: 55.5%)
+3. Indecision Candle H4 (Model confidence: 36.8%)
+4. Entry zone near Psychological Round Level (ends in 0 or 5)
+5. Supported by FLOOP Pro Trend Filter (strong strength=12)
+6. KNN Classifier bullish alignment: 94.2% directional probability
+7. Oscillator MTF caution (0/3 layers align, net 0% conf) — HTF(D1): RSI8=43.8 %K=32.0 [WAIT] | Sig(H4): RSI8=43.8 %K=37.7 [WAIT] | LTF(H1): RSI8=37.8 %K=16.8 [REBUY] [OPPOSE]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-16T14:23:20+07:00,text,False,"⚠️ <b>[SMC Eviction Engine] Order Evicted!</b> ⚠️
+
+Pending order #4385188931 (SMC H1 IC A) telah dibatalkan untuk mengosongkan slot karena limit penuh.
+• <b>Evicted Setup Confidence:</b> <code>50.0%</code>
+• <b>New Setup Confidence:</b> <code>55.5%</code>
+• <b>Tindakan:</b> Order #4385188931 dipindahkan ke Paper/Shadow Tracker untuk dipelajari hasilnya secara offline."
+2026-07-16T14:23:27+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>H1</code>
+Direction: <b>SELL / Short</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>55.52%</code>
+0.618 entry (0.01 lot): <code>55.52%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (H4): RSI8=43.8 %K=37.7 %D=41.2 🟡[WAIT]
+Signal (H1): RSI8=37.8 %K=16.8 %D=18.4 🟩[REBUY] ⚠
+LTF (M15): RSI8=39.0 %K=35.9 %D=39.5 🟡[WAIT]
+Confluence: 0/3 layers align | Net Conf -1%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Not confirmed on current LTF touch
+Order 0.500: Pending order placed (ticket #4385258161)
+Order 0.618: Pending order placed (ticket #4385258162)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>4077.596</code>
+Entry 0.618 (0.01 lot): <code>4080.515</code>
+Stop Loss: <code>4091.964</code>
+TP1: <code>4065.228</code>
+TP2 dynamic: <code>4036.158</code>
+TP3 extension: <code>4020.124</code>
+
+<b>Confluence</b>
+1. Indecision Candle H1 (Model confidence: 55.5%)
+2. Supported by FLOOP Pro Trend Filter (strong strength=11)
+3. KNN Classifier mild directional bias: 53.4%
+4. Oscillator MTF caution (0/3 layers align, net -1% conf) — HTF(H4): RSI8=43.8 %K=37.7 [WAIT] | Sig(H1): RSI8=37.8 %K=16.8 [REBUY] [OPPOSE] | LTF(M15): RSI8=39.0 %K=35.9 [WAIT]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-16T14:23:28+07:00,text,True,"⚠️ <b>[SMC Eviction Engine] Order Evicted!</b> ⚠️
+
+Pending order #4385189897 (SMC H1 IC A) telah dibatalkan untuk mengosongkan slot karena limit penuh.
+• <b>Evicted Setup Confidence:</b> <code>50.0%</code>
+• <b>New Setup Confidence:</b> <code>55.5%</code>
+• <b>Tindakan:</b> Order #4385189897 dipindahkan ke Paper/Shadow Tracker untuk dipelajari hasilnya secara offline."
+2026-07-16T14:23:29+07:00,text,True,"⚠️ <b>[SMC Eviction Engine] Order Evicted!</b> ⚠️
+
+Pending order #4385257030 (SMC H1 IC A) telah dibatalkan untuk mengosongkan slot karena limit penuh.
+• <b>Evicted Setup Confidence:</b> <code>50.0%</code>
+• <b>New Setup Confidence:</b> <code>55.5%</code>
+• <b>Tindakan:</b> Order #4385257030 dipindahkan ke Paper/Shadow Tracker untuk dipelajari hasilnya secara offline."
+2026-07-16T14:23:37+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>H1</code>
+Direction: <b>SELL / Short</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>55.52%</code>
+0.618 entry (0.01 lot): <code>55.52%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (H4): RSI8=43.8 %K=37.7 %D=41.2 🟡[WAIT]
+Signal (H1): RSI8=37.8 %K=16.8 %D=18.4 🟩[REBUY] ⚠
+LTF (M15): RSI8=39.0 %K=35.9 %D=39.5 🟡[WAIT]
+Confluence: 0/3 layers align | Net Conf -1%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Not confirmed on current LTF touch
+Order 0.500: Pending order placed (ticket #4385258551)
+Order 0.618: Pending order placed (ticket #4385258602)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>4069.785</code>
+Entry 0.618 (0.01 lot): <code>4072.550</code>
+Stop Loss: <code>4083.502</code>
+TP1: <code>4058.068</code>
+TP2 dynamic: <code>4036.158</code>
+TP3 extension: <code>4014.917</code>
+
+<b>Confluence</b>
+1. Indecision Candle H1 (Model confidence: 55.5%)
+2. Swapzone (SBR/RBS) M30 (Model confidence: 42.5%)
+3. Entry zone near Psychological Round Level (ends in 0 or 5)
+4. KNN Classifier mild directional bias: 53.4%
+5. Oscillator MTF caution (0/3 layers align, net -1% conf) — HTF(H4): RSI8=43.8 %K=37.7 [WAIT] | Sig(H1): RSI8=37.8 %K=16.8 [REBUY] [OPPOSE] | LTF(M15): RSI8=39.0 %K=35.9 [WAIT]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-16T14:23:38+07:00,text,True,"⚠️ <b>[SMC Eviction Engine] Order Evicted!</b> ⚠️
+
+Pending order #4385257031 (SMC H1 IC B) telah dibatalkan untuk mengosongkan slot karena limit penuh.
+• <b>Evicted Setup Confidence:</b> <code>50.0%</code>
+• <b>New Setup Confidence:</b> <code>55.5%</code>
+• <b>Tindakan:</b> Order #4385257031 dipindahkan ke Paper/Shadow Tracker untuk dipelajari hasilnya secara offline."
+2026-07-16T14:23:39+07:00,text,True,"⚠️ <b>[SMC Eviction Engine] Order Evicted!</b> ⚠️
+
+Pending order #4385257879 (SMC H4 IC A) telah dibatalkan untuk mengosongkan slot karena limit penuh.
+• <b>Evicted Setup Confidence:</b> <code>50.0%</code>
+• <b>New Setup Confidence:</b> <code>51.3%</code>
+• <b>Tindakan:</b> Order #4385257879 dipindahkan ke Paper/Shadow Tracker untuk dipelajari hasilnya secara offline."
+2026-07-16T14:23:47+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>H1</code>
+Direction: <b>SELL / Short</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>55.52%</code>
+0.618 entry (0.01 lot): <code>51.31%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (H4): RSI8=43.8 %K=37.7 %D=41.2 🟡[WAIT]
+Signal (H1): RSI8=37.8 %K=16.8 %D=18.4 🟩[REBUY] ⚠
+LTF (M15): RSI8=39.0 %K=35.9 %D=39.5 🟡[WAIT]
+Confluence: 0/3 layers align | Net Conf -1%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Not confirmed on current LTF touch
+Order 0.500: Pending order placed (ticket #4385259348)
+Order 0.618: Pending order placed (ticket #4385259593)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>4055.350</code>
+Entry 0.618 (0.01 lot): <code>4057.133</code>
+Stop Loss: <code>4064.905</code>
+TP1: <code>4047.794</code>
+TP2 dynamic: <code>4036.158</code>
+TP3 extension: <code>4017.128</code>
+
+<b>Confluence</b>
+1. Indecision Candle H1 (Model confidence: 55.5%)
+2. Entry zone near Psychological Round Level (ends in 0 or 5)
+3. KNN Classifier mild directional bias: 53.4%
+4. Oscillator MTF caution (0/3 layers align, net -1% conf) — HTF(H4): RSI8=43.8 %K=37.7 [WAIT] | Sig(H1): RSI8=37.8 %K=16.8 [REBUY] [OPPOSE] | LTF(M15): RSI8=39.0 %K=35.9 [WAIT]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-16T14:23:48+07:00,text,True,"⚠️ <b>[SMC Eviction Engine] Order Evicted!</b> ⚠️
+
+Pending order #4385258161 (SMC H1 IC A) telah dibatalkan untuk mengosongkan slot karena limit penuh.
+• <b>Evicted Setup Confidence:</b> <code>50.0%</code>
+• <b>New Setup Confidence:</b> <code>55.5%</code>
+• <b>Tindakan:</b> Order #4385258161 dipindahkan ke Paper/Shadow Tracker untuk dipelajari hasilnya secara offline."
+2026-07-16T14:23:49+07:00,text,True,"⚠️ <b>[SMC Eviction Engine] Order Evicted!</b> ⚠️
+
+Pending order #4385258162 (SMC H1 IC B) telah dibatalkan untuk mengosongkan slot karena limit penuh.
+• <b>Evicted Setup Confidence:</b> <code>50.0%</code>
+• <b>New Setup Confidence:</b> <code>51.3%</code>
+• <b>Tindakan:</b> Order #4385258162 dipindahkan ke Paper/Shadow Tracker untuk dipelajari hasilnya secara offline."
+2026-07-16T14:23:53+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>H4</code>
+Direction: <b>SELL / Short</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>51.31%</code>
+0.618 entry (0.01 lot): <code>51.31%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (D1): RSI8=43.8 %K=32.0 %D=34.3 🟡[WAIT]
+Signal (H4): RSI8=43.8 %K=37.7 %D=41.2 🟡[WAIT]
+LTF (H1): RSI8=37.8 %K=16.8 %D=18.4 🟩[REBUY] ⚠
+Confluence: 0/3 layers align | Net Conf 0%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Not confirmed on current LTF touch
+Order 0.500: Pending order placed (ticket #4385260207)
+Order 0.618: Pending order placed (ticket #4385260245)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>4063.650</code>
+Entry 0.618 (0.01 lot): <code>4067.707</code>
+Stop Loss: <code>4082.842</code>
+TP1: <code>4046.458</code>
+TP2 dynamic: <code>4013.371</code>
+TP3 extension: <code>3986.882</code>
+
+<b>Confluence</b>
+1. Indecision Candle H4 (Model confidence: 51.3%)
+2. Supported by FLOOP Pro Trend Filter (strong strength=12)
+3. KNN Classifier bullish alignment: 94.2% directional probability
+4. Oscillator MTF caution (0/3 layers align, net 0% conf) — HTF(D1): RSI8=43.8 %K=32.0 [WAIT] | Sig(H4): RSI8=43.8 %K=37.7 [WAIT] | LTF(H1): RSI8=37.8 %K=16.8 [REBUY] [OPPOSE]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-16T14:23:54+07:00,text,True,"⚠️ <b>[SMC Eviction Engine] Order Evicted!</b> ⚠️
+
+Pending order #4385258551 (SMC H1 IC A) telah dibatalkan untuk mengosongkan slot karena limit penuh.
+• <b>Evicted Setup Confidence:</b> <code>50.0%</code>
+• <b>New Setup Confidence:</b> <code>51.3%</code>
+• <b>Tindakan:</b> Order #4385258551 dipindahkan ke Paper/Shadow Tracker untuk dipelajari hasilnya secara offline."
+2026-07-16T14:25:55+07:00,text,True,"🧹 <b>[Risk Management] Cleaned up 1 zombie pending orders:</b>
+• Order #66666 (SL violated)"
+2026-07-16T14:26:42+07:00,text,True,"🧹 <b>[Risk Management] Cleaned up 1 zombie pending orders:</b>
+• Order #66666 (SL violated)"
+2026-07-16T14:27:17+07:00,text,True,"🧹 <b>[Risk Management] Pending Order Dicabut</b> 🧹
+
+Order pending limit berikut telah dibatalkan (mitigated/expired/too far).
+• <b>Timeframe:</b> H1
+• <b>Setup:</b> BEAR (Option A (0.50))
+• <b>Ticket:</b> #4385188931"
+2026-07-16T14:27:18+07:00,text,True,"🧹 <b>[Risk Management] Pending Order Dicabut</b> 🧹
+
+Order pending limit berikut telah dibatalkan (mitigated/expired/too far).
+• <b>Timeframe:</b> H1
+• <b>Setup:</b> BULL (Option A (0.50))
+• <b>Ticket:</b> #4385189897"
+2026-07-16T14:27:19+07:00,text,True,"🧹 <b>[Risk Management] Pending Order Dicabut</b> 🧹
+
+Order pending limit berikut telah dibatalkan (mitigated/expired/too far).
+• <b>Timeframe:</b> H1
+• <b>Setup:</b> BEAR (Option A (0.50))
+• <b>Ticket:</b> #4385257030"
+2026-07-16T14:27:20+07:00,text,True,"🧹 <b>[Risk Management] Pending Order Dicabut</b> 🧹
+
+Order pending limit berikut telah dibatalkan (mitigated/expired/too far).
+• <b>Timeframe:</b> H1
+• <b>Setup:</b> BEAR (Option B (0.618))
+• <b>Ticket:</b> #4385257031"
+2026-07-16T14:27:20+07:00,text,True,"🧹 <b>[Risk Management] Pending Order Dicabut</b> 🧹
+
+Order pending limit berikut telah dibatalkan (mitigated/expired/too far).
+• <b>Timeframe:</b> H4
+• <b>Setup:</b> BEAR (Option A (0.50))
+• <b>Ticket:</b> #4385257879"
+2026-07-16T14:27:21+07:00,text,True,"🧹 <b>[Risk Management] Pending Order Dicabut</b> 🧹
+
+Order pending limit berikut telah dibatalkan (mitigated/expired/too far).
+• <b>Timeframe:</b> H1
+• <b>Setup:</b> BEAR (Option A (0.50))
+• <b>Ticket:</b> #4385258161"
+2026-07-16T14:27:22+07:00,text,True,"🧹 <b>[Risk Management] Pending Order Dicabut</b> 🧹
+
+Order pending limit berikut telah dibatalkan (mitigated/expired/too far).
+• <b>Timeframe:</b> H1
+• <b>Setup:</b> BEAR (Option B (0.618))
+• <b>Ticket:</b> #4385258162"
+2026-07-16T14:27:23+07:00,text,True,"🧹 <b>[Risk Management] Pending Order Dicabut</b> 🧹
+
+Order pending limit berikut telah dibatalkan (mitigated/expired/too far).
+• <b>Timeframe:</b> H1
+• <b>Setup:</b> BEAR (Option A (0.50))
+• <b>Ticket:</b> #4385258551"
+2026-07-16T14:33:08+07:00,text,True,"🧹 <b>[Risk Management] Cleaned up 1 zombie pending orders:</b>
+• Order #66666 (SL violated)"
+2026-07-16T14:34:23+07:00,text,False,"🧹 <b>[Risk Management] Cleaned up 1 zombie pending orders:</b>
+• Order #66666 (SL violated)"
+2026-07-16T14:42:00+07:00,text,False,"🔄 <b>[Order Recovery] Pending Order Re-placed</b> 🔄
+
+Setup 0.618 yang sebelumnya inactive telah dieksekusi ulang.
+• <b>Price:</b> 4126.631
+• <b>Execution:</b> PENDING ORDER PLACED: Ticket #4385345852 (0.01 lot @ 4126.391)
+• <b>New Ticket:</b> #4385345852"
+2026-07-16T14:46:24+07:00,text,True,"🧹 <b>[Risk Management] Cleaned up 1 zombie pending orders:</b>
+• Order #66666 (SL violated)"
+2026-07-16T15:33:20+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>M30</code>
+Direction: <b>BUY / Long</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>51.31%</code>
+0.618 entry (0.01 lot): <code>51.31%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (H1): RSI8=37.7 %K=18.2 %D=18.3 🟩[REBUY] ✔
+Signal (M30): RSI8=45.9 %K=50.3 %D=42.1 🟡[WAIT]
+LTF (M5): RSI8=62.9 %K=68.0 %D=61.3 🟡[WAIT]
+Confluence: 1/3 layers align | Net Conf +1%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Confirmed (M5)
+Order 0.500: Pending order placed (ticket #4385627467)
+Order 0.618: Pending order placed (ticket #4385627469)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>4027.175</code>
+Entry 0.618 (0.01 lot): <code>4026.131</code>
+Stop Loss: <code>4020.753</code>
+TP1: <code>4031.597</code>
+TP2 dynamic: <code>4035.822</code>
+TP3 extension: <code>4052.863</code>
+
+<b>Confluence</b>
+1. Indecision Candle M30 (Model confidence: 51.3%)
+2. Wick Rejection touch confirmed on M5
+3. KNN Classifier opposite-direction signal detected (86.6%) — contra caution
+4. Oscillator MTF (1/3 layers align, net +1% conf) — HTF(H1): RSI8=37.7 %K=18.2 [REBUY] [ALIGN] | Sig(M30): RSI8=45.9 %K=50.3 [WAIT] | LTF(M5): RSI8=62.9 %K=68.0 [WAIT]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-16T16:03:32+07:00,text,True,"⚠️ <b>[SMC Eviction Engine] Order Evicted!</b> ⚠️
+
+Pending order #4385627467 (SMC M30 IC A) telah dibatalkan untuk mengosongkan slot karena limit penuh.
+• <b>Evicted Setup Confidence:</b> <code>50.0%</code>
+• <b>New Setup Confidence:</b> <code>51.3%</code>
+• <b>Tindakan:</b> Order #4385627467 dipindahkan ke Paper/Shadow Tracker untuk dipelajari hasilnya secara offline."
+2026-07-16T16:03:33+07:00,text,True,"⚠️ <b>[SMC Eviction Engine] Order Evicted!</b> ⚠️
+
+Pending order #4385627469 (SMC M30 IC B) telah dibatalkan untuk mengosongkan slot karena limit penuh.
+• <b>Evicted Setup Confidence:</b> <code>50.0%</code>
+• <b>New Setup Confidence:</b> <code>51.3%</code>
+• <b>Tindakan:</b> Order #4385627469 dipindahkan ke Paper/Shadow Tracker untuk dipelajari hasilnya secara offline."
+2026-07-16T16:03:38+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>H1</code>
+Direction: <b>BUY / Long</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>51.31%</code>
+0.618 entry (0.01 lot): <code>51.31%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (H4): RSI8=41.2 %K=29.2 %D=35.2 🟡[WAIT]
+Signal (H1): RSI8=44.9 %K=25.5 %D=21.9 🟡[WAIT]
+LTF (M15): RSI8=59.7 %K=80.1 %D=68.7 🟡[WAIT]
+Confluence: 0/3 layers align | Net Conf 0%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Confirmed (M5)
+Order 0.500: Failed (proximity block: entry price 4027.531 is too close to existing pending order #4385627469 (SMC M30 IC B) at 4026.371 (dist: 11.6 pips &lt; 15.0 pips limit))
+Order 0.618: Pending order placed (ticket #4385778339)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>4027.291</code>
+Entry 0.618 (0.01 lot): <code>4026.233</code>
+Stop Loss: <code>4020.807</code>
+TP1: <code>4031.775</code>
+TP2 dynamic: <code>4040.185</code>
+TP3 extension: <code>4053.227</code>
+
+<b>Confluence</b>
+1. Indecision Candle H1 (Model confidence: 51.3%)
+2. Wick Rejection touch confirmed on M5
+3. Indecision Candle M30 (Model confidence: 51.3%)
+4. Supply/Demand Zone H4 (Model confidence: 43.8%)
+5. KNN Classifier bullish alignment: 67.9% directional probability
+6. Oscillator MTF neutral (0/3 layers align, net 0% conf) — HTF(H4): RSI8=41.2 %K=29.2 [WAIT] | Sig(H1): RSI8=44.9 %K=25.5 [WAIT] | LTF(M15): RSI8=59.7 %K=80.1 [WAIT]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-16T16:03:48+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>M30</code>
+Direction: <b>BUY / Long</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>48.03%</code>
+0.618 entry (0.01 lot): <code>51.31%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (H1): RSI8=44.9 %K=25.5 %D=21.9 🟡[WAIT]
+Signal (M30): RSI8=52.2 %K=70.5 %D=56.3 🟡[WAIT]
+LTF (M5): RSI8=66.9 %K=83.2 %D=80.5 🟧[RESELL] ⚠
+Confluence: 0/3 layers align | Net Conf 0%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Not confirmed on current LTF touch
+Order 0.500: Pending order placed (ticket #4385779131)
+Order 0.618: Pending order placed (ticket #4385779133)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>4022.001</code>
+Entry 0.618 (0.01 lot): <code>4020.866</code>
+Stop Loss: <code>4015.191</code>
+TP1: <code>4026.812</code>
+TP2 dynamic: <code>4035.822</code>
+TP3 extension: <code>4049.244</code>
+
+<b>Confluence</b>
+1. Indecision Candle M30 (Model confidence: 51.3%)
+2. Fair Value Gap M30 (Model confidence: 48.0%)
+3. KNN Classifier opposite-direction signal detected (77.7%) — contra caution
+4. Oscillator MTF caution (0/3 layers align, net 0% conf) — HTF(H1): RSI8=44.9 %K=25.5 [WAIT] | Sig(M30): RSI8=52.2 %K=70.5 [WAIT] | LTF(M5): RSI8=66.9 %K=83.2 [RESELL] [OPPOSE]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-16T16:04:54+07:00,text,True,"🧹 <b>[Risk Management] Pending Order Dicabut</b> 🧹
+
+Order pending limit berikut telah dibatalkan (mitigated/expired/too far).
+• <b>Timeframe:</b> M30
+• <b>Setup:</b> BULL (Option A (0.50))
+• <b>Ticket:</b> #4385627467"
+2026-07-16T16:04:55+07:00,text,True,"🧹 <b>[Risk Management] Pending Order Dicabut</b> 🧹
+
+Order pending limit berikut telah dibatalkan (mitigated/expired/too far).
+• <b>Timeframe:</b> M30
+• <b>Setup:</b> BULL (Option B (0.618))
+• <b>Ticket:</b> #4385627469"
+2026-07-16T16:05:27+07:00,text,True,"⚠️ <b>[SMC Eviction Engine] Order Evicted!</b> ⚠️
+
+Pending order #4385778339 (SMC H1 IC B) telah dibatalkan untuk mengosongkan slot karena limit penuh.
+• <b>Evicted Setup Confidence:</b> <code>50.0%</code>
+• <b>New Setup Confidence:</b> <code>51.3%</code>
+• <b>Tindakan:</b> Order #4385778339 dipindahkan ke Paper/Shadow Tracker untuk dipelajari hasilnya secara offline."
+2026-07-16T16:05:34+07:00,photo_and_text,True,"🔄 <b>[Order Recovery] Pending Order Re-placed</b> 🔄
+
+Setup 0.5 yang sebelumnya inactive telah dieksekusi ulang.
+• <b>Price:</b> 4027.291
+• <b>Execution:</b> PENDING ORDER PLACED: Ticket #4385786787 (0.01 lot @ 4027.531)
+• <b>New Ticket:</b> #4385786787"
+2026-07-16T16:05:40+07:00,photo_and_text,True,"🔄 <b>[Order Recovery] Pending Order Re-placed</b> 🔄
+
+Setup 0.618 yang sebelumnya inactive telah dieksekusi ulang.
+• <b>Price:</b> 4026.233
+• <b>Execution:</b> PENDING ORDER PLACED: Ticket #4385787222 (0.01 lot @ 4026.473)
+• <b>New Ticket:</b> #4385787222"
+2026-07-16T20:10:19+07:00,text,True,"🏆 <b>[SMC Trade Closed] Option A (0.50) Selesai</b> 🏆
+
+• <b>Ticket:</b> #4385786787
+• <b>Timeframe:</b> H1
+• <b>Setup:</b> BULL (Order Block)
+• <b>Entry Price:</b> <code>4027.291</code>
+• <b>SL | TP:</b> <code>4020.807 | 4031.775</code>
+• <b>Close Price:</b> <code>4031.775</code> (TP)
+• <b>Hasil Posisi:</b> 🟢 <b>WIN TP (PROFIT)</b>
+• <b>Net PnL Riil:</b> <code>+4.25 USD</code>
+• <b>PnL Relative:</b> <code>+0.69 R</code>
+
+🏆 <b>Penyebab Profit TP:</b> Trade berhasil mencapai area TP karena didukung oleh rebound harga pada level POC/Pivot broker dan kekuatan momentum volume pasar yang memadai.
+
+🧠 <b>Pelajaran AI (Bobot Latih = 2.00):</b>
+AI memperkuat memori setup ini sebagai winner berkualitas karena exit selaras dengan target utama. Model akan menaikkan prioritas setup serupa saat struktur, level, dan momentum kembali cocok.
+
+<i>Database latih diperbarui & retraining otomatis dipicu.</i>"
+2026-07-16T20:10:19+07:00,text,True,"🏆 <b>[SMC Trade Closed] Option B (0.618) Selesai</b> 🏆
+
+• <b>Ticket:</b> #4385787222
+• <b>Timeframe:</b> H1
+• <b>Setup:</b> BULL (Order Block)
+• <b>Entry Price:</b> <code>4026.233</code>
+• <b>SL | TP:</b> <code>4020.807 | 4031.775</code>
+• <b>Close Price:</b> <code>4031.775</code> (TP)
+• <b>Hasil Posisi:</b> 🟢 <b>WIN TP (PROFIT)</b>
+• <b>Net PnL Riil:</b> <code>+5.31 USD</code>
+• <b>PnL Relative:</b> <code>+1.02 R</code>
+
+🏆 <b>Penyebab Profit TP:</b> Trade berhasil mencapai area TP karena didukung oleh rebound harga pada level POC/Pivot broker dan kekuatan momentum volume pasar yang memadai.
+
+🧠 <b>Pelajaran AI (Bobot Latih = 2.00):</b>
+AI memperkuat memori setup ini sebagai winner berkualitas karena exit selaras dengan target utama. Model akan menaikkan prioritas setup serupa saat struktur, level, dan momentum kembali cocok.
+
+<i>Database latih diperbarui & retraining otomatis dipicu.</i>"
+2026-07-16T20:10:20+07:00,text,True,"🏆 <b>[SMC Trade Closed] Option A (0.50) Selesai</b> 🏆
+
+• <b>Ticket:</b> #4385779131
+• <b>Timeframe:</b> M30
+• <b>Setup:</b> BULL (Order Block)
+• <b>Entry Price:</b> <code>4022.001</code>
+• <b>SL | TP:</b> <code>4015.191 | 4026.812</code>
+• <b>Close Price:</b> <code>4026.812</code> (TP)
+• <b>Hasil Posisi:</b> 🟢 <b>WIN TP (PROFIT)</b>
+• <b>Net PnL Riil:</b> <code>+4.57 USD</code>
+• <b>PnL Relative:</b> <code>+0.71 R</code>
+
+🏆 <b>Penyebab Profit TP:</b> Trade berhasil mencapai area TP karena didukung oleh kekuatan momentum volume pasar yang memadai.
+
+🧠 <b>Pelajaran AI (Bobot Latih = 2.00):</b>
+AI memperkuat memori setup ini sebagai winner berkualitas karena exit selaras dengan target utama. Model akan menaikkan prioritas setup serupa saat struktur, level, dan momentum kembali cocok.
+
+<i>Database latih diperbarui & retraining otomatis dipicu.</i>"
+2026-07-16T20:10:21+07:00,text,True,"💀 <b>[SMC Trade Closed] Option B (0.618) Selesai</b> 💀
+
+• <b>Ticket:</b> #4385779133
+• <b>Timeframe:</b> M30
+• <b>Setup:</b> BULL (Order Block)
+• <b>Entry Price:</b> <code>4020.866</code>
+• <b>SL | TP:</b> <code>4015.191 | 4026.812</code>
+• <b>Close Price:</b> <code>4015.191</code> (SL)
+• <b>Hasil Posisi:</b> 🔴 <b>LOSS (RUGI)</b>
+• <b>Net PnL Riil:</b> <code>-5.92 USD</code>
+• <b>PnL Relative:</b> <code>-1.00 R</code>
+
+💀 <b>Penyebab Loss:</b> Trade menyentuh SL penuh akibat melawan arah tren struktur pasar utama dan tekanan volume institusional FLoOP yang berlawanan.
+
+🧠 <b>Pelajaran AI (Bobot Latih = 1.50):</b>
+AI memberikan penalti bobot latih standar (1.50) pada kegagalan ini. Model mempelajari kegagalan ini dan akan menurunkan tingkat probabilitas kelulusan pada setup sejenis di masa depan untuk meminimalkan loss konyol.
+
+<i>Database latih diperbarui & retraining otomatis dipicu.</i>"
+2026-07-16T20:10:34+07:00,text,True,"🤖 <b>[MLOps Auto-Retrain] Otak AI Diupdate</b> 🤖
+
+• <b>Dataset Latih:</b> 5000 trade terbaru
+• <b>Active Window Cap:</b> 5000 setup terbaru
+• <b>Basis Metric:</b> Holdout test 20% | threshold 0.50 | sample 1000
+• <b>Champion Test Accuracy:</b> 76.90%
+• <b>Challenger Test Accuracy:</b> 75.60%
+• <b>Champion Test Winrate @ 0.50:</b> 81.02% (332/1000 lolos)
+• <b>Challenger Test Winrate @ 0.50:</b> 74.94% (387/1000 lolos)
+• <b>Status Kelulusan:</b> ⚠️ <b>Ditolak (Akurasi Turun)</b>
+
+<i>Metric ini dihitung dari labeled/shadow dataset, bukan jaminan winrate live berikutnya. AI menggunakan sample weighting untuk membedakan TP kuat, BEP/proteksi, dan loss.</i>"
+2026-07-16T20:10:35+07:00,text,True,🔄 <b>Bot AI mempelajari 4 hasil trade baru dan melakukan retraining otomatis.</b>
+2026-07-16T20:10:39+07:00,text,True,"🤖 <b>[MLOps Auto-Retrain] Otak AI Diupdate</b> 🤖
+
+• <b>Dataset Latih:</b> 5000 trade terbaru
+• <b>Active Window Cap:</b> 5000 setup terbaru
+• <b>Basis Metric:</b> Holdout test 20% | threshold 0.50 | sample 1000
+• <b>Champion Test Accuracy:</b> 73.50%
+• <b>Challenger Test Accuracy:</b> 73.40%
+• <b>Champion Test Winrate @ 0.50:</b> 75.15% (342/1000 lolos)
+• <b>Challenger Test Winrate @ 0.50:</b> 71.76% (393/1000 lolos)
+• <b>Status Kelulusan:</b> ⚠️ <b>Ditolak (Akurasi Turun)</b>
+
+<i>Metric ini dihitung dari labeled/shadow dataset, bukan jaminan winrate live berikutnya. AI menggunakan sample weighting untuk membedakan TP kuat, BEP/proteksi, dan loss.</i>"
+2026-07-16T20:13:23+07:00,photo_and_text,True,"🔄 <b>[Order Recovery] Market Order Recovery Executed</b> 🔄
+
+Setup 0.618 yang sebelumnya inactive telah dieksekusi ulang.
+• <b>Price:</b> 3990.505
+• <b>Execution:</b> MARKET ORDER PLACED: Ticket #4387624673 (0.01 lot @ 3990.086)
+• <b>New Ticket:</b> #4387624673"
+2026-07-16T20:25:29+07:00,text,True,"⚡ <b>[WatchZone Hit] Immediate Entry!</b>
+
+Harga masuk ke zona yang dipantau sebelum scan berikutnya.
+• <b>Zone:</b> <code>M30 OB</code>
+• <b>Harga masuk:</b> <code>3998.768</code>
+• <b>Entry:</b> <code>3998.508</code> | SL: <code>3990.055</code> | TP: <code>4012.231</code>
+• <b>Confidence:</b> <code>51.3%</code>
+• <b>Ticket:</b> #4387730702"
+2026-07-16T20:26:29+07:00,text,True,"🏆 <b>[SMC Trade Closed] Option B (0.618) Selesai</b> 🏆
+
+• <b>Ticket:</b> #4387624673
+• <b>Timeframe:</b> M30
+• <b>Setup:</b> BULL (Order Block)
+• <b>Entry Price:</b> <code>3990.505</code>
+• <b>SL | TP:</b> <code>3984.549 | 3996.904</code>
+• <b>Close Price:</b> <code>3996.904</code> (TP)
+• <b>Hasil Posisi:</b> 🟢 <b>WIN TP (PROFIT)</b>
+• <b>Net PnL Riil:</b> <code>+6.81 USD</code>
+• <b>PnL Relative:</b> <code>+1.07 R</code>
+
+🏆 <b>Penyebab Profit TP:</b> Trade berhasil mencapai area TP karena didukung oleh rebound harga pada level POC/Pivot broker dan kekuatan momentum volume pasar yang memadai.
+
+🧠 <b>Pelajaran AI (Bobot Latih = 2.00):</b>
+AI memperkuat memori setup ini sebagai winner berkualitas karena exit selaras dengan target utama. Model akan menaikkan prioritas setup serupa saat struktur, level, dan momentum kembali cocok.
+
+<i>Database latih diperbarui & retraining otomatis dipicu.</i>"
+2026-07-16T20:26:30+07:00,text,True,"🧠 <b>Bot AI mempelajari 1 hasil trade baru.</b>
+Retraining ditunda sampai akumulasi mencapai <b>10</b> trade."
+2026-07-16T22:31:39+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>M30</code>
+Direction: <b>BUY / Long</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>55.52%</code>
+0.618 entry (0.01 lot): <code>55.52%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (H1): RSI8=30.3 %K=30.8 %D=31.5 🟡[WAIT]
+Signal (M30): RSI8=47.6 %K=43.9 %D=38.8 🟡[WAIT]
+LTF (M5): RSI8=67.9 %K=72.4 %D=61.9 🟧[RESELL] ⚠
+Confluence: 0/3 layers align | Net Conf 0%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Confirmed
+LTF rejection: Confirmed (M5)
+Order 0.500: Pending order placed (ticket #4388855012)
+Order 0.618: Pending order placed (ticket #4388855017)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>3999.488</code>
+Entry 0.618 (0.01 lot): <code>3997.788</code>
+Stop Loss: <code>3990.285</code>
+TP1: <code>4006.691</code>
+TP2 dynamic: <code>4006.280</code>
+TP3 extension: <code>4036.300</code>
+
+<b>Confluence</b>
+1. Indecision Candle M30 (Model confidence: 55.5%)
+2. Wick Rejection touch confirmed on M5
+3. Indecision Candle H4 (Model confidence: 43.8%)
+4. Supply/Demand Zone H4 (Model confidence: 43.8%)
+5. Aligned inside active Higher Timeframe (HTF) structure
+6. Entry zone near Psychological Round Level (ends in 0 or 5)
+7. Supported by FLOOP Pro Trend Filter (mild strength=2)
+8. KNN Classifier mild directional bias: 56.1%
+9. Oscillator MTF caution (0/3 layers align, net 0% conf) — HTF(H1): RSI8=30.3 %K=30.8 [WAIT] | Sig(M30): RSI8=47.6 %K=43.9 [WAIT] | LTF(M5): RSI8=67.9 %K=72.4 [RESELL] [OPPOSE]
+<b>HTF Match</b>
+- <code>H4</code> FVG <code>3982.884</code>-<code>4012.764</code>
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-16T23:01:26+07:00,text,True,"🧹 <b>[Risk Management] Cleaned up 2 zombie pending orders:</b>
+• Order #4385259348 (structure mitigated/invalid (age expired))
+• Order #4385259593 (structure mitigated/invalid (age expired))"
+2026-07-16T23:02:27+07:00,text,True,"🧹 <b>[Risk Management] Pending Order Dicabut</b> 🧹
+
+Order pending limit berikut telah dibatalkan (mitigated/expired/too far).
+• <b>Timeframe:</b> H1
+• <b>Setup:</b> BEAR (Option A (0.50))
+• <b>Ticket:</b> #4385259348"
+2026-07-16T23:02:28+07:00,text,True,"🧹 <b>[Risk Management] Pending Order Dicabut</b> 🧹
+
+Order pending limit berikut telah dibatalkan (mitigated/expired/too far).
+• <b>Timeframe:</b> H1
+• <b>Setup:</b> BEAR (Option B (0.618))
+• <b>Ticket:</b> #4385259593"
+2026-07-16T23:02:58+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>H4</code>
+Direction: <b>SELL / Short</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>55.52%</code>
+0.618 entry (0.01 lot): <code>55.52%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (D1): RSI8=43.8 %K=32.0 %D=34.3 🟡[WAIT]
+Signal (H4): RSI8=33.1 %K=31.0 %D=32.1 🟡[WAIT]
+LTF (H1): RSI8=39.2 %K=39.3 %D=35.4 🟡[WAIT]
+Confluence: 0/3 layers align | Net Conf 0%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Not confirmed on current LTF touch
+Order 0.500: Pending order placed (ticket #4389057264)
+Order 0.618: Pending order placed (ticket #4389057268)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>4054.089</code>
+Entry 0.618 (0.01 lot): <code>4060.558</code>
+Stop Loss: <code>4083.502</code>
+TP1: <code>4026.676</code>
+TP2 dynamic: <code>4013.371</code>
+TP3 extension: <code>3936.437</code>
+
+<b>Confluence</b>
+1. Indecision Candle H4 (Model confidence: 55.5%)
+2. Indecision Candle H1 (Model confidence: 55.5%)
+3. Indecision Candle H4 (Model confidence: 48.0%)
+4. Entry zone near Psychological Round Level (ends in 0 or 5)
+5. Supported by FLOOP Pro Trend Filter (strong strength=11)
+6. KNN Classifier bullish alignment: 83.8% directional probability
+7. Oscillator MTF neutral (0/3 layers align, net 0% conf) — HTF(D1): RSI8=43.8 %K=32.0 [WAIT] | Sig(H4): RSI8=33.1 %K=31.0 [WAIT] | LTF(H1): RSI8=39.2 %K=39.3 [WAIT]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-16T23:15:56+07:00,text,True,"💀 <b>[SMC Trade Closed] Option A (0.50) Selesai</b> 💀
+
+• <b>Ticket:</b> #4388855012
+• <b>Timeframe:</b> M30
+• <b>Setup:</b> BULL (Order Block)
+• <b>Entry Price:</b> <code>3999.488</code>
+• <b>SL | TP:</b> <code>3990.285 | 4006.691</code>
+• <b>Close Price:</b> <code>3990.285</code> (SL)
+• <b>Hasil Posisi:</b> 🔴 <b>LOSS (RUGI)</b>
+• <b>Net PnL Riil:</b> <code>-9.44 USD</code>
+• <b>PnL Relative:</b> <code>-1.00 R</code>
+
+💀 <b>Penyebab Loss:</b> Trade menyentuh SL penuh akibat melawan arah tren struktur pasar utama dan kurangnya kekuatan dorongan volume pasar saat entry.
+
+🧠 <b>Pelajaran AI (Bobot Latih = 1.50):</b>
+AI memberikan penalti bobot latih standar (1.50) pada kegagalan ini. Model mempelajari kegagalan ini dan akan menurunkan tingkat probabilitas kelulusan pada setup sejenis di masa depan untuk meminimalkan loss konyol.
+
+<i>Database latih diperbarui & retraining otomatis dipicu.</i>"
+2026-07-16T23:15:57+07:00,text,True,"💀 <b>[SMC Trade Closed] Option B (0.618) Selesai</b> 💀
+
+• <b>Ticket:</b> #4388855017
+• <b>Timeframe:</b> M30
+• <b>Setup:</b> BULL (Order Block)
+• <b>Entry Price:</b> <code>3997.788</code>
+• <b>SL | TP:</b> <code>3990.285 | 4006.691</code>
+• <b>Close Price:</b> <code>3990.285</code> (SL)
+• <b>Hasil Posisi:</b> 🔴 <b>LOSS (RUGI)</b>
+• <b>Net PnL Riil:</b> <code>-7.74 USD</code>
+• <b>PnL Relative:</b> <code>-1.00 R</code>
+
+💀 <b>Penyebab Loss:</b> Trade menyentuh SL penuh akibat melawan arah tren struktur pasar utama dan kurangnya kekuatan dorongan volume pasar saat entry.
+
+🧠 <b>Pelajaran AI (Bobot Latih = 1.50):</b>
+AI memberikan penalti bobot latih standar (1.50) pada kegagalan ini. Model mempelajari kegagalan ini dan akan menurunkan tingkat probabilitas kelulusan pada setup sejenis di masa depan untuk meminimalkan loss konyol.
+
+<i>Database latih diperbarui & retraining otomatis dipicu.</i>"
+2026-07-16T23:15:58+07:00,text,True,"🧠 <b>Bot AI mempelajari 2 hasil trade baru.</b>
+Retraining ditunda sampai akumulasi mencapai <b>10</b> trade."
+2026-07-17T02:36:07+07:00,text,True,"🤖 <b>[MLOps Auto-Retrain] Otak AI Diupdate</b> 🤖
+
+• <b>Dataset Latih:</b> 5000 trade terbaru
+• <b>Active Window Cap:</b> 5000 setup terbaru
+• <b>Basis Metric:</b> Holdout test 20% | threshold 0.50 | sample 1000
+• <b>Champion Test Accuracy:</b> 75.00%
+• <b>Challenger Test Accuracy:</b> 74.70%
+• <b>Champion Test Winrate @ 0.50:</b> 76.70% (352/1000 lolos)
+• <b>Challenger Test Winrate @ 0.50:</b> 73.54% (393/1000 lolos)
+• <b>Status Kelulusan:</b> ⚠️ <b>Ditolak (Akurasi Turun)</b>
+
+<i>Metric ini dihitung dari labeled/shadow dataset, bukan jaminan winrate live berikutnya. AI menggunakan sample weighting untuk membedakan TP kuat, BEP/proteksi, dan loss.</i>"
+2026-07-17T03:01:33+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>D1</code>
+Direction: <b>BUY / Long</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>51.31%</code>
+0.618 entry (0.01 lot): <code>48.03%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (D1): RSI8=43.8 %K=32.0 %D=34.3 🟡[WAIT]
+Signal (D1): RSI8=43.8 %K=32.0 %D=34.3 🟡[WAIT]
+LTF (H4): RSI8=25.8 %K=20.2 %D=26.2 🟩[REBUY] ✔
+Confluence: 1/3 layers align | Net Conf 0%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Not confirmed on current LTF touch
+Order 0.500: Monitoring only (MT5_EXECUTE_TRADES disabled)
+Order 0.618: Monitoring only (MT5_EXECUTE_TRADES disabled)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>4003.349</code>
+Entry 0.618 (0.01 lot): <code>3993.677</code>
+Stop Loss: <code>3960.365</code>
+TP1: <code>4044.334</code>
+TP2 dynamic: <code>4054.046</code>
+TP3 extension: <code>4175.288</code>
+
+<b>Confluence</b>
+1. Indecision Candle D1 (Model confidence: 51.3%)
+2. Supply/Demand Zone D1 (Model confidence: 51.3%)
+3. Oscillator MTF (1/3 layers align, net 0% conf) — HTF(D1): RSI8=43.8 %K=32.0 [WAIT] | Sig(D1): RSI8=43.8 %K=32.0 [WAIT] | LTF(H4): RSI8=25.8 %K=20.2 [REBUY] [ALIGN]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-17T05:01:01+07:00,text,True,"🧹 <b>[Risk Management] Cleaned up 6 zombie pending orders:</b>
+• Order #4385258602 (structure mitigated/invalid (age expired))
+• Order #4385260207 (structure mitigated/invalid (age expired))
+• Order #4385260245 (structure mitigated/invalid (age expired))
+• Order #4385345852 (structure mitigated/invalid (age expired))
+• Order #4389057264 (structure mitigated/invalid (age expired))
+• Order #4389057268 (structure mitigated/invalid (age expired))"
+2026-07-17T05:02:02+07:00,text,True,"🧹 <b>[Risk Management] Pending Order Dicabut</b> 🧹
+
+Order pending limit berikut telah dibatalkan (mitigated/expired/too far).
+• <b>Timeframe:</b> H4
+• <b>Setup:</b> BEAR (Option B (0.618))
+• <b>Ticket:</b> #4385345852"
+2026-07-17T05:02:02+07:00,text,True,"🧹 <b>[Risk Management] Pending Order Dicabut</b> 🧹
+
+Order pending limit berikut telah dibatalkan (mitigated/expired/too far).
+• <b>Timeframe:</b> H1
+• <b>Setup:</b> BEAR (Option B (0.618))
+• <b>Ticket:</b> #4385258602"
+2026-07-17T05:02:03+07:00,text,True,"🧹 <b>[Risk Management] Pending Order Dicabut</b> 🧹
+
+Order pending limit berikut telah dibatalkan (mitigated/expired/too far).
+• <b>Timeframe:</b> H4
+• <b>Setup:</b> BEAR (Option A (0.50))
+• <b>Ticket:</b> #4385260207"
+2026-07-17T05:02:04+07:00,text,True,"🧹 <b>[Risk Management] Pending Order Dicabut</b> 🧹
+
+Order pending limit berikut telah dibatalkan (mitigated/expired/too far).
+• <b>Timeframe:</b> H4
+• <b>Setup:</b> BEAR (Option B (0.618))
+• <b>Ticket:</b> #4385260245"
+2026-07-17T05:02:05+07:00,text,True,"🧹 <b>[Risk Management] Pending Order Dicabut</b> 🧹
+
+Order pending limit berikut telah dibatalkan (mitigated/expired/too far).
+• <b>Timeframe:</b> H4
+• <b>Setup:</b> BEAR (Option A (0.50))
+• <b>Ticket:</b> #4389057264"
+2026-07-17T05:02:05+07:00,text,True,"🧹 <b>[Risk Management] Pending Order Dicabut</b> 🧹
+
+Order pending limit berikut telah dibatalkan (mitigated/expired/too far).
+• <b>Timeframe:</b> H4
+• <b>Setup:</b> BEAR (Option B (0.618))
+• <b>Ticket:</b> #4389057268"
+2026-07-17T05:02:35+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>H1</code>
+Direction: <b>SELL / Short</b>
+Setup: Order Block (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>51.31%</code>
+0.618 entry (0.01 lot): <code>55.52%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (H4): RSI8=25.8 %K=20.2 %D=26.2 🟩[REBUY] ⚠
+Signal (H1): RSI8=25.1 %K=12.6 %D=16.0 🟢[BUY] ⚠
+LTF (M15): RSI8=37.8 %K=36.0 %D=33.2 🟡[WAIT]
+Confluence: 0/3 layers align | Net Conf -3%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Not confirmed on current LTF touch
+Order 0.500: Pending order placed (ticket #4390280771)
+Order 0.618: Pending order placed (ticket #4390280772)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>4031.765</code>
+Entry 0.618 (0.01 lot): <code>4034.286</code>
+Stop Loss: <code>4044.447</code>
+TP1: <code>3990.296</code>
+TP2 dynamic: <code>3975.019</code>
+TP3 extension: <code>3981.039</code>
+
+<b>Confluence</b>
+1. Order Block H1 (Model confidence: 55.5%)
+2. Order Block H4 (Model confidence: 48.0%)
+3. Order Block M30 (Model confidence: 48.0%)
+4. Supported by FLOOP Pro Trend Filter (strong strength=10)
+5. KNN Classifier bullish alignment: 65.4% directional probability
+6. Oscillator MTF caution (0/3 layers align, net -3% conf) — HTF(H4): RSI8=25.8 %K=20.2 [REBUY] [OPPOSE] | Sig(H1): RSI8=25.1 %K=12.6 [BUY] [OPPOSE] | LTF(M15): RSI8=37.8 %K=36.0 [WAIT]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-17T05:02:39+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>H1</code>
+Direction: <b>SELL / Short</b>
+Setup: Fair Value Gap (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>55.52%</code>
+0.618 entry (0.01 lot): <code>55.52%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (H4): RSI8=25.8 %K=20.2 %D=26.2 🟩[REBUY] ⚠
+Signal (H1): RSI8=25.1 %K=12.6 %D=16.0 🟢[BUY] ⚠
+LTF (M15): RSI8=37.8 %K=36.0 %D=33.2 🟡[WAIT]
+Confluence: 0/3 layers align | Net Conf -3%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Confirmed
+LTF rejection: Not confirmed on current LTF touch
+Order 0.500: Pending order placed (ticket #4390280807)
+Order 0.618: Pending order placed (ticket #4390280808)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>4016.829</code>
+Entry 0.618 (0.01 lot): <code>4023.091</code>
+Stop Loss: <code>4045.362</code>
+TP1: <code>3990.296</code>
+TP2 dynamic: <code>3975.019</code>
+TP3 extension: <code>3902.697</code>
+
+<b>Confluence</b>
+1. Fair Value Gap H1 (Model confidence: 55.5%)
+2. Swapzone (SBR/RBS) H4 (Model confidence: 36.8%)
+3. Aligned inside active Higher Timeframe (HTF) structure
+4. Supported by FLOOP Pro Trend Filter (strong strength=12)
+5. KNN Classifier bullish alignment: 65.4% directional probability
+6. Oscillator MTF caution (0/3 layers align, net -3% conf) — HTF(H4): RSI8=25.8 %K=20.2 [REBUY] [OPPOSE] | Sig(H1): RSI8=25.1 %K=12.6 [BUY] [OPPOSE] | LTF(M15): RSI8=37.8 %K=36.0 [WAIT]
+<b>HTF Match</b>
+- <code>H4</code> FVG <code>4007.811</code>-<code>4021.084</code>
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-17T05:02:44+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>H4</code>
+Direction: <b>SELL / Short</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>51.31%</code>
+0.618 entry (0.01 lot): <code>48.03%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (D1): RSI8=43.8 %K=32.0 %D=34.3 🟡[WAIT]
+Signal (H4): RSI8=25.8 %K=20.2 %D=26.2 🟩[REBUY] ⚠
+LTF (H1): RSI8=25.1 %K=12.6 %D=16.0 🟢[BUY] ⚠
+Confluence: 0/3 layers align | Net Conf -1%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Not confirmed on current LTF touch
+Order 0.500: Pending order placed (ticket #4390280841)
+Order 0.618: Pending order placed (ticket #4390280842)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>4060.404</code>
+Entry 0.618 (0.01 lot): <code>4061.677</code>
+Stop Loss: <code>4067.797</code>
+TP1: <code>4055.011</code>
+TP2 dynamic: <code>3982.884</code>
+TP3 extension: <code>4030.832</code>
+
+<b>Confluence</b>
+1. Indecision Candle H4 (Model confidence: 51.3%)
+2. Indecision Candle H1 (Model confidence: 51.3%)
+3. Swapzone (SBR/RBS) H1 (Model confidence: 36.8%)
+4. Entry zone near Psychological Round Level (ends in 0 or 5)
+5. Supported by FLOOP Pro Trend Filter (moderate strength=9)
+6. KNN Classifier bullish alignment: 81.8% directional probability
+7. Oscillator MTF caution (0/3 layers align, net -1% conf) — HTF(D1): RSI8=43.8 %K=32.0 [WAIT] | Sig(H4): RSI8=25.8 %K=20.2 [REBUY] [OPPOSE] | LTF(H1): RSI8=25.1 %K=12.6 [BUY] [OPPOSE]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-17T07:01:10+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>D1</code>
+Direction: <b>SELL / Short</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>51.31%</code>
+0.618 entry (0.01 lot): <code>51.31%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (D1): RSI8=34.6 %K=19.9 %D=27.1 🟩[REBUY] ⚠
+Signal (D1): RSI8=34.6 %K=19.9 %D=27.1 🟩[REBUY] ⚠
+LTF (H4): RSI8=29.7 %K=17.5 %D=21.8 🟩[REBUY] ⚠
+Confluence: 0/3 layers align | Net Conf -2%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Not confirmed on current LTF touch
+Order 0.500: Monitoring only (MT5_EXECUTE_TRADES disabled)
+Order 0.618: Monitoring only (MT5_EXECUTE_TRADES disabled)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>4049.346</code>
+Entry 0.618 (0.01 lot): <code>4056.935</code>
+Stop Loss: <code>4083.502</code>
+TP1: <code>4017.191</code>
+TP2 dynamic: <code>3946.880</code>
+TP3 extension: <code>3912.724</code>
+
+<b>Confluence</b>
+1. Indecision Candle D1 (Model confidence: 51.3%)
+2. Supply/Demand Zone D1 (Model confidence: 51.3%)
+3. Entry zone near Psychological Round Level (ends in 0 or 5)
+4. Supported by FLOOP Pro Trend Filter (strong strength=12)
+5. Oscillator MTF caution (0/3 layers align, net -2% conf) — HTF(D1): RSI8=34.6 %K=19.9 [REBUY] [OPPOSE] | Sig(D1): RSI8=34.6 %K=19.9 [REBUY] [OPPOSE] | LTF(H4): RSI8=29.7 %K=17.5 [REBUY] [OPPOSE]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-17T07:01:14+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>H1</code>
+Direction: <b>BUY / Long</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>51.31%</code>
+0.618 entry (0.01 lot): <code>51.31%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (H4): RSI8=29.7 %K=17.5 %D=21.8 🟩[REBUY] ✔
+Signal (H1): RSI8=37.9 %K=25.1 %D=20.4 🟡[WAIT]
+LTF (M15): RSI8=64.9 %K=89.3 %D=82.0 🟧[RESELL] ⚠
+Confluence: 1/3 layers align | Net Conf +1%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Confirmed (M5)
+Order 0.500: Pending order placed (ticket #4390507198)
+Order 0.618: Pending order placed (ticket #4390507201)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>3976.802</code>
+Entry 0.618 (0.01 lot): <code>3975.926</code>
+Stop Loss: <code>3971.088</code>
+TP1: <code>3980.517</code>
+TP2 dynamic: <code>4008.529</code>
+TP3 extension: <code>3999.660</code>
+
+<b>Confluence</b>
+1. Indecision Candle H1 (Model confidence: 51.3%)
+2. Wick Rejection touch confirmed on M5
+3. Indecision Candle M30 (Model confidence: 51.3%)
+4. Indecision Candle H1 (Model confidence: 43.8%)
+5. KNN Classifier opposite-direction signal detected (92.1%) — contra caution
+6. Oscillator MTF (1/3 layers align, net +1% conf) — HTF(H4): RSI8=29.7 %K=17.5 [REBUY] [ALIGN] | Sig(H1): RSI8=37.9 %K=25.1 [WAIT] | LTF(M15): RSI8=64.9 %K=89.3 [RESELL] [OPPOSE]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-17T07:08:51+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>H1</code>
+Direction: <b>BUY / Long</b>
+Setup: Supply/Demand Zone (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>51.31%</code>
+0.618 entry (0.01 lot): <code>51.31%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (H4): RSI8=29.7 %K=17.5 %D=21.8 🟩[REBUY] ✔
+Signal (H1): RSI8=37.9 %K=25.1 %D=20.4 🟡[WAIT]
+LTF (M15): RSI8=64.9 %K=89.3 %D=82.0 🟧[RESELL] ⚠
+Confluence: 1/3 layers align | Net Conf +1%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Not confirmed on current LTF touch
+Order 0.500: Failed (buy limit entry 3991.363 is not below current ask 3987.579; waiting for a valid retracement)
+Order 0.618: Pending order placed (ticket #4390527965)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>3991.123</code>
+Entry 0.618 (0.01 lot): <code>3987.016</code>
+Stop Loss: <code>3971.718</code>
+TP1: <code>4006.691</code>
+TP2 dynamic: <code>4008.529</code>
+TP3 extension: <code>4068.745</code>
+
+<b>Confluence</b>
+1. Supply/Demand Zone H1 (Model confidence: 51.3%)
+2. Indecision Candle H4 (Model confidence: 48.0%)
+3. Supply/Demand Zone H4 (Model confidence: 43.8%)
+4. KNN Classifier opposite-direction signal detected (92.1%) — contra caution
+5. Oscillator MTF (1/3 layers align, net +1% conf) — HTF(H4): RSI8=29.7 %K=17.5 [REBUY] [ALIGN] | Sig(H1): RSI8=37.9 %K=25.1 [WAIT] | LTF(M15): RSI8=64.9 %K=89.3 [RESELL] [OPPOSE]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-17T07:20:30+07:00,text,True,"🤖 <b>[MLOps Auto-Retrain] Otak AI Diupdate</b> 🤖
+
+• <b>Dataset Latih:</b> 5000 trade terbaru
+• <b>Active Window Cap:</b> 5000 setup terbaru
+• <b>Basis Metric:</b> Holdout test 20% | threshold 0.50 | sample 1000
+• <b>Champion Test Accuracy:</b> 74.80%
+• <b>Challenger Test Accuracy:</b> 74.00%
+• <b>Champion Test Winrate @ 0.50:</b> 76.49% (353/1000 lolos)
+• <b>Challenger Test Winrate @ 0.50:</b> 72.43% (399/1000 lolos)
+• <b>Status Kelulusan:</b> ⚠️ <b>Ditolak (Akurasi Turun)</b>
+
+<i>Metric ini dihitung dari labeled/shadow dataset, bukan jaminan winrate live berikutnya. AI menggunakan sample weighting untuk membedakan TP kuat, BEP/proteksi, dan loss.</i>"
+2026-07-17T07:31:31+07:00,text,True,"⚠️ <b>[SMC Eviction Engine] Order Evicted!</b> ⚠️
+
+Pending order #4390507198 (SMC H1 IC A) telah dibatalkan untuk mengosongkan slot karena limit penuh.
+• <b>Evicted Setup Confidence:</b> <code>50.0%</code>
+• <b>New Setup Confidence:</b> <code>55.5%</code>
+• <b>Tindakan:</b> Order #4390507198 dipindahkan ke Paper/Shadow Tracker untuk dipelajari hasilnya secara offline."
+2026-07-17T07:31:35+07:00,photo_and_text,True,"<b>SMC Trade Signal - XAUUSD</b>
+
+<b>Signal</b>
+Symbol: <code>XAUUSD</code>
+Timeframe: <code>M30</code>
+Direction: <b>BUY / Long</b>
+Setup: Indecision Candle (Dual Fibonacci Entry)
+
+<b>Model Confidence</b>
+0.500 entry (0.01 lot): <code>55.52%</code>
+0.618 entry (0.01 lot): <code>55.52%</code>
+Accept threshold: <code>50.00%</code>
+
+<b>Oscillator (RSI8 + Stoch)</b>
+HTF (H1): RSI8=37.9 %K=25.1 %D=20.4 🟡[WAIT]
+Signal (M30): RSI8=48.6 %K=69.7 %D=60.0 🟡[WAIT]
+LTF (M5): RSI8=57.1 %K=65.7 %D=70.9 🟡[WAIT]
+Confluence: 0/3 layers align | Net Conf 0%
+
+<b>Execution</b>
+Entry policy: Live-entry timeframe
+HTF priority: Not active
+LTF rejection: Confirmed (M5)
+Order 0.500: Pending order placed (ticket #4390610976)
+Order 0.618: Pending order placed (ticket #4390610980)
+
+<b>Levels</b>
+Entry 0.500 (0.01 lot): <code>3978.061</code>
+Entry 0.618 (0.01 lot): <code>3977.426</code>
+Stop Loss: <code>3973.372</code>
+TP1: <code>3980.750</code>
+TP2 dynamic: <code>3983.448</code>
+TP3 extension: <code>3996.817</code>
+
+<b>Confluence</b>
+1. Indecision Candle M30 (Model confidence: 55.5%)
+2. Wick Rejection touch confirmed on M5
+3. Indecision Candle H1 (Model confidence: 51.3%)
+4. Indecision Candle H1 (Model confidence: 43.8%)
+5. KNN Classifier opposite-direction signal detected (80.9%) — contra caution
+6. Oscillator MTF neutral (0/3 layers align, net 0% conf) — HTF(H1): RSI8=37.9 %K=25.1 [WAIT] | Sig(M30): RSI8=48.6 %K=69.7 [WAIT] | LTF(M5): RSI8=57.1 %K=65.7 [WAIT]
+
+<i>Source: closed-candle scanner data and MT5 execution response.</i>"
+2026-07-17T07:32:41+07:00,text,True,"🧹 <b>[Risk Management] Pending Order Dicabut</b> 🧹
+
+Order pending limit berikut telah dibatalkan (mitigated/expired/too far).
+• <b>Timeframe:</b> H1
+• <b>Setup:</b> BULL (Option A (0.50))
+• <b>Ticket:</b> #4390507198"
+2026-07-17T08:09:39+07:00,text,True,"🧹 <b>[Risk Management] Cleaned up 1 zombie pending orders:</b>
+• Order #66666 (SL violated)"
+2026-07-17T08:48:37+07:00,text,True,"🛡️ <b>[SMC Trade Closed] Option B (0.618) Selesai</b> 🛡️
+
+• <b>Ticket:</b> #4390527965
+• <b>Timeframe:</b> H1
+• <b>Setup:</b> BULL (Order Block)
+• <b>Entry Price:</b> <code>3987.016</code>
+• <b>SL | TP:</b> <code>3971.718 | 4006.691</code>
+• <b>Close Price:</b> <code>3987.456</code> (SL)
+• <b>Hasil Posisi:</b> 🟡 <b>BEP+ / SL PROTECT</b>
+• <b>Net PnL Riil:</b> <code>+0.20 USD</code>
+• <b>PnL Relative:</b> <code>+0.03 R</code>
+
+🛡️ <b>Penyebab BEP+ / Profit Proteksi:</b> Posisi ditutup hijau kecil (+0.03 R) melalui exit proteksi/SL bergerak (Reason: SL), bukan karena TP utama tersentuh. Entry masih dibantu oleh rebound harga pada level POC/Pivot broker dan kekuatan momentum volume pasar yang memadai, tetapi follow-through market belum cukup kuat sampai target.
+
+🧠 <b>Pelajaran AI (Bobot Latih = 0.50):</b>
+AI menyimpan setup ini sebagai profit defensif, bukan winner murni. Model belajar bahwa pola ini boleh dihargai karena menjaga modal, tetapi confidence tidak dinaikkan sekuat trade yang benar-benar TP.
+
+<i>Database latih diperbarui & retraining otomatis dipicu.</i>"
+2026-07-17T08:48:38+07:00,text,True,"🧠 <b>Bot AI mempelajari 1 hasil trade baru.</b>
+Retraining ditunda sampai akumulasi mencapai <b>10</b> trade."
+2026-07-17T09:10:33+07:00,text,True,"🧹 <b>[Risk Management] Cleaned up 1 zombie pending orders:</b>
+• Order #66666 (SL violated)"

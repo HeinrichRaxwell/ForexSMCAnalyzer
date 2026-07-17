@@ -407,6 +407,21 @@ def _positions_for_symbol_magic(symbol: str, magic: int) -> list:
     return _filter_by_magic(positions, magic)
 
 
+def _positions_for_active_management(symbol: str, magic: int) -> list:
+    """Return bot positions and, when enabled, terminal manual positions only."""
+    positions = _positions_for_symbol_magic(symbol, magic)
+    if not _read_bool_env("MT5_MANAGE_MANUAL_POSITIONS", False):
+        return positions
+
+    all_positions = mt5.positions_get(symbol=symbol)
+    manual_positions = _filter_by_magic(all_positions, 0)
+    known_tickets = {getattr(position, "ticket", None) for position in positions}
+    return positions + [
+        position
+        for position in manual_positions
+        if getattr(position, "ticket", None) not in known_tickets
+    ]
+
 def _orders_for_symbol_magic(symbol: str, magic: int) -> list:
     orders = mt5.orders_get(symbol=symbol)
     return _filter_by_magic(orders, magic)
@@ -1641,8 +1656,9 @@ _PROCESS_EXITED_TICKETS = set()
 
 def manage_active_trades(symbol: str, magic: int, timeframes_data: dict):
     """
-    Scans all active positions for the magic number and applies:
-    1. Break Even Point (BEP) when price reaches 1:1 Risk-to-Reward.
+    Scans bot positions and optional manual positions for protective SL management.
+    Bot positions also receive the strategy-specific exit manager. It applies:
+    1. Break Even Point (BEP) when price reaches the configured fixed-profit trigger or 1:1 Risk-to-Reward.
     2. Structural Trailing Stop (SMC strategy 2) based on Swing Lows/Highs.
     3. Soft TP execution at TP 1 (Fibo TP) with Partial Close (Option B) if HTF trend is confluent, 
        or full close if HTF trend is not aligned.
@@ -1653,7 +1669,7 @@ def manage_active_trades(symbol: str, magic: int, timeframes_data: dict):
     from src.telegram_bot import send_telegram_alert
     
     broker_symbol = get_active_broker_symbol(symbol)
-    positions = _positions_for_symbol_magic(broker_symbol, magic)
+    positions = _positions_for_active_management(broker_symbol, magic)
     if len(positions) == 0:
         return
         
@@ -1677,9 +1693,10 @@ def manage_active_trades(symbol: str, magic: int, timeframes_data: dict):
         current_tp = p.tp
         current_vol = p.volume
         direction = 1 if p.type == mt5.POSITION_TYPE_BUY else -1
+        is_bot_position = _matches_magic(p, magic)
         
         # We parse the timeframe and option type from the position comment (if set by bot)
-        comment = p.comment
+        comment = str(p.comment or "")
         tf = "M30" # default fallback
         if "H4" in comment:
             tf = "H4"
@@ -1738,7 +1755,7 @@ def manage_active_trades(symbol: str, magic: int, timeframes_data: dict):
             original_sl = current_sl
 
         exit_price = _position_exit_price(direction, tick)
-        if matched_sig_data is not None and _read_bool_env("MT5_RUNNER_ENABLED", True):
+        if is_bot_position and matched_sig_data is not None and _read_bool_env("MT5_RUNNER_ENABLED", True):
             runner_active = bool(matched_sig_data.get(f"runner_active{matched_suffix}", False))
             if runner_active:
                 previous_best = matched_sig_data.get(f"runner_best_price{matched_suffix}", exit_price)
@@ -1800,7 +1817,7 @@ def manage_active_trades(symbol: str, magic: int, timeframes_data: dict):
         df_tf = timeframes_data.get(tf)
         
         # --- A. Emergency Reversal Exit (opposite CHoCH/Trend reversal) ---
-        if df_tf is not None and not df_tf.empty and 'Trend' in df_tf.columns:
+        if is_bot_position and df_tf is not None and not df_tf.empty and 'Trend' in df_tf.columns:
             if should_emergency_exit_on_reversal(df_tf, tf, direction, entry_price, exit_price, h1_trend, h4_trend):
                 # Reversal detected on setup timeframe! Close the trade immediately.
                 print(f"[Execution Engine] Confirmed trend reversal (opposite CHoCH) detected on {tf} for position #{ticket}. Closing deal.")
@@ -1861,7 +1878,7 @@ def manage_active_trades(symbol: str, magic: int, timeframes_data: dict):
                     continue
                     
         # --- B. Soft TP Logic at TP 1 (Fibo TP) ---
-        if tp1 > 0.0:
+        if is_bot_position and tp1 > 0.0:
             is_tp1_reached = False
             if direction == 1: # Buy
                 if tick.bid >= tp1:
@@ -1941,6 +1958,20 @@ def manage_active_trades(symbol: str, magic: int, timeframes_data: dict):
             bep_arm_floor_price = arm_floor_pips * pip_multiplier
 
         selected_sl = None
+        fixed_bep_trigger_pips = _read_float_env("MT5_BEP_TRIGGER_PIPS", 50.0)
+        profit_pips = (
+            ((exit_price - entry_price) * direction) / pip_multiplier
+            if pip_multiplier > 0
+            else 0.0
+        )
+        if fixed_bep_trigger_pips > 0 and profit_pips >= fixed_bep_trigger_pips:
+            selected_sl = _select_best_stop_loss(
+                selected_sl,
+                entry_price + (spread_buffer * direction),
+                current_sl,
+                direction,
+                tick,
+            )
         if original_sl != 0:
             initial_risk = abs(entry_price - original_sl)
             # Require the move to clear BOTH 1R and the ATR noise floor before BEP.

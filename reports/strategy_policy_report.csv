@@ -1,22 +1,25 @@
 entry_type,timeframe,strategy,trades,wins,losses,winrate_pct,gross_profit_usd,gross_loss_usd,avg_win_usd,avg_loss_usd,net_profit_usd,profit_factor,payoff_ratio,deployment_status,policy_reason
-Standard Limit,H1,FVG,9,6,3,66.67,30.3,30.01,5.05,10.0,0.29,1.01,0.5,MONITOR,No automatic promotion; keep evaluating forward profit factor and payoff ratio.
-Standard Limit,H1,OB,5,2,3,40.0,28.49,28.68,14.24,9.56,-0.19,0.99,1.49,MONITOR,No automatic promotion; keep evaluating forward profit factor and payoff ratio.
+Standard Limit,H1,FVG,12,6,6,50.0,30.3,75.25,5.05,12.54,-44.95,0.4,0.4,MONITOR,No automatic promotion; keep evaluating forward profit factor and payoff ratio.
+Standard Limit,H1,IC,2,1,1,50.0,4.25,15.47,4.25,15.47,-11.22,0.27,0.27,MONITOR,No automatic promotion; keep evaluating forward profit factor and payoff ratio.
+Standard Limit,H1,OB,6,3,3,50.0,33.8,28.68,11.27,9.56,5.12,1.18,1.18,MONITOR,No automatic promotion; keep evaluating forward profit factor and payoff ratio.
+Standard Limit,H1,SND,1,1,0,100.0,0.2,-0.0,0.2,,0.2,,,MONITOR,No automatic promotion; keep evaluating forward profit factor and payoff ratio.
 Standard Limit,H4,FVG,3,3,0,100.0,13.64,-0.0,4.55,,13.64,,,MONITOR,No automatic promotion; keep evaluating forward profit factor and payoff ratio.
 Standard Limit,H4,IC,1,1,0,100.0,14.29,-0.0,14.29,,14.29,,,MONITOR,No automatic promotion; keep evaluating forward profit factor and payoff ratio.
 Standard Limit,H4,OB,2,0,2,0.0,0.0,35.17,,17.58,-35.17,0.0,,BLOCKED,Forward sample is small and currently negative; replay is required before reconsideration.
-Standard Limit,M30,FVG,5,3,2,60.0,64.48,46.71,21.49,23.36,17.77,1.38,0.92,MONITOR,No automatic promotion; keep evaluating forward profit factor and payoff ratio.
-Standard Limit,M30,IC,5,2,3,40.0,45.69,5.71,22.85,1.9,39.98,8.0,12.0,MONITOR,No automatic promotion; keep evaluating forward profit factor and payoff ratio.
+Standard Limit,M30,FVG,11,5,6,45.45,65.5,78.93,13.1,13.16,-13.43,0.83,1.0,MONITOR,No automatic promotion; keep evaluating forward profit factor and payoff ratio.
+Standard Limit,M30,IC,9,3,6,33.33,50.26,28.81,16.75,4.8,21.45,1.74,3.49,MONITOR,No automatic promotion; keep evaluating forward profit factor and payoff ratio.
 Standard Limit,M30,OB,4,3,1,75.0,61.46,27.61,20.49,27.61,33.85,2.23,0.74,MONITOR,No automatic promotion; keep evaluating forward profit factor and payoff ratio.
-WatchZone,D1,Unknown,71,28,43,39.44,271.41,288.65,9.69,6.71,-17.24,0.94,1.44,BLOCKED,Instant WatchZone is limited to the forward-positive OB M30/H1 candidates.
-WatchZone,H1,FVG,39,15,24,38.46,94.93,193.33,6.33,8.06,-98.4,0.49,0.79,BLOCKED,Instant WatchZone is limited to the forward-positive OB M30/H1 candidates.
-WatchZone,H1,IC,29,20,9,68.97,93.13,157.12,4.66,17.46,-63.99,0.59,0.27,BLOCKED,Instant WatchZone is limited to the forward-positive OB M30/H1 candidates.
-WatchZone,H1,OB,16,11,5,68.75,142.01,63.14,12.91,12.63,78.87,2.25,1.02,CANDIDATE,Restricted candidate needs at least 30 resolved forward trades before promotion.
+WatchZone,D1,IC,7,2,5,28.57,4.52,11.91,2.26,2.38,-7.39,0.38,0.95,BLOCKED,Instant WatchZone is limited to the forward-positive OB M30/H1 candidates.
+WatchZone,D1,Unknown,64,26,38,40.62,266.89,276.74,10.27,7.28,-9.85,0.96,1.41,BLOCKED,Instant WatchZone is limited to the forward-positive OB M30/H1 candidates.
+WatchZone,H1,FVG,42,15,27,35.71,79.79,216.18,5.32,8.01,-136.39,0.37,0.66,BLOCKED,Instant WatchZone is limited to the forward-positive OB M30/H1 candidates.
+WatchZone,H1,IC,32,21,11,65.62,108.39,174.96,5.16,15.91,-66.57,0.62,0.32,BLOCKED,Instant WatchZone is limited to the forward-positive OB M30/H1 candidates.
+WatchZone,H1,OB,14,11,3,78.57,142.01,45.3,12.91,15.1,96.71,3.13,0.85,CANDIDATE,Restricted candidate needs at least 30 resolved forward trades before promotion.
 WatchZone,H4,FVG,8,6,2,75.0,58.84,47.97,9.81,23.98,10.87,1.23,0.41,BLOCKED,Instant WatchZone is limited to the forward-positive OB M30/H1 candidates.
 WatchZone,H4,IC,2,1,1,50.0,2.5,1.76,2.5,1.76,0.74,1.42,1.42,BLOCKED,Instant WatchZone is limited to the forward-positive OB M30/H1 candidates.
 WatchZone,H4,OB,6,2,4,33.33,15.77,35.89,7.88,8.97,-20.12,0.44,0.88,BLOCKED,Instant WatchZone is limited to the forward-positive OB M30/H1 candidates.
 WatchZone,H4,SND,3,3,0,100.0,15.4,-0.0,5.13,,15.4,,,BLOCKED,Instant WatchZone is limited to the forward-positive OB M30/H1 candidates.
 WatchZone,H4,Unknown,13,8,5,61.54,40.28,72.72,5.04,14.54,-32.44,0.55,0.35,BLOCKED,Instant WatchZone is limited to the forward-positive OB M30/H1 candidates.
 WatchZone,M30,BPR,1,1,0,100.0,9.64,-0.0,9.64,,9.64,,,BLOCKED,Instant WatchZone is limited to the forward-positive OB M30/H1 candidates.
-WatchZone,M30,FVG,56,30,26,53.57,209.79,377.04,6.99,14.5,-167.25,0.56,0.48,BLOCKED,Instant WatchZone is limited to the forward-positive OB M30/H1 candidates.
-WatchZone,M30,IC,21,15,6,71.43,41.22,23.5,2.75,3.92,17.72,1.75,0.7,BLOCKED,Instant WatchZone is limited to the forward-positive OB M30/H1 candidates.
-WatchZone,M30,OB,15,13,2,86.67,151.4,38.37,11.65,19.19,113.03,3.95,0.61,CANDIDATE,Restricted candidate needs at least 30 resolved forward trades before promotion.
+WatchZone,M30,FVG,63,30,33,47.62,203.19,421.33,6.77,12.77,-218.14,0.48,0.53,BLOCKED,Instant WatchZone is limited to the forward-positive OB M30/H1 candidates.
+WatchZone,M30,IC,23,17,6,73.91,55.2,23.5,3.25,3.92,31.7,2.35,0.83,BLOCKED,Instant WatchZone is limited to the forward-positive OB M30/H1 candidates.
+WatchZone,M30,OB,20,15,5,75.0,151.95,42.88,10.13,8.58,109.07,3.54,1.18,CANDIDATE,Restricted candidate needs at least 30 resolved forward trades before promotion.

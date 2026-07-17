@@ -247,8 +247,8 @@ Current closed-trade forward-test aggregate:
 
 | Entry type | Closed trades | Win rate | Net PnL | Profit factor |
 | --- | ---: | ---: | ---: | ---: |
-| Standard Limit | 34 | 58.82% | +84.46 USD | 1.49 |
-| WatchZone | 280 | 54.64% | -153.17 USD | 0.88 |
+| Standard Limit | 51 | 50.98% | -16.22 USD | 0.94 |
+| WatchZone | 298 | 53.02% | -216.77 USD | 0.84 |
 
 The WatchZone aggregate is negative despite a win rate above 50%, which is why
 the instant-entry policy is restrictive. The numbers are historical results,

@@ -118,6 +118,85 @@ def test_manage_active_trades_bep_trigger(mock_load_signals, mock_order_send, mo
     assert sent_request['position'] == 9999
     assert sent_request['sl'] == 100.2  # 100.0 + 2 pips buffer (Gold pip is 0.1, so buffer is 0.2)
 
+@patch('MetaTrader5.symbol_info')
+@patch('MetaTrader5.positions_get')
+@patch('MetaTrader5.symbol_info_tick')
+@patch('src.execution.modify_position_sltp')
+@patch('src.execution.load_sent_signals')
+def test_manage_active_trades_forces_bep_at_50_pips_even_below_one_r(
+    mock_load_signals, mock_modify_sltp, mock_tick, mock_positions, mock_symbol_info, monkeypatch
+):
+    monkeypatch.setenv("MT5_BEP_TRIGGER_PIPS", "50")
+    monkeypatch.setenv("MT5_MANAGE_MANUAL_POSITIONS", "False")
+    mock_sym = MagicMock()
+    mock_sym.digits = 3
+    mock_symbol_info.return_value = mock_sym
+
+    position = MagicMock()
+    position.ticket = 9901
+    position.price_open = 4000.0
+    position.sl = 3980.0
+    position.tp = 4050.0
+    position.volume = 0.01
+    position.type = 0
+    position.comment = "SMC M30 Option A"
+    position.symbol = "XAUUSD"
+    position.magic = 202606
+    position.profit = 0.0
+    mock_positions.return_value = [position]
+
+    tick = MagicMock()
+    tick.bid = 4005.1
+    tick.ask = 4005.3
+    mock_tick.return_value = tick
+    mock_load_signals.return_value = {}
+    mock_modify_sltp.return_value = True
+
+    manage_active_trades("XAUUSD", 202606, {})
+
+    mock_modify_sltp.assert_called_once_with(9901, "XAUUSD", pytest.approx(4000.2), 4050.0)
+
+
+@patch('MetaTrader5.symbol_info')
+@patch('MetaTrader5.positions_get')
+@patch('MetaTrader5.symbol_info_tick')
+@patch('src.execution.modify_position_sltp')
+@patch('src.execution.load_sent_signals')
+@patch('src.execution.close_position')
+def test_manage_active_trades_manages_manual_position_at_50_pips(
+    mock_close_position, mock_load_signals, mock_modify_sltp, mock_tick, mock_positions, mock_symbol_info, monkeypatch
+):
+    monkeypatch.setenv("MT5_BEP_TRIGGER_PIPS", "50")
+    monkeypatch.setenv("MT5_MANAGE_MANUAL_POSITIONS", "True")
+    mock_sym = MagicMock()
+    mock_sym.digits = 3
+    mock_symbol_info.return_value = mock_sym
+
+    position = MagicMock()
+    position.ticket = 9902
+    position.price_open = 4000.0
+    position.sl = 3980.0
+    position.tp = 4050.0
+    position.volume = 0.01
+    position.type = 0
+    position.comment = "manual"
+    position.symbol = "XAUUSD"
+    position.magic = 0
+    position.profit = 0.0
+    mock_positions.return_value = [position]
+
+    tick = MagicMock()
+    tick.bid = 4005.1
+    tick.ask = 4005.3
+    mock_tick.return_value = tick
+    mock_load_signals.return_value = {}
+    mock_modify_sltp.return_value = True
+
+    manage_active_trades("XAUUSD", 202606, {})
+
+    mock_modify_sltp.assert_called_once_with(9902, "XAUUSD", pytest.approx(4000.2), 4050.0)
+    mock_close_position.assert_not_called()
+
 
 @patch('MetaTrader5.symbol_info')
 @patch('MetaTrader5.positions_get')
