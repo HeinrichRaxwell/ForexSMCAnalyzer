@@ -24,6 +24,31 @@ def _get_sl_buffer_pips(strategy_name: str) -> float:
         pass
     return fallback
 
+def _get_min_tp_price(entry_price: float, direction: int, symbol: str, tp_price: float) -> float:
+    """Ensure the target TP price is at least MT5_TP_MIN_PIPS from the entry price."""
+    try:
+        val = os.getenv("MT5_TP_MIN_PIPS")
+        if val is not None:
+            min_pips = float(val)
+        else:
+            min_pips = 0.0
+    except (ValueError, TypeError):
+        min_pips = 0.0
+
+    if min_pips <= 0:
+        return tp_price
+    
+    pip_multiplier = get_pip_multiplier(symbol)
+    if pip_multiplier <= 0:
+        return tp_price
+        
+    min_distance = min_pips * pip_multiplier
+    if int(direction) == 1:
+        return max(float(tp_price), float(entry_price) + min_distance)
+    else:
+        return min(float(tp_price), float(entry_price) - min_distance)
+
+
 def is_running_candle(df: pd.DataFrame, idx: int) -> bool:
     """
     Check if the candle at idx is a running candle.
@@ -237,6 +262,7 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
                 fibo_0_5 = fibo_0_0 - 0.5 * (fibo_0_0 - fibo_1_0)
                 fibo_0_618 = fibo_0_0 - 0.618 * (fibo_0_0 - fibo_1_0)
                 fvg_sl = fibo_1_0 - buffer
+                fibo_0_0 = _get_min_tp_price(fibo_0_5, 1, symbol, fibo_0_0)
                 
                 df.at[df.index[i], 'FVG_Fibo_0.0'] = fibo_0_0
                 df.at[df.index[i], 'FVG_Fibo_0.5'] = fibo_0_5
@@ -260,6 +286,7 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
                 fibo_0_5 = fibo_0_0 + 0.5 * (fibo_1_0 - fibo_0_0)
                 fibo_0_618 = fibo_0_0 + 0.618 * (fibo_1_0 - fibo_0_0)
                 fvg_sl = fibo_1_0 + buffer
+                fibo_0_0 = _get_min_tp_price(fibo_0_5, -1, symbol, fibo_0_0)
                 
                 df.at[df.index[i], 'FVG_Fibo_0.0'] = fibo_0_0
                 df.at[df.index[i], 'FVG_Fibo_0.5'] = fibo_0_5
@@ -290,6 +317,7 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
                     fibo_0_5 = ob_top - 0.5 * (ob_top - ob_bottom)
                     fibo_0_618 = ob_top - 0.618 * (ob_top - ob_bottom)
                     ob_sl = ob_bottom - buffer
+                    fibo_0_0 = _get_min_tp_price(fibo_0_5, 1, symbol, fibo_0_0)
                     
                     df.at[df.index[i], 'OB_Type'] = 'BULLISH'
                     df.at[df.index[i], 'OB_Top'] = ob_top
@@ -324,6 +352,7 @@ def detect_fvg_and_ob(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
                     fibo_0_5 = ob_bottom + 0.5 * (ob_top - ob_bottom)
                     fibo_0_618 = ob_bottom + 0.618 * (ob_top - ob_bottom)
                     ob_sl = ob_top + buffer
+                    fibo_0_0 = _get_min_tp_price(fibo_0_5, -1, symbol, fibo_0_0)
                     
                     df.at[df.index[i], 'OB_Type'] = 'BEARISH'
                     df.at[df.index[i], 'OB_Top'] = ob_top
@@ -472,6 +501,7 @@ def detect_snr_and_swapzones(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.Dat
                         fibo_0_5 = swap_high - 0.5 * (swap_high - swap_low)
                         fibo_0_618 = swap_high - 0.618 * (swap_high - swap_low)
                         swap_sl = swap_low - buffer
+                        fibo_0_0 = _get_min_tp_price(fibo_0_5, 1, symbol, fibo_0_0)
                         
                         df.at[df.index[i], 'Swap_Fibo_0.0'] = fibo_0_0
                         df.at[df.index[i], 'Swap_Fibo_0.5'] = fibo_0_5
@@ -514,6 +544,7 @@ def detect_snr_and_swapzones(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.Dat
                         fibo_0_5 = swap_low + 0.5 * (swap_high - swap_low)
                         fibo_0_618 = swap_low + 0.618 * (swap_high - swap_low)
                         swap_sl = swap_high + buffer
+                        fibo_0_0 = _get_min_tp_price(fibo_0_5, -1, symbol, fibo_0_0)
                         
                         df.at[df.index[i], 'Swap_Fibo_0.0'] = fibo_0_0
                         df.at[df.index[i], 'Swap_Fibo_0.5'] = fibo_0_5
@@ -626,12 +657,14 @@ def detect_bpr(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.DataFrame:
                                 fibo_0_5 = fibo_0_0 - 0.5 * (fibo_0_0 - fibo_1_0)
                                 fibo_0_618 = fibo_0_0 - 0.618 * (fibo_0_0 - fibo_1_0)
                                 bpr_sl = fibo_1_0 - buffer
+                                fibo_0_0 = _get_min_tp_price(fibo_0_5, 1, symbol, fibo_0_0)
                             else:
                                 fibo_1_0 = float(df['High'].iloc[i-1])
                                 fibo_0_0 = float(df['Low'].iloc[i-1])
                                 fibo_0_5 = fibo_0_0 + 0.5 * (fibo_1_0 - fibo_0_0)
                                 fibo_0_618 = fibo_0_0 + 0.618 * (fibo_1_0 - fibo_0_0)
                                 bpr_sl = fibo_1_0 + buffer
+                                fibo_0_0 = _get_min_tp_price(fibo_0_5, -1, symbol, fibo_0_0)
                                 
                             df.at[df.index[i], 'BPR_Fibo_0.0'] = fibo_0_0
                             df.at[df.index[i], 'BPR_Fibo_0.5'] = fibo_0_5
@@ -736,6 +769,7 @@ def detect_indecision_candles(df: pd.DataFrame, body_ratio: float = 0.25, symbol
                     fibo_0_5 = high_k - 0.5 * (high_k - low_k)
                     fibo_0_618 = high_k - 0.618 * (high_k - low_k)
                     ic_sl = low_k - buffer
+                    fibo_0_0 = _get_min_tp_price(fibo_0_5, 1, symbol, fibo_0_0)
                     
                     df.at[df.index[i], 'IC_Fibo_0.0'] = fibo_0_0
                     df.at[df.index[i], 'IC_Fibo_0.5'] = fibo_0_5
@@ -762,6 +796,7 @@ def detect_indecision_candles(df: pd.DataFrame, body_ratio: float = 0.25, symbol
                     fibo_0_5 = low_k + 0.5 * (high_k - low_k)
                     fibo_0_618 = low_k + 0.618 * (high_k - low_k)
                     ic_sl = high_k + buffer
+                    fibo_0_0 = _get_min_tp_price(fibo_0_5, -1, symbol, fibo_0_0)
                     
                     df.at[df.index[i], 'IC_Fibo_0.0'] = fibo_0_0
                     df.at[df.index[i], 'IC_Fibo_0.5'] = fibo_0_5
@@ -877,6 +912,7 @@ def detect_supply_demand_zones(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.D
                     fibo_0_5 = top_val - 0.5 * (top_val - bottom_val)
                     fibo_0_618 = top_val - 0.618 * (top_val - bottom_val)
                     sl_val = bottom_val - buffer
+                    fibo_0_0 = _get_min_tp_price(fibo_0_5, 1, symbol, fibo_0_0)
                 else:
                     # Supply Zone: Fibo calculation
                     fibo_1_0 = top_val
@@ -884,6 +920,7 @@ def detect_supply_demand_zones(df: pd.DataFrame, symbol: str = "XAUUSD") -> pd.D
                     fibo_0_5 = bottom_val + 0.5 * (top_val - bottom_val)
                     fibo_0_618 = bottom_val + 0.618 * (top_val - bottom_val)
                     sl_val = top_val + buffer
+                    fibo_0_0 = _get_min_tp_price(fibo_0_5, -1, symbol, fibo_0_0)
                     
                 df.at[df.index[i], 'SD_Type'] = sd_type
                 df.at[df.index[i], 'SD_Top'] = top_val
