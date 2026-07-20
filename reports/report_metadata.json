@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-07-17 09:18:40 WIB",
+  "generated_at": "2026-07-20 11:11:17 WIB",
   "standard_limit_rows": 35,
-  "forward_closed_trades": 349,
-  "forward_signal_level_matches": 54,
-  "forward_exit_summary_rows": 61,
-  "strategy_policy_rows": 24,
-  "telegram_delivery_events": 97,
+  "forward_closed_trades": 437,
+  "forward_signal_level_matches": 124,
+  "forward_exit_summary_rows": 92,
+  "strategy_policy_rows": 43,
+  "telegram_delivery_events": 265,
   "sources": {
     "standard_limit": "data\\real_tick_standard_limit_may2026_all_tf.csv",
     "positions": "scratch\\bot_positions_ss_matched_full.csv",
