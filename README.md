@@ -250,6 +250,36 @@ Current closed-trade forward-test aggregate:
 | Standard Limit | 115 | 46.96% | -212.44 USD | 0.72 |
 | WatchZone | 309 | 52.10% | -232.08 USD | 0.84 |
 
+### Performance Breakdown by Strategy (since May 2026)
+
+| Strategy | Entry Type | Trades | Wins | Losses | Win Rate | Net PnL (USD) |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **OB** (Order Block) | Standard Limit | 27 | 15 | 12 | 55.56% | +126.17 |
+| **OB** (Order Block) | WatchZone | 45 | 21 | 24 | 46.67% | -126.84 |
+| **FVG** (Fair Value Gap) | Standard Limit | 52 | 27 | 25 | 51.92% | -248.32 |
+| **FVG** (Fair Value Gap) | WatchZone | 114 | 57 | 57 | 50.00% | -202.02 |
+| **IC** (Institutional Candle) | Standard Limit | 34 | 10 | 24 | 29.41% | -90.69 |
+| **IC** (Institutional Candle) | WatchZone | 89 | 49 | 40 | 55.06% | +16.56 |
+| **Swapzone** | WatchZone | 29 | 18 | 11 | 62.07% | +183.45 |
+| **SND** (Supply & Demand) | Standard Limit | 2 | 2 | 0 | 100.00% | +0.40 |
+| **SND** (Supply & Demand) | WatchZone | 11 | 8 | 3 | 72.73% | +34.75 |
+| **BPR** (Balanced Price Range) | WatchZone | 2 | 2 | 0 | 100.00% | +9.84 |
+| **Pivot** | WatchZone | 14 | 6 | 8 | 42.86% | -53.57 |
+| **Breaker** | WatchZone | 5 | 0 | 5 | 0.00% | -94.25 |
+
+### Performance Breakdown by Timeframe (since May 2026)
+
+| Timeframe | Entry Type | Trades | Wins | Losses | Win Rate | Net PnL (USD) |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **M15** | WatchZone | 27 | 14 | 13 | 51.85% | +8.09 |
+| **M30** | Standard Limit | 55 | 23 | 32 | 41.82% | +3.67 |
+| **M30** | WatchZone | 161 | 81 | 80 | 50.31% | -171.53 |
+| **H1** | Standard Limit | 46 | 25 | 21 | 54.35% | +12.48 |
+| **H1** | WatchZone | 74 | 36 | 38 | 48.65% | -177.75 |
+| **H4** | Standard Limit | 14 | 6 | 8 | 42.86% | -228.59 |
+| **H4** | WatchZone | 38 | 26 | 12 | 68.42% | +113.55 |
+| **D1** | WatchZone | 9 | 4 | 5 | 44.44% | -4.44 |
+
 The WatchZone aggregate is negative despite a win rate above 50%, which is why
 the instant-entry policy is restrictive. The numbers are historical results,
 not a prediction.
