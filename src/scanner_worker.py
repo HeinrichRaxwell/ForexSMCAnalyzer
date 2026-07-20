@@ -1037,9 +1037,9 @@ def get_watch_zone_reversal_context(symbol: str, timeframe: str) -> dict:
 def refresh_watch_zone_rejection(symbol: str, setup: dict) -> tuple[bool, str]:
     """Confirm the selected WatchZone leg from fresh lower-timeframe candles."""
     checks = (
-        ("M5", mt5.TIMEFRAME_M5, 120, 30),
-        ("M1", mt5.TIMEFRAME_M1, 180, 90),
-        ("M15", mt5.TIMEFRAME_M15, 80, 15),
+        ("M5", mt5.TIMEFRAME_M5, 15, 3),    # last 15 mins (3 candles)
+        ("M1", mt5.TIMEFRAME_M1, 10, 5),    # last 10 mins (5 candles)
+        ("M15", mt5.TIMEFRAME_M15, 15, 2),  # last 30 mins (2 candles)
     )
     for source, mt5_timeframe, candles, lookback in checks:
         if source == "M15" and setup.get("timeframe") == "M15":

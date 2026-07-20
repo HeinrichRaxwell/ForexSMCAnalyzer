@@ -534,11 +534,15 @@ def _strategy_from_setup(setup: dict) -> str:
     return "FVG"
 
 
+def _is_option_b(text: str) -> bool:
+    return any(k in str(text) for k in ("Option B", "0.618", "GoldenPocket")) or str(text).strip().endswith(" B")
+
+
 def _order_comment(setup: dict, *, market: bool = False) -> str:
     timeframe = str(setup.get("timeframe", "M15"))
     strategy = _strategy_from_setup(setup)
     option_name = str(setup.get("option_name", ""))
-    option = "B" if any(value in option_name for value in ("Option B", "0.618", "GoldenPocket")) else "A"
+    option = "B" if _is_option_b(option_name) else "A"
     mode = " Mkt" if market else ""
     return f"SMC {timeframe} {strategy}{mode} {option}"[:31]
 
@@ -583,9 +587,6 @@ def _max_pending_orders_message(symbol: str, magic: int, setup: dict, broker_ent
     # counterparts and must never block each other (they are placed as a pair).
     same_tf_proximity_pips = _read_float_env("MT5_SAME_TF_PROXIMITY_PIPS", 30.0)
     same_tf_limit = same_tf_proximity_pips * pip_multiplier if pip_multiplier > 0 else same_tf_proximity_pips
-
-    def _is_option_b(text: str) -> bool:
-        return any(k in str(text) for k in ("Option B", "0.618", "GoldenPocket"))
 
     new_is_b = _is_option_b(opt_name)
 
@@ -1079,9 +1080,6 @@ def _check_market_proximity_message(symbol: str, magic: int, setup: dict, curren
 
     same_tf_proximity_pips = _read_float_env("MT5_SAME_TF_PROXIMITY_PIPS", 30.0)
     same_tf_limit = same_tf_proximity_pips * pip_multiplier if pip_multiplier > 0 else same_tf_proximity_pips
-
-    def _is_option_b(text: str) -> bool:
-        return any(k in str(text) for k in ("Option B", "0.618", "GoldenPocket"))
 
     new_is_b = _is_option_b(opt_name)
 
@@ -1707,7 +1705,7 @@ def manage_active_trades(symbol: str, magic: int, timeframes_data: dict):
         elif "M15" in comment:
             tf = "M15"
             
-        is_option_b = "Option B" in comment or "0.618" in comment or "GoldenPocket" in comment
+        is_option_b = "Option B" in comment or "0.618" in comment or "GoldenPocket" in comment or comment.strip().endswith(" B")
         
         # 1. Look up original Stop Loss, TP1, and TP2 from sent signals registry
         original_sl = current_sl
