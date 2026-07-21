@@ -13,7 +13,7 @@ DEFAULT_OUTPUT_PATH = BASE_DIR / "data" / "real_tick_backtest_results.csv"
 DEFAULT_TICK_CACHE_DIR = BASE_DIR / "data" / "ticks"
 
 DEFAULT_TIMEFRAMES = ["M15", "M30", "H1", "H4", "D1"]
-DEFAULT_STRATEGIES = ["FVG", "OB", "BB", "Swapzone", "BPR", "IC", "COMBINED"]
+DEFAULT_STRATEGIES = ["FVG", "OB", "BB", "Swapzone", "BPR", "IC", "COMBINED", "OB_WATCHZONE", "COMBINED_WATCHZONE"]
 TIMEFRAME_ALIASES = {
     "M15": "15",
     "M30": "30",
@@ -37,12 +37,39 @@ def parse_csv_ints(value: str) -> list[int]:
 
 def filter_setups_for_run(setups: list[dict], strategy: str, threshold: float) -> list[dict]:
     filtered = []
+    pip_multiplier = 0.1  # Default for XAUUSD
+    slippage_val = 1.0 * pip_multiplier  # 1.0 pip slippage
+
     for setup in setups:
-        if strategy != "COMBINED" and setup.get("strategy") != strategy:
-            continue
+        # Check strategy
+        if strategy == "OB_WATCHZONE":
+            if setup.get("strategy") != "OB":
+                continue
+            if not setup.get("rejection_confirmed", False):
+                continue
+        elif strategy == "COMBINED_WATCHZONE":
+            if not setup.get("rejection_confirmed", False):
+                continue
+        else:
+            if strategy != "COMBINED" and setup.get("strategy") != strategy:
+                continue
+
+        # Check ML probability threshold
         if float(setup.get("probability", 0.5)) < float(threshold):
             continue
-        filtered.append(setup)
+
+        # For watchzone strategies, apply 1.0 pip slippage (worse entry price)
+        if "WATCHZONE" in strategy:
+            s_copy = setup.copy()
+            direction = int(s_copy["direction"])
+            if direction == 1:
+                s_copy["entry_price"] = float(s_copy["entry_price"]) + slippage_val
+            else:
+                s_copy["entry_price"] = float(s_copy["entry_price"]) - slippage_val
+            filtered.append(s_copy)
+        else:
+            filtered.append(setup)
+
     return filtered
 
 
@@ -211,6 +238,38 @@ def build_timeframe_setups(
     return prepared
 
 
+def load_ticks_optimized(symbol: str, start, end, cache_dir) -> pd.DataFrame:
+    from src.tick_data import iter_days, tick_cache_path, CACHE_READ_ERRORS
+    import pandas as pd
+    import os
+
+    start_ts = pd.Timestamp(start)
+    end_ts = pd.Timestamp(end)
+    frames = []
+
+    print(f"Optimized loading of ticks for {symbol} from {start_ts.date()} to {end_ts.date()}...", flush=True)
+    for day in iter_days(start_ts, end_ts):
+        path = tick_cache_path(cache_dir, symbol, day)
+        if not path.exists() or path.stat().st_size <= 100:
+            continue
+        try:
+            df = pd.read_csv(path, usecols=["time", "bid", "ask"], compression="gzip")
+            if not df.empty:
+                frames.append(df)
+        except CACHE_READ_ERRORS:
+            continue
+
+    if not frames:
+        return pd.DataFrame(columns=["time", "bid", "ask"])
+
+    frame = pd.concat(frames, ignore_index=True)
+    frame["time"] = pd.to_datetime(frame["time"], errors="coerce")
+    frame = frame.dropna(subset=["time"])
+    frame = frame[(frame["time"] >= start_ts) & (frame["time"] < end_ts)]
+    frame = frame.sort_values("time", kind="mergesort").reset_index(drop=True)
+    return frame
+
+
 def run_real_tick_backtest(
     symbol: str,
     start: datetime,
@@ -262,8 +321,8 @@ def run_real_tick_backtest(
         mt5.shutdown()
 
     if download_ticks:
-        print(f"Downloading/loading ticks for {active_symbol} from {start} to {end}...", flush=True)
-        ticks = download_ticks_range(
+        print(f"Downloading tick cache for {active_symbol} {start.date()} -> {end.date()}...", flush=True)
+        download_ticks_range(
             active_symbol,
             start,
             end,
@@ -272,21 +331,25 @@ def run_real_tick_backtest(
             force=force_ticks,
             verbose=True,
         )
-        missing_cache_days = []
-    else:
-        print(f"Loading ticks from cache for {active_symbol} from {start} to {end}...", flush=True)
-        ticks, missing_cache_days = load_ticks_range_from_cache(
-            active_symbol,
-            start,
-            end,
-            cache_dir=tick_cache_dir,
-        )
+
+    # Load only necessary columns for the backtest in memory (taking ~1GB of RAM for XAUUSD)
+    ticks = load_ticks_optimized(active_symbol, start, end, tick_cache_dir)
+    print(f"Successfully loaded {len(ticks):,} ticks into memory for backtesting.", flush=True)
+
+    # Lightweight coverage probe: find missing days
+    from src.tick_data import iter_days, tick_cache_path
+    missing_cache_days = []
+    for _day in iter_days(pd.Timestamp(start), pd.Timestamp(end)):
+        _path = tick_cache_path(tick_cache_dir, active_symbol, _day)
+        if not _path.exists() or _path.stat().st_size <= 100:
+            missing_cache_days.append(_day.date().isoformat())
 
     results = []
     for (timeframe, sizing), payload in timeframe_setups.items():
         candles = payload["candles"]
         all_setups = payload["setups"]
         print(f"Simulating {timeframe} {sizing}: {len(all_setups)} scored setups...", flush=True)
+
         coverage = calculate_tick_coverage(
             ticks=ticks,
             missing_cache_days=missing_cache_days,
@@ -294,6 +357,7 @@ def run_real_tick_backtest(
             start=start,
             end=end,
         )
+
         for capital in capitals:
             for strategy in strategies:
                 for max_concurrent in max_concurrencies:

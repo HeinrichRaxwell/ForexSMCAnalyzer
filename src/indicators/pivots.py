@@ -145,22 +145,29 @@ def draw_pivots_on_mt5(symbol: str, df_d1: pd.DataFrame):
         'pivot_S4': float(latest_pivots['pivot_S4']),
     }
     
-    # Write to MT5 Terminal Common Files directory
+    # Write to MT5 Terminal Common Files directory AND all local instance MQL5/Files directories
+    import glob
     import json
     import os
-    
-    # Path to MT5 Common Files
+
     appdata = os.environ.get('APPDATA')
     if appdata:
         common_files_dir = os.path.join(appdata, "MetaQuotes", "Terminal", "Common", "Files")
-        os.makedirs(common_files_dir, exist_ok=True)
-        file_path = os.path.join(common_files_dir, "pivot_levels.json")
-        try:
-            with open(file_path, "w") as f:
-                json.dump(pivot_data, f, indent=4)
-            print(f"[Pivots Visualizer] Successfully wrote daily pivot levels to: {file_path}")
-        except Exception as e:
-            print(f"[Pivots Visualizer Error] Failed to write daily pivot levels: {e}")
+        file_paths = [os.path.join(common_files_dir, "pivot_levels.json")]
+
+        # Also write to all local instance MQL5/Files folders for MQL5 indicators reading without FILE_COMMON flag
+        local_files_dirs = glob.glob(os.path.join(appdata, "MetaQuotes", "Terminal", "*", "MQL5", "Files"))
+        for local_dir in local_files_dirs:
+            file_paths.append(os.path.join(local_dir, "pivot_levels.json"))
+
+        for fp in file_paths:
+            try:
+                os.makedirs(os.path.dirname(fp), exist_ok=True)
+                with open(fp, "w") as f:
+                    json.dump(pivot_data, f, indent=4)
+            except Exception as e:
+                print(f"[Pivots Visualizer Error] Failed to write {fp}: {e}")
+        print(f"[Pivots Visualizer] Successfully wrote daily pivot levels to {len(file_paths)} MT5 file paths.")
 
 def detect_pivot_rejection_setups_at_idx(df: pd.DataFrame, idx: int, symbol: str = "XAUUSD") -> list:
     """

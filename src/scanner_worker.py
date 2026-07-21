@@ -523,6 +523,9 @@ def _pid_is_running(pid: int) -> bool:
             kernel32 = ctypes.windll.kernel32
             handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid_value)
             if not handle:
+                ERROR_ACCESS_DENIED = 5
+                if kernel32.GetLastError() == ERROR_ACCESS_DENIED:
+                    return True
                 return False
             try:
                 exit_code = ctypes.c_ulong()
@@ -1920,7 +1923,7 @@ def run_scan(symbol: str, confidence_threshold: float):
             s['timeframe'] = tf_name
             s['strategy'] = get_strategy_name(s['option_name'])
             s['symbol'] = symbol
-            if s['strategy'] in ['FVG', 'OB', 'BPR', 'IC', 'SND', 'Pivot', 'Swapzone', 'Breaker']:
+            if s['strategy'] in ['FVG', 'OB', 'BPR', 'IC', 'SND', 'Pivot', 'Swapzone']:
                 all_setups.append(s)
             
     # 4. Multi-Timeframe Alignment, Suppression, and Rejection Checks

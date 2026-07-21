@@ -964,7 +964,7 @@ def process_mt5_history_feedback(sent_signals_file=None, labeled_data_path="data
                 
                 # Calculate actual close price and broker exit reason from deals.
                 for d in deals:
-                    if d.entry == mt5.DEAL_ENTRY_OUT:
+                    if d.entry in (mt5.DEAL_ENTRY_OUT, getattr(mt5, "DEAL_ENTRY_OUT_BY", 3)):
                         close_price = d.price
                         close_reason = _format_mt5_deal_reason(mt5, getattr(d, "reason", None))
                         break
@@ -1058,9 +1058,9 @@ def process_mt5_history_feedback(sent_signals_file=None, labeled_data_path="data
                 f"• <b>Ticket:</b> #{ticket}\n"
                 f"• <b>Timeframe:</b> {timeframe}\n"
                 f"• <b>Setup:</b> {direction} ({setup_type_str})\n"
-                f"• <b>Entry Price:</b> <code>{features_dict.get('entry_price', 0.0) if features_dict else 0.0:.3f}</code>\n"
-                f"• <b>SL | TP:</b> <code>{features_dict.get('sl_price', 0.0) if features_dict else 0.0:.3f} | {features_dict.get('tp_price', 0.0) if features_dict else 0.0:.3f}</code>\n"
-                f"• <b>Close Price:</b> <code>{features_dict.get('close_price', 0.0) if features_dict else 0.0:.3f}</code> ({features_dict.get('close_reason', 'UNKNOWN') if features_dict else 'UNKNOWN'})\n"
+                f"• <b>Entry Price:</b> <code>{(features_dict.get('entry_price') or 0.0) if features_dict else 0.0:.3f}</code>\n"
+                f"• <b>SL | TP:</b> <code>{(features_dict.get('sl_price') or 0.0) if features_dict else 0.0:.3f} | {(features_dict.get('tp_price') or 0.0) if features_dict else 0.0:.3f}</code>\n"
+                f"• <b>Close Price:</b> <code>{(features_dict.get('close_price') or 0.0) if features_dict else 0.0:.3f}</code> ({features_dict.get('close_reason', 'UNKNOWN') if features_dict else 'UNKNOWN'})\n"
                 f"• <b>Hasil Posisi:</b> {color_str} <b>{outcome_str}</b>\n"
                 f"• <b>Net PnL Riil:</b> <code>{net_profit:+,.2f} {currency}</code>\n"
                 f"• <b>PnL Relative:</b> <code>{pnl_relative:+.2f} R</code>\n\n"
