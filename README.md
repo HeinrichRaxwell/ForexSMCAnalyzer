@@ -327,3 +327,8 @@ tests/                    Regression and unit tests
 - Run a new or changed policy in monitoring/forward-test conditions before
   enabling execution.
 - This repository contains no claim of future profitability.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
